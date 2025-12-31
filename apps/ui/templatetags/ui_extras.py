@@ -18,3 +18,10 @@ def nav_active(request, path_prefix):
     if request.path.startswith(path_prefix):
         return "active"
     return ""
+
+
+@register.filter
+def startswith(value, prefix):
+    if value is None:
+        return False
+    return str(value).startswith(str(prefix))

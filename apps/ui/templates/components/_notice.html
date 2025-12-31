@@ -1,0 +1,16 @@
+<div
+  class="toast align-items-center text-bg-{{ tone|default:"info" }} border-0 js-toast"
+  role="alert"
+  aria-live="assertive"
+  aria-atomic="true"
+  data-bs-autohide="true"
+  data-bs-delay="{{ delay|default:"5000" }}"
+>
+  <div class="d-flex">
+    <div class="toast-body">
+      {% if title %}<div class="fw-semibold">{{ title }}</div>{% endif %}
+      {% if message %}{{ message }}{% else %}{% block notice_content %}{% endblock %}{% endif %}
+    </div>
+    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fechar"></button>
+  </div>
+</div>

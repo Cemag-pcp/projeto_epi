@@ -1,0 +1,18 @@
+<tr id="afastamento-row-{{ afastamento.pk }}">
+  <td>{{ afastamento.data_inicio }}</td>
+  <td>{{ afastamento.data_fim }}</td>
+  <td>{{ afastamento.dias_afastado }}</td>
+  <td>{{ afastamento.motivo }}</td>
+  <td>
+    {% if afastamento.arquivo %}
+      <a href="{{ afastamento.arquivo.url }}" target="_blank" rel="noopener">{{ afastamento.nome_arquivo }}</a>
+    {% else %}
+      -
+    {% endif %}
+  </td>
+  <td class="text-end">
+    <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#afastamentoEditModal-{{ afastamento.pk }}">
+      Editar
+    </button>
+  </td>
+</tr>

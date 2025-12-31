@@ -1,9 +1,7 @@
 {% if messages %}
   <div class="mb-3">
     {% for message in messages %}
-      <div class="alert alert-{{ message.tags|default:"info" }}" role="alert">
-        {{ message }}
-      </div>
+      {% include "components/_notice.html" with tone=message.tags|default:"info" message=message dismissible=True %}
     {% endfor %}
   </div>
 {% endif %}

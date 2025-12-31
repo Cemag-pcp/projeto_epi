@@ -20,12 +20,15 @@
       .sidebar-collapsed .app-sidebar .sidebar-title {
         display: none;
       }
+      #toast-container {
+        z-index: 2000;
+      }
     </style>
   </head>
   <body class="bg-light">
     <header class="navbar navbar-expand-lg bg-white border-bottom sticky-top shadow-sm">
       <div class="container-fluid">
-        <a class="navbar-brand fw-semibold" href="/" up-follow>
+        <a class="navbar-brand fw-semibold" href="/">
           Clarus
         </a>
         <div class="d-flex align-items-center gap-3 ms-auto">
@@ -75,37 +78,37 @@
           {% load ui_extras %}
           <nav class="nav flex-column p-3 gap-1 collapse d-lg-block small" id="sidebarMenu">
             {% block sidebar %}
-              <a class="nav-link {% nav_active request '/' %}" href="{% url 'ui-home' %}" up-target="#content">
+              <a class="nav-link {% nav_active request '/' %}" href="{% url 'ui-home' %}">
                 <i class="bi bi-speedometer2 me-2"></i><span class="sidebar-label">Dashboard</span>
               </a>
               <button class="nav-link text-start d-flex align-items-center gap-2" type="button" data-bs-toggle="collapse" data-bs-target="#cadastrosMenu" aria-expanded="false">
                 <i class="bi bi-folder2-open"></i><span class="sidebar-label">Cadastros</span>
                 <i class="bi bi-chevron-down ms-auto sidebar-label"></i>
               </button>
-              <div class="collapse" id="cadastrosMenu">
-                <a class="nav-link ms-3 {% nav_active request '/funcionarios/' %}" href="{% url 'funcionarios:list' %}" up-target="#content">
+              <div class="collapse{% if request.path|startswith:'/funcionarios/' or request.path|startswith:'/cargos/' or request.path|startswith:'/setores/' or request.path|startswith:'/tipos_funcionario/' or request.path|startswith:'/fornecedores/' or request.path|startswith:'/produtos/' or request.path|startswith:'/depositos/' %} show{% endif %}" id="cadastrosMenu">
+                <a class="nav-link ms-3 {% nav_active request '/funcionarios/' %}" href="{% url 'funcionarios:list' %}">
                   <i class="bi bi-people me-2"></i><span class="sidebar-label">Funcionarios</span>
                 </a>
-                <a class="nav-link ms-3 {% nav_active request '/cargos/' %}" href="{% url 'cargos:list' %}" up-target="#content">
+                <a class="nav-link ms-3 {% nav_active request '/cargos/' %}" href="{% url 'cargos:list' %}">
                   <i class="bi bi-briefcase me-2"></i><span class="sidebar-label">Cargos</span>
                 </a>
-                <a class="nav-link ms-3 {% nav_active request '/setores/' %}" href="{% url 'setores:list' %}" up-target="#content">
+                <a class="nav-link ms-3 {% nav_active request '/setores/' %}" href="{% url 'setores:list' %}">
                   <i class="bi bi-diagram-3 me-2"></i><span class="sidebar-label">Setores</span>
                 </a>
-                <a class="nav-link ms-3 {% nav_active request '/tipos_funcionario/' %}" href="{% url 'tipos_funcionario:list' %}" up-target="#content">
+                <a class="nav-link ms-3 {% nav_active request '/tipos_funcionario/' %}" href="{% url 'tipos_funcionario:list' %}">
                   <i class="bi bi-person-badge me-2"></i><span class="sidebar-label">Tipos de Funcionario</span>
                 </a>
-                <a class="nav-link ms-3 {% nav_active request '/fornecedores/' %}" href="{% url 'fornecedores:list' %}" up-target="#content">
+                <a class="nav-link ms-3 {% nav_active request '/fornecedores/' %}" href="{% url 'fornecedores:list' %}">
                   <i class="bi bi-truck me-2"></i><span class="sidebar-label">Fornecedores</span>
                 </a>
-                <a class="nav-link ms-3 {% nav_active request '/produtos/' %}" href="{% url 'produtos:list' %}" up-target="#content">
+                <a class="nav-link ms-3 {% nav_active request '/produtos/' %}" href="{% url 'produtos:list' %}">
                   <i class="bi bi-box-seam me-2"></i><span class="sidebar-label">Produtos</span>
                 </a>
-                <a class="nav-link ms-3 {% nav_active request '/depositos/' %}" href="{% url 'depositos:list' %}" up-target="#content">
+                <a class="nav-link ms-3 {% nav_active request '/depositos/' %}" href="{% url 'depositos:list' %}">
                   <i class="bi bi-building me-2"></i><span class="sidebar-label">Depositos</span>
                 </a>
               </div>
-              <a class="nav-link {% nav_active request '/estoque/' %}" href="{% url 'estoque:list' %}" up-target="#content">
+              <a class="nav-link {% nav_active request '/estoque/' %}" href="{% url 'estoque:list' %}">
                 <i class="bi bi-archive me-2"></i><span class="sidebar-label">Estoque</span>
               </a>
             {% endblock %}
@@ -121,20 +124,70 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3"></div>
     <script src="https://unpkg.com/unpoly@3.5.1/unpoly.min.js"></script>
     <script>
       (function () {
-        var key = "clarus.sidebar.collapsed";
+        var sidebarKey = "clarus.sidebar.collapsed";
         var body = document.body;
         var toggle = document.querySelector("[data-sidebar-toggle]");
-        if (localStorage.getItem(key) === "1") {
+        if (localStorage.getItem(sidebarKey) === "1") {
           body.classList.add("sidebar-collapsed");
         }
         if (toggle) {
           toggle.addEventListener("click", function () {
             body.classList.toggle("sidebar-collapsed");
-            localStorage.setItem(key, body.classList.contains("sidebar-collapsed") ? "1" : "0");
+            localStorage.setItem(sidebarKey, body.classList.contains("sidebar-collapsed") ? "1" : "0");
           });
+        }
+
+        var collapses = document.querySelectorAll(".collapse[id]");
+        collapses.forEach(function (collapseEl) {
+          var key = "clarus.collapse." + collapseEl.id;
+          var hasActiveLink = collapseEl.querySelector(".nav-link.active");
+          if (hasActiveLink) {
+            collapseEl.classList.add("show");
+            localStorage.setItem(key, "1");
+          }
+          if (localStorage.getItem(key) === "1") {
+            collapseEl.classList.add("show");
+            var trigger = document.querySelector('[data-bs-target="#' + collapseEl.id + '"]');
+            if (trigger) {
+              trigger.setAttribute("aria-expanded", "true");
+            }
+          }
+          collapseEl.addEventListener("shown.bs.collapse", function () {
+            localStorage.setItem(key, "1");
+          });
+          collapseEl.addEventListener("hidden.bs.collapse", function () {
+            localStorage.setItem(key, "0");
+          });
+        });
+      })();
+    </script>
+    <script>
+      (function () {
+        function initToasts() {
+          var container = document.getElementById("toast-container");
+          if (!container || !window.bootstrap) {
+            return;
+          }
+          var toasts = document.querySelectorAll(".js-toast");
+          toasts.forEach(function (toastEl) {
+            if (toastEl.parentElement !== container) {
+              container.appendChild(toastEl);
+            }
+            var toast = bootstrap.Toast.getOrCreateInstance(toastEl);
+            toast.show();
+          });
+        }
+
+        window.initToasts = initToasts;
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", initToasts);
+        } else {
+          initToasts();
         }
       })();
     </script>

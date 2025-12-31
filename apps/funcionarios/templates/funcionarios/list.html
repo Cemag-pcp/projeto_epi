@@ -30,7 +30,7 @@
             <td>{{ object.tipo }}</td>
             <td>{{ object.ativo }}</td>
             <td class="text-end">
-              <a class="btn btn-sm btn-outline-secondary" href="{% url 'funcionarios:detail' object.pk %}" up-target="#content">Ficha</a>
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'funcionarios:detail' object.pk %}">Ficha</a>
               <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#editModal-{{ object.pk }}">Editar</button>
             </td>
           </tr>

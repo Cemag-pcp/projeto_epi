@@ -8,7 +8,9 @@
       <h1 class="h4 mb-1">Ficha tecnica</h1>
       <p class="text-muted mb-0">{{ object.nome }}</p>
     </div>
-    <a class="btn btn-outline-secondary btn-sm" href="{% url 'funcionarios:list' %}" up-target="#content">Voltar</a>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary btn-sm" href="{% url 'funcionarios:list' %}">Voltar</a>
+    </div>
   </div>
 
   <div class="card border-0 shadow-sm">
@@ -66,4 +68,175 @@
       </div>
     </div>
   </div>
+
+  <div class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-white d-flex align-items-center justify-content-between">
+      <div>
+        <div class="fw-semibold">Afastamentos</div>
+        <div class="text-muted small">Historico de afastamentos do funcionario</div>
+      </div>
+      <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#afastamentoModal">
+        Incluir afastamento
+      </button>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Data Inicio Afastamento</th>
+              <th>Data Fim Afastamento</th>
+              <th>Qtde. Dias Afastado</th>
+              <th>Motivo de Afastamento</th>
+              <th>Nome do Arquivo</th>
+              <th class="text-end">Acoes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for afastamento in object.afastamentos.all %}
+              {% include "funcionarios/_afastamento_row.html" with afastamento=afastamento %}
+            {% empty %}
+              <tr>
+                <td colspan="6" class="text-muted text-center py-4">Sem registros</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {% for row in afastamento_edit_rows %}
+    <div class="modal fade" id="afastamentoEditModal-{{ row.object.pk }}" tabindex="-1" aria-labelledby="afastamentoEditModalLabel-{{ row.object.pk }}" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="afastamentoEditModalLabel-{{ row.object.pk }}">Editar afastamento</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            {% include "components/_form.html" with form=row.form form_action=row.update_url %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+
+  <div class="modal fade" id="afastamentoModal" tabindex="-1" aria-labelledby="afastamentoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="afastamentoModalLabel">Novo afastamento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body" data-afastamento-modal-body="create">
+          {% include "components/_form.html" with form=afastamento_form form_action=afastamentos_create_url %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if afastamento_edit_errors_id %}
+    <script>
+      window.addEventListener("load", function () {
+        var modalEl = document.getElementById("afastamentoEditModal-{{ afastamento_edit_errors_id }}");
+        if (modalEl && window.bootstrap) {
+          var modal = new bootstrap.Modal(modalEl);
+          modal.show();
+        }
+      });
+    </script>
+  {% endif %}
+
+  <script>
+    (function () {
+      function bindAfastamentoForm(form) {
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          var modalBody = form.closest(".modal-body");
+          var formData = new FormData(form);
+          fetch(form.action, {
+            method: "POST",
+            body: formData,
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          })
+            .then(function (response) {
+              return response.json().then(function (data) {
+                return { ok: response.ok, data: data };
+              });
+            })
+            .then(function (result) {
+              if (!result.ok || !result.data.ok) {
+                if (modalBody && result.data.form_html) {
+                  modalBody.innerHTML = result.data.form_html;
+                  var newForm = modalBody.querySelector("form");
+                  if (newForm) {
+                    bindAfastamentoForm(newForm);
+                  }
+                  if (window.initToasts) {
+                    window.initToasts();
+                  }
+                }
+                return;
+              }
+
+              if (result.data.action === "create") {
+                var tbody = document.querySelector(".table tbody");
+                if (tbody) {
+                  var emptyRow = tbody.querySelector("tr td.text-muted");
+                  if (emptyRow) {
+                    emptyRow.parentElement.remove();
+                  }
+                  tbody.insertAdjacentHTML("afterbegin", result.data.row_html);
+                }
+                if (modalBody && result.data.form_html) {
+                  modalBody.innerHTML = result.data.form_html;
+                  var refreshedForm = modalBody.querySelector("form");
+                  if (refreshedForm) {
+                    bindAfastamentoForm(refreshedForm);
+                  }
+                  if (window.initToasts) {
+                    window.initToasts();
+                  }
+                }
+                var createModalEl = document.getElementById("afastamentoModal");
+                if (createModalEl && window.bootstrap) {
+                  bootstrap.Modal.getInstance(createModalEl).hide();
+                }
+                return;
+              }
+
+              if (result.data.action === "update" && result.data.row_id) {
+                var row = document.getElementById("afastamento-row-" + result.data.row_id);
+                if (row) {
+                  row.outerHTML = result.data.row_html;
+                }
+                var modalEl = document.getElementById("afastamentoEditModal-" + result.data.row_id);
+                if (modalEl && window.bootstrap) {
+                  bootstrap.Modal.getInstance(modalEl).hide();
+                }
+              }
+            })
+            .catch(function () {
+              form.submit();
+            });
+        });
+      }
+
+      function initAfastamentoForms() {
+        var forms = document.querySelectorAll(
+          "#afastamentoModal form, [id^='afastamentoEditModal-'] form"
+        );
+        forms.forEach(function (form) {
+          bindAfastamentoForm(form);
+        });
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initAfastamentoForms);
+      } else {
+        initAfastamentoForms();
+      }
+    })();
+  </script>
 {% endblock %}
