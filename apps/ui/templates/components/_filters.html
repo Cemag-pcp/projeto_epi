@@ -1,0 +1,20 @@
+<form class="row g-2 mb-3" method="get">
+  {% for filter in filters %}
+    <div class="col-12 col-md-3">
+      <label class="form-label small text-muted" for="filter-{{ filter.name }}">{{ filter.label }}</label>
+      {% if filter.type == "select" %}
+        <select class="form-select" id="filter-{{ filter.name }}" name="{{ filter.name }}">
+          {% for option in filter.options %}
+            <option value="{{ option.0 }}" {% if option.0|stringformat:"s" == filter.value|stringformat:"s" %}selected{% endif %}>{{ option.1 }}</option>
+          {% endfor %}
+        </select>
+      {% else %}
+        <input class="form-control" id="filter-{{ filter.name }}" name="{{ filter.name }}" value="{{ filter.value }}" type="{{ filter.type|default:"text" }}">
+      {% endif %}
+    </div>
+  {% endfor %}
+  <div class="col-12 col-md-3 d-flex align-items-end gap-2">
+    <button class="btn btn-outline-secondary" type="submit">Filtrar</button>
+    <a class="btn btn-link" href="?">Limpar</a>
+  </div>
+</form>

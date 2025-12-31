@@ -1,0 +1,69 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Ficha do funcionario{% endblock %}
+
+{% block content %}
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h1 class="h4 mb-1">Ficha tecnica</h1>
+      <p class="text-muted mb-0">{{ object.nome }}</p>
+    </div>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'funcionarios:list' %}" up-target="#content">Voltar</a>
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-body">
+      <div class="row g-4">
+        <div class="col-12 col-lg-3 text-center">
+          {% if object.foto %}
+            <img class="img-fluid rounded" src="{{ object.foto.url }}" alt="{{ object.nome }}">
+          {% else %}
+            <div class="border rounded bg-light d-flex align-items-center justify-content-center" style="height: 220px;">
+              <span class="text-muted">Sem foto</span>
+            </div>
+          {% endif %}
+        </div>
+        <div class="col-12 col-lg-9">
+          <div class="row g-3">
+            <div class="col-12 col-md-4">
+              <div class="text-muted small">Registro</div>
+              <div class="fw-semibold">{{ object.registro|default:"-" }}</div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="text-muted small">Turno</div>
+              <div class="fw-semibold">{{ object.turno|default:"-" }}</div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="text-muted small">Empresa</div>
+              <div class="fw-semibold">{{ object.company }}</div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="text-muted small">Setor</div>
+              <div class="fw-semibold">{{ object.setor|default:"-" }}</div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="text-muted small">Cargo</div>
+              <div class="fw-semibold">{{ object.cargo|default:"-" }}</div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="text-muted small">Centro de Custo</div>
+              <div class="fw-semibold">{{ object.centro_custo|default:"-" }}</div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="text-muted small">GHE</div>
+              <div class="fw-semibold">{{ object.ghe|default:"-" }}</div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="text-muted small">Lider</div>
+              <div class="fw-semibold">{{ object.lider|default:"-" }}</div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="text-muted small">Gestor</div>
+              <div class="fw-semibold">{{ object.gestor|default:"-" }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

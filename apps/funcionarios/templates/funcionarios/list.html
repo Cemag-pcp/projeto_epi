@@ -1,0 +1,79 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Funcionarios{% endblock %}
+
+{% block content %}
+  {% include "components/_alerts.html" %}
+  {% include "components/_page_header.html" with title=title subtitle=subtitle create_url=create_url %}
+  {% if filters %}
+    {% include "components/_filters.html" with filters=filters %}
+  {% endif %}
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Nome</th>
+          <th>Cargo</th>
+          <th>Setor</th>
+          <th>Tipo</th>
+          <th>Ativo</th>
+          <th class="text-end">Acoes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for object in object_list %}
+          <tr>
+            <td>{{ object.nome }}</td>
+            <td>{{ object.cargo }}</td>
+            <td>{{ object.setor }}</td>
+            <td>{{ object.tipo }}</td>
+            <td>{{ object.ativo }}</td>
+            <td class="text-end">
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'funcionarios:detail' object.pk %}" up-target="#content">Ficha</a>
+              <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#editModal-{{ object.pk }}">Editar</button>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" class="text-muted text-center py-4">Sem registros</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% include "components/_pagination.html" with page_obj=page_obj %}
+
+  {% if create_form %}
+    <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="createModalLabel">Novo</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            {% include "components/_form.html" with form=create_form form_action=create_url %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% for row in edit_rows %}
+    <div class="modal fade" id="editModal-{{ row.object.pk }}" tabindex="-1" aria-labelledby="editModalLabel-{{ row.object.pk }}" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editModalLabel-{{ row.object.pk }}">Editar</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            {% include "components/_form.html" with form=row.form form_action=row.update_url %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+{% endblock %}

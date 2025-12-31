@@ -1,0 +1,89 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Estoque{% endblock %}
+
+{% block content %}
+  {% include "components/_alerts.html" %}
+  {% include "components/_page_header.html" with title=title subtitle="Controle de estoque" create_url=create_url %}
+
+  {% if filters %}
+    {% include "components/_filters.html" with filters=filters %}
+  {% endif %}
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th scope="col">Produto</th>
+          <th scope="col">Deposito</th>
+          <th scope="col">Quantidade</th>
+          <th scope="col">Status</th>
+          <th scope="col" class="text-end">Acoes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in object_list %}
+          <tr>
+            <td>{{ item.produto }}</td>
+            <td>{{ item.deposito }}</td>
+            <td>{{ item.quantidade }}</td>
+            <td>
+              {% if item.quantidade|floatformat:2 == "0.00" or item.quantidade <= 0 %}
+                <span class="text-danger" title="Estoque zerado"><i class="bi bi-exclamation-octagon-fill"></i></span>
+              {% elif item.quantidade <= 5 %}
+                <span class="text-warning" title="Estoque baixo"><i class="bi bi-exclamation-triangle-fill"></i></span>
+              {% else %}
+                <span class="text-success" title="Estoque ok"><i class="bi bi-check-circle-fill"></i></span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#movModal-{{ item.pk }}">
+                Movimentar
+              </button>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5" class="text-muted text-center py-4">Sem registros</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% for row in movement_rows %}
+    <div class="modal fade" id="movModal-{{ row.object.pk }}" tabindex="-1" aria-labelledby="movModalLabel-{{ row.object.pk }}" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="movModalLabel-{{ row.object.pk }}">Movimentar estoque</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <div class="fw-semibold">{{ row.object.produto }}</div>
+              <div class="text-muted small">{{ row.object.deposito }}</div>
+            </div>
+            {% include "components/_form.html" with form=row.form form_action=row.action_url %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+
+  {% if create_form %}
+    <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="createModalLabel">Novo estoque</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            {% include "components/_form.html" with form=create_form form_action=create_url %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}

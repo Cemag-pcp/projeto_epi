@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Clarus{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/unpoly@3.5.1/unpoly.min.css" rel="stylesheet">
+    <style>
+      .sidebar-collapsed .app-sidebar {
+        width: 72px;
+      }
+      .sidebar-collapsed .app-sidebar .nav-link {
+        text-align: center;
+        padding-left: 0;
+        padding-right: 0;
+      }
+      .sidebar-collapsed .app-sidebar .sidebar-label,
+      .sidebar-collapsed .app-sidebar .sidebar-title {
+        display: none;
+      }
+    </style>
+  </head>
+  <body class="bg-light">
+    <header class="navbar navbar-expand-lg bg-white border-bottom sticky-top shadow-sm">
+      <div class="container-fluid">
+        <a class="navbar-brand fw-semibold" href="/" up-follow>
+          Clarus
+        </a>
+        <div class="d-flex align-items-center gap-3 ms-auto">
+          <span class="text-muted small d-none d-md-inline">
+            {% if request.tenant %}{{ request.tenant.name }}{% else %}Tenant{% endif %}
+          </span>
+          <div class="dropdown">
+            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              {% if request.user.is_authenticated %}{{ request.user.get_full_name|default:request.user.username }}{% else %}Entrar{% endif %}
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              {% if request.user.is_authenticated %}
+                <li><a class="dropdown-item" href="#">Perfil</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                  <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button class="dropdown-item" type="submit">Sair</button>
+                  </form>
+                </li>
+              {% else %}
+                <li><a class="dropdown-item" href="{% url 'login' %}">Entrar</a></li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="container-fluid">
+      <div class="row">
+        <aside class="col-12 col-lg-2 bg-white border-end min-vh-100 p-0 app-sidebar">
+          <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+            <div class="sidebar-title">
+              <div class="fw-semibold">Menu</div>
+              <div class="text-muted small">Navegacao modular</div>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-secondary d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
+                <i class="bi bi-list"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-secondary d-none d-lg-inline-flex" type="button" data-sidebar-toggle>
+                <i class="bi bi-layout-sidebar-inset"></i>
+              </button>
+            </div>
+          </div>
+          {% load ui_extras %}
+          <nav class="nav flex-column p-3 gap-1 collapse d-lg-block small" id="sidebarMenu">
+            {% block sidebar %}
+              <a class="nav-link {% nav_active request '/' %}" href="{% url 'ui-home' %}" up-target="#content">
+                <i class="bi bi-speedometer2 me-2"></i><span class="sidebar-label">Dashboard</span>
+              </a>
+              <button class="nav-link text-start d-flex align-items-center gap-2" type="button" data-bs-toggle="collapse" data-bs-target="#cadastrosMenu" aria-expanded="false">
+                <i class="bi bi-folder2-open"></i><span class="sidebar-label">Cadastros</span>
+                <i class="bi bi-chevron-down ms-auto sidebar-label"></i>
+              </button>
+              <div class="collapse" id="cadastrosMenu">
+                <a class="nav-link ms-3 {% nav_active request '/funcionarios/' %}" href="{% url 'funcionarios:list' %}" up-target="#content">
+                  <i class="bi bi-people me-2"></i><span class="sidebar-label">Funcionarios</span>
+                </a>
+                <a class="nav-link ms-3 {% nav_active request '/cargos/' %}" href="{% url 'cargos:list' %}" up-target="#content">
+                  <i class="bi bi-briefcase me-2"></i><span class="sidebar-label">Cargos</span>
+                </a>
+                <a class="nav-link ms-3 {% nav_active request '/setores/' %}" href="{% url 'setores:list' %}" up-target="#content">
+                  <i class="bi bi-diagram-3 me-2"></i><span class="sidebar-label">Setores</span>
+                </a>
+                <a class="nav-link ms-3 {% nav_active request '/tipos_funcionario/' %}" href="{% url 'tipos_funcionario:list' %}" up-target="#content">
+                  <i class="bi bi-person-badge me-2"></i><span class="sidebar-label">Tipos de Funcionario</span>
+                </a>
+                <a class="nav-link ms-3 {% nav_active request '/fornecedores/' %}" href="{% url 'fornecedores:list' %}" up-target="#content">
+                  <i class="bi bi-truck me-2"></i><span class="sidebar-label">Fornecedores</span>
+                </a>
+                <a class="nav-link ms-3 {% nav_active request '/produtos/' %}" href="{% url 'produtos:list' %}" up-target="#content">
+                  <i class="bi bi-box-seam me-2"></i><span class="sidebar-label">Produtos</span>
+                </a>
+                <a class="nav-link ms-3 {% nav_active request '/depositos/' %}" href="{% url 'depositos:list' %}" up-target="#content">
+                  <i class="bi bi-building me-2"></i><span class="sidebar-label">Depositos</span>
+                </a>
+              </div>
+              <a class="nav-link {% nav_active request '/estoque/' %}" href="{% url 'estoque:list' %}" up-target="#content">
+                <i class="bi bi-archive me-2"></i><span class="sidebar-label">Estoque</span>
+              </a>
+            {% endblock %}
+          </nav>
+        </aside>
+
+        <main class="col-12 col-lg-10 p-4">
+          <div id="content">
+            {% block content %}{% endblock %}
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/unpoly@3.5.1/unpoly.min.js"></script>
+    <script>
+      (function () {
+        var key = "clarus.sidebar.collapsed";
+        var body = document.body;
+        var toggle = document.querySelector("[data-sidebar-toggle]");
+        if (localStorage.getItem(key) === "1") {
+          body.classList.add("sidebar-collapsed");
+        }
+        if (toggle) {
+          toggle.addEventListener("click", function () {
+            body.classList.toggle("sidebar-collapsed");
+            localStorage.setItem(key, body.classList.contains("sidebar-collapsed") ? "1" : "0");
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <div>
+    <h1 class="h4 mb-1">{{ title }}</h1>
+    {% if subtitle %}<p class="text-muted mb-0">{{ subtitle }}</p>{% endif %}
+  </div>
+  {% if create_url %}
+    <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#createModal">
+      Novo
+    </button>
+  {% endif %}
+</div>

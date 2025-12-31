@@ -1,0 +1,40 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h1 class="h3 mb-1">Dashboard</h1>
+      <p class="text-muted mb-0">Bem-vindo ao painel do tenant.</p>
+    </div>
+    <button class="btn btn-primary btn-sm">Novo item</button>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-md-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <div class="text-muted small">Usuarios ativos</div>
+          <div class="fs-3 fw-semibold">128</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <div class="text-muted small">Contas pendentes</div>
+          <div class="fs-3 fw-semibold">7</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <div class="text-muted small">Faturamento</div>
+          <div class="fs-3 fw-semibold">R$ 32.450</div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
