@@ -1,0 +1,122 @@
+{% if selected %}
+  <div class="row g-3">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex flex-wrap gap-2 align-items-center justify-content-between">
+          <div class="clarus-section-title mb-0">Produto</div>
+          <button
+            class="btn btn-primary btn-sm"
+            type="button"
+            data-ca-import-button
+            data-ca-nome="{% firstof selected.NomeEquipamento selected.DescricaoEquipamento '' %}"
+            data-ca-referencia="{{ selected.Referencia|default_if_none:''|escape }}"
+            data-ca-fornecedor="{{ selected.RazaoSocial|default_if_none:''|escape }}"
+            data-ca-registro="{{ selected.RegistroCA|default_if_none:''|escape }}"
+          >
+            Importar produto
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Produto</th>
+                <th>Descricao</th>
+                <th>Fornecedor</th>
+                <th>CA</th>
+                <th>Vencimento</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{{ selected.NomeEquipamento|default:"-" }}</td>
+                <td>{{ selected.DescricaoEquipamento|default:"-" }}</td>
+                <td>{{ selected.RazaoSocial|default:"-" }}</td>
+                <td>{{ selected.RegistroCA|default:"-" }}</td>
+                <td>{{ selected.data_validade_display }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-header">
+          <div class="clarus-section-title mb-0">Descricao Completa</div>
+        </div>
+        <div class="card-body">
+          {{ selected.DescricaoEquipamento|default:"-" }}
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-header">
+          <div class="clarus-section-title mb-0">Dados Complementares</div>
+        </div>
+        <div class="card-body">
+          <div class="row g-2">
+            <div class="col-12 col-md-6">
+              <div class="text-muted small">Situacao</div>
+              <div class="fw-semibold">{{ selected.Situacao|default:"-" }}</div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="text-muted small">NR Processo</div>
+              <div class="fw-semibold">{{ selected.NRProcesso|default:"-" }}</div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="text-muted small">Aprovado Para Laudo</div>
+              <div class="fw-semibold">{{ selected.AprovadoParaLaudo|default:"-" }}</div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="text-muted small">Restricao Laudo</div>
+              <div class="fw-semibold">{{ selected.RestricaoLaudo|default:"-" }}</div>
+            </div>
+            <div class="col-12">
+              <div class="text-muted small">Observacao Analise Laudo</div>
+              <div class="fw-semibold">{{ selected.ObservacaoAnaliseLaudo|default:"-" }}</div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="text-muted small">Marca</div>
+              <div class="fw-semibold">{{ selected.MarcaCA|default:"-" }}</div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="text-muted small">Referencia</div>
+              <div class="fw-semibold">{{ selected.Referencia|default:"-" }}</div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="text-muted small">Cor</div>
+              <div class="fw-semibold">{{ selected.Cor|default:"-" }}</div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="text-muted small">Norma</div>
+              <div class="fw-semibold">{{ selected.Norma|default:"-" }}</div>
+            </div>
+            <div class="col-12">
+              <div class="text-muted small">Laboratorio</div>
+              <div class="fw-semibold">
+                {{ selected.RazaoSocialLaboratorio|default:"-" }}{% if selected.CNPJLaboratorio %} - {{ selected.CNPJLaboratorio }}{% endif %}
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="text-muted small">NR Laudo</div>
+              <div class="fw-semibold">{{ selected.NRLaudo|default:"-" }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="clarus-section-title mb-0">Fabricante</div>
+        </div>
+        <div class="card-body">
+          <div class="fw-semibold">{{ selected.RazaoSocial|default:"-" }}</div>
+          <div class="text-muted small">CNPJ: {{ selected.CNPJ|default:"-" }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}

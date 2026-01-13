@@ -1,0 +1,72 @@
+<tr id="turno-row-{{ turno.pk }}">
+  <td>{{ turno.nome|default:"-" }}</td>
+  <td class="js-turno-ativo">
+    <span class="badge {% if turno.ativo %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+      {{ turno.ativo|yesno:"Ativo,Inativo" }}
+    </span>
+  </td>
+  <td class="text-end">
+    {% if perms.funcionarios.change_turno %}
+      <button
+        class="btn btn-outline-primary btn-icon"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#editModal-{{ turno.pk }}"
+        title="Editar"
+        aria-label="Editar"
+      >
+        <i class="bi bi-pencil"></i>
+      </button>
+      <form
+        class="d-inline js-turno-toggle"
+        id="turno-toggle-{{ turno.pk }}"
+        method="post"
+        action="{% url 'funcionarios:turnos_toggle' turno.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn {% if turno.ativo %}btn-outline-danger{% else %}btn-outline-success{% endif %} btn-icon js-turno-toggle-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#turnoToggleModal"
+        data-form-id="turno-toggle-{{ turno.pk }}"
+        data-nome="{{ turno.nome|escapejs }}"
+        data-ativo="{{ turno.ativo|yesno:'1,0' }}"
+        title="{% if turno.ativo %}Desativar{% else %}Ativar{% endif %}"
+        aria-label="{% if turno.ativo %}Desativar{% else %}Ativar{% endif %}"
+      >
+        {% if turno.ativo %}
+          <i class="bi bi-person-x"></i>
+        {% else %}
+          <i class="bi bi-person-check"></i>
+        {% endif %}
+      </button>
+    {% endif %}
+    {% if perms.funcionarios.delete_turno %}
+      <form
+        class="d-inline js-turno-delete"
+        id="turno-delete-{{ turno.pk }}"
+        method="post"
+        action="{% url 'funcionarios:turnos_delete' turno.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn btn-outline-danger btn-icon js-turno-delete-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#turnoDeleteModal"
+        data-form-id="turno-delete-{{ turno.pk }}"
+        data-nome="{{ turno.nome|escapejs }}"
+        title="Excluir"
+        aria-label="Excluir"
+      >
+        <i class="bi bi-trash"></i>
+      </button>
+    {% endif %}
+    {% if not perms.funcionarios.change_turno and not perms.funcionarios.delete_turno %}
+      <span class="text-muted">-</span>
+    {% endif %}
+  </td>
+</tr>

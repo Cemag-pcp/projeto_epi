@@ -1,0 +1,73 @@
+<tr id="periodicidade-row-{{ periodicidade.pk }}">
+  <td>{{ periodicidade.nome|default:"-" }}</td>
+  <td>{{ periodicidade.fator_dias|default:"-" }}</td>
+  <td class="js-periodicidade-ativo">
+    <span class="badge {% if periodicidade.ativo %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+      {{ periodicidade.ativo|yesno:"Ativo,Inativo" }}
+    </span>
+  </td>
+  <td class="text-end">
+    {% if perms.produtos.change_periodicidade %}
+      <button
+        class="btn btn-outline-primary btn-icon"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#editModal-{{ periodicidade.pk }}"
+        title="Editar"
+        aria-label="Editar"
+      >
+        <i class="bi bi-pencil"></i>
+      </button>
+      <form
+        class="d-inline js-periodicidade-toggle"
+        id="periodicidade-toggle-{{ periodicidade.pk }}"
+        method="post"
+        action="{% url 'produtos:periodicidades_toggle' periodicidade.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn {% if periodicidade.ativo %}btn-outline-danger{% else %}btn-outline-success{% endif %} btn-icon js-periodicidade-toggle-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#periodicidadeToggleModal"
+        data-form-id="periodicidade-toggle-{{ periodicidade.pk }}"
+        data-nome="{{ periodicidade.nome|escapejs }}"
+        data-ativo="{{ periodicidade.ativo|yesno:'1,0' }}"
+        title="{% if periodicidade.ativo %}Desativar{% else %}Ativar{% endif %}"
+        aria-label="{% if periodicidade.ativo %}Desativar{% else %}Ativar{% endif %}"
+      >
+        {% if periodicidade.ativo %}
+          <i class="bi bi-person-x"></i>
+        {% else %}
+          <i class="bi bi-person-check"></i>
+        {% endif %}
+      </button>
+    {% endif %}
+    {% if perms.produtos.delete_periodicidade %}
+      <form
+        class="d-inline js-periodicidade-delete"
+        id="periodicidade-delete-{{ periodicidade.pk }}"
+        method="post"
+        action="{% url 'produtos:periodicidades_delete' periodicidade.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn btn-outline-danger btn-icon js-periodicidade-delete-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#periodicidadeDeleteModal"
+        data-form-id="periodicidade-delete-{{ periodicidade.pk }}"
+        data-nome="{{ periodicidade.nome|escapejs }}"
+        title="Excluir"
+        aria-label="Excluir"
+      >
+        <i class="bi bi-trash"></i>
+      </button>
+    {% endif %}
+    {% if not perms.produtos.change_periodicidade and not perms.produtos.delete_periodicidade %}
+      <span class="text-muted">-</span>
+    {% endif %}
+  </td>
+</tr>

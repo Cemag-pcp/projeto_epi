@@ -1,0 +1,22 @@
+{% for anexo in anexos %}
+  <tr>
+    <td>{{ anexo.descricao|default:"-" }}</td>
+    <td>{{ anexo.arquivo.name }}</td>
+    <td class="text-end">
+      <a
+        class="btn btn-outline-secondary btn-icon"
+        href="{{ anexo.arquivo.url }}"
+        target="_blank"
+        rel="noopener"
+        title="Ver anexo"
+        aria-label="Ver anexo"
+      >
+        <i class="bi bi-paperclip"></i>
+      </a>
+    </td>
+  </tr>
+{% empty %}
+  <tr>
+    <td colspan="3" class="text-muted text-center py-3">Sem anexos</td>
+  </tr>
+{% endfor %}

@@ -1,0 +1,81 @@
+<tr id="user-row-{{ profile.pk }}">
+  <td>{{ profile.user.username }}</td>
+  <td>{{ profile.funcionario|default:"-" }}</td>
+  <td>{{ profile.setor|default:"-" }}</td>
+  <td>{{ profile.planta|default:"-" }}</td>
+  <td>{{ profile.group_label }}</td>
+  <td>
+    <span class="badge {% if profile.user.is_active %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+      {{ profile.user.is_active|yesno:"Ativo,Inativo" }}
+    </span>
+  </td>
+  <td class="text-end">
+    {% if perms.accounts.change_userprofile %}
+      <button
+        class="btn btn-outline-primary btn-icon"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#editModal-{{ profile.pk }}"
+        title="Editar"
+        aria-label="Editar"
+      >
+        <i class="bi bi-pencil"></i>
+      </button>
+    {% endif %}
+    {% if profile.user_id == request.user.id %}
+      {% if perms.accounts.change_userprofile %}
+        <button class="btn btn-outline-secondary btn-icon" type="button" disabled title="Desativar" aria-label="Desativar">
+          <i class="bi bi-person-x"></i>
+        </button>
+      {% endif %}
+      {% if perms.accounts.delete_userprofile %}
+        <button class="btn btn-outline-secondary btn-icon" type="button" disabled title="Excluir" aria-label="Excluir">
+          <i class="bi bi-trash"></i>
+        </button>
+      {% endif %}
+    {% else %}
+      {% if perms.accounts.change_userprofile %}
+        <form class="d-inline js-user-toggle" id="user-toggle-{{ profile.pk }}" action="{% url 'accounts:toggle_active' profile.pk %}" method="post">
+          {% csrf_token %}
+          <button
+            class="btn {% if profile.user.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %} btn-icon js-user-toggle-trigger"
+            type="button"
+            data-bs-toggle="modal"
+            data-bs-target="#userToggleModal"
+            data-form-id="user-toggle-{{ profile.pk }}"
+            data-nome="{{ profile.user.username|escapejs }}"
+            data-ativo="{{ profile.user.is_active|yesno:'1,0' }}"
+            title="{% if profile.user.is_active %}Desativar{% else %}Ativar{% endif %}"
+            aria-label="{% if profile.user.is_active %}Desativar{% else %}Ativar{% endif %}"
+          >
+            {% if profile.user.is_active %}
+              <i class="bi bi-person-x"></i>
+            {% else %}
+              <i class="bi bi-person-check"></i>
+            {% endif %}
+          </button>
+        </form>
+      {% endif %}
+      {% if perms.accounts.delete_userprofile %}
+        <form class="d-inline js-user-delete" id="user-delete-{{ profile.pk }}" action="{% url 'accounts:delete' profile.pk %}" method="post">
+          {% csrf_token %}
+          <button
+            class="btn btn-outline-danger btn-icon js-user-delete-trigger"
+            type="button"
+            data-bs-toggle="modal"
+            data-bs-target="#userDeleteModal"
+            data-form-id="user-delete-{{ profile.pk }}"
+            data-nome="{{ profile.user.username|escapejs }}"
+            title="Excluir"
+            aria-label="Excluir"
+          >
+            <i class="bi bi-trash"></i>
+          </button>
+        </form>
+      {% endif %}
+    {% endif %}
+    {% if not perms.accounts.change_userprofile and not perms.accounts.delete_userprofile %}
+      <span class="text-muted">-</span>
+    {% endif %}
+  </td>
+</tr>

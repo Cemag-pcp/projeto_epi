@@ -1,0 +1,72 @@
+<tr id="motivo-afastamento-row-{{ motivo.pk }}">
+  <td>{{ motivo.nome|default:"-" }}</td>
+  <td class="js-motivo-afastamento-ativo">
+    <span class="badge {% if motivo.ativo %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+      {{ motivo.ativo|yesno:"Ativo,Inativo" }}
+    </span>
+  </td>
+  <td class="text-end">
+    {% if perms.funcionarios.change_motivoafastamento %}
+      <button
+        class="btn btn-outline-primary btn-icon"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#editModal-{{ motivo.pk }}"
+        title="Editar"
+        aria-label="Editar"
+      >
+        <i class="bi bi-pencil"></i>
+      </button>
+      <form
+        class="d-inline js-motivo-afastamento-toggle"
+        id="motivo-afastamento-toggle-{{ motivo.pk }}"
+        method="post"
+        action="{% url 'funcionarios:motivos_afastamento_toggle' motivo.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn {% if motivo.ativo %}btn-outline-danger{% else %}btn-outline-success{% endif %} btn-icon js-motivo-afastamento-toggle-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#motivoAfastamentoToggleModal"
+        data-form-id="motivo-afastamento-toggle-{{ motivo.pk }}"
+        data-nome="{{ motivo.nome|escapejs }}"
+        data-ativo="{{ motivo.ativo|yesno:'1,0' }}"
+        title="{% if motivo.ativo %}Desativar{% else %}Ativar{% endif %}"
+        aria-label="{% if motivo.ativo %}Desativar{% else %}Ativar{% endif %}"
+      >
+        {% if motivo.ativo %}
+          <i class="bi bi-person-x"></i>
+        {% else %}
+          <i class="bi bi-person-check"></i>
+        {% endif %}
+      </button>
+    {% endif %}
+    {% if perms.funcionarios.delete_motivoafastamento %}
+      <form
+        class="d-inline js-motivo-afastamento-delete"
+        id="motivo-afastamento-delete-{{ motivo.pk }}"
+        method="post"
+        action="{% url 'funcionarios:motivos_afastamento_delete' motivo.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn btn-outline-danger btn-icon js-motivo-afastamento-delete-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#motivoAfastamentoDeleteModal"
+        data-form-id="motivo-afastamento-delete-{{ motivo.pk }}"
+        data-nome="{{ motivo.nome|escapejs }}"
+        title="Excluir"
+        aria-label="Excluir"
+      >
+        <i class="bi bi-trash"></i>
+      </button>
+    {% endif %}
+    {% if not perms.funcionarios.change_motivoafastamento and not perms.funcionarios.delete_motivoafastamento %}
+      <span class="text-muted">-</span>
+    {% endif %}
+  </td>
+</tr>

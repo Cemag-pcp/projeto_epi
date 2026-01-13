@@ -1,0 +1,7 @@
+{% for risco in riscos %}
+  {% include "funcionarios/_risco_row.html" with risco=risco funcionario=funcionario show_unassign=show_unassign show_delete=show_delete %}
+{% empty %}
+  <tr>
+    <td colspan="4" class="text-muted text-center py-4">Sem registros</td>
+  </tr>
+{% endfor %}

@@ -1,0 +1,103 @@
+{% extends "layout/base.html" %}
+{% load ui_extras %}
+
+{% block title %}Agenda{% endblock %}
+
+{% block content %}
+  {% include "components/_alerts.html" %}
+  {% include "components/_page_header.html" with title=title subtitle="Agenda de treinamentos em aberto." %}
+
+  <div class="d-flex flex-column flex-lg-row gap-3 agenda-layout">
+    <div class="card flex-grow-1">
+      <div class="card-body">
+        <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-2 mb-3 agenda-header">
+          <div class="d-flex align-items-center gap-2">
+            <a
+              class="btn btn-outline-secondary btn-sm"
+              href="?mes={{ prev_month }}&ano={{ prev_year }}"
+              title="Mes anterior"
+              aria-label="Mes anterior"
+            >
+              <i class="bi bi-chevron-left"></i>
+            </a>
+            <div class="fw-semibold">{{ month_label }}</div>
+            <a
+              class="btn btn-outline-secondary btn-sm"
+              href="?mes={{ next_month }}&ano={{ next_year }}"
+              title="Proximo mes"
+              aria-label="Proximo mes"
+            >
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          </div>
+          <a class="btn btn-sm btn-outline-secondary" href="?mes={{ today.month }}&ano={{ today.year }}">Hoje</a>
+        </div>
+
+        <div class="agenda-weekdays">
+          <div>Dom</div>
+          <div>Seg</div>
+          <div>Ter</div>
+          <div>Qua</div>
+          <div>Qui</div>
+          <div>Sex</div>
+          <div>Sab</div>
+        </div>
+
+        <div class="agenda-grid">
+          {% for week in weeks %}
+            {% for day in week %}
+              {% with day_events=events_by_date|get_item:day %}
+                <div class="agenda-cell{% if day.month != month %} is-muted{% endif %}{% if day == today %} is-today{% endif %}">
+                  <div class="agenda-date">{{ day.day }}</div>
+                  {% if day_events %}
+                    <div class="agenda-events">
+                      {% for event in day_events %}
+                        <div
+                          class="agenda-event"
+                          title="{{ event.treinamento }}{% if event.local %} - {{ event.local }}{% endif %}"
+                        >
+                          <span class="agenda-event-title">{{ event.treinamento }}</span>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+              {% endwith %}
+            {% endfor %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card agenda-list">
+      <div class="card-body">
+        <div class="fw-semibold mb-2">Turmas em aberto</div>
+        {% if open_turmas %}
+          <div class="d-flex flex-column gap-2">
+            {% for item in open_turmas %}
+              <div class="agenda-list-item">
+                <div class="fw-semibold">{{ item.treinamento }}</div>
+                <div class="text-muted small">
+                  {% if item.next_date %}
+                    {{ item.next_date|date:"d/m/Y" }}
+                  {% else %}
+                    Sem data
+                  {% endif %}
+                  {% if item.local %} • {{ item.local }}{% endif %}
+                  {% if item.instrutor %} • {{ item.instrutor }}{% endif %}
+                </div>
+                <div class="mt-2">
+                  <a class="btn btn-sm btn-outline-secondary" href="{% url 'treinamentos:turmas_update' item.id %}">
+                    Ver turma
+                  </a>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-muted">Nenhuma turma em aberto.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

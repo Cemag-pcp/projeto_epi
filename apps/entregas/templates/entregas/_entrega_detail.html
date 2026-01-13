@@ -1,0 +1,84 @@
+<div class="mb-3">
+  <h5 class="mb-1">Detalhes da Entrega : {{ entrega.pk|stringformat:"06d" }}</h5>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div><strong>Funcionario:</strong> {{ entrega.funcionario.registro|default:"-" }} - {{ entrega.funcionario.nome }}</div>
+    <div><strong>Centro de Custo:</strong> {{ entrega.funcionario.centro_custo|default:"-" }}</div>
+    <div><strong>Setor:</strong> {{ entrega.funcionario.setor|default:"-" }}</div>
+    <div><strong>GHE:</strong> {{ entrega.funcionario.ghe|default:"-" }}</div>
+    <div><strong>Cargo:</strong> {{ entrega.funcionario.cargo|default:"-" }}</div>
+    <div>
+      <strong>Data de Entrega:</strong>
+      {% if entrega.entregue_em %}
+        {{ entrega.entregue_em|date:"d/m/Y H:i:s" }}
+      {% else %}
+        -
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div><strong>Lider:</strong> {{ entrega.funcionario.lider|default:"-" }}</div>
+    <div><strong>Gestor:</strong> {{ entrega.funcionario.gestor|default:"-" }}</div>
+    <div><strong>Empresa:</strong> {{ empresa_nome|default:"-" }}</div>
+    <div><strong>Deposito:</strong> {{ deposito_label|default:"-" }}</div>
+    <div><strong>Validacao de Entrega:</strong> {% if entrega.funcionario.validacao_recebimento == "senha" %}Senha{% else %}Nenhum{% endif %}</div>
+    <div><strong>Liberado por:</strong> {{ entrega.created_by|default:"-" }}</div>
+    <div><strong>Usuario:</strong> {{ entrega.created_by|default:"-" }}</div>
+  </div>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-sm align-middle mb-0">
+    <thead class="table-light">
+      <tr>
+        <th>Codigo</th>
+        <th>Produto</th>
+        <th>Qtde.</th>
+        <th>Valor</th>
+        <th>Total</th>
+        <th>Grade</th>
+        <th>CA</th>
+        <th>EPI</th>
+        <th>Periodicidade</th>
+        <th>Data da Troca</th>
+        <th>Data Devolucao</th>
+        <th>Ambiente</th>
+        <th>Devolvido</th>
+        <th>N° da Requisicao</th>
+        <th>Imagem</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in itens %}
+        <tr>
+          <td>{{ item.codigo }}</td>
+          <td>{{ item.produto }}</td>
+          <td>{{ item.quantidade }}</td>
+          <td>{% if item.valor_unitario %}{{ item.valor_unitario|floatformat:2 }}{% else %}-{% endif %}</td>
+          <td>{% if item.total_item %}{{ item.total_item|floatformat:2 }}{% else %}-{% endif %}</td>
+          <td>{{ item.grade }}</td>
+          <td>{{ item.ca|default:"-" }}</td>
+          <td>{{ item.epi }}</td>
+          <td>{{ item.periodicidade|default:"-" }}</td>
+          <td>{% if item.data_troca %}{{ item.data_troca|date:"d/m/Y" }}{% else %}-{% endif %}</td>
+          <td>-</td>
+          <td>-</td>
+          <td>Nao</td>
+          <td>-</td>
+          <td>-</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="15" class="text-end">
+          <strong>Total</strong><br>
+          Qtde.: {{ total_quantidade }}<br>
+          Vlr. Total: {% if total_valor %}{{ total_valor|floatformat:2 }}{% else %}-{% endif %}
+        </td>
+      </tr>
+    </tfoot>
+  </table>
+</div>

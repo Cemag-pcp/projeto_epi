@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="pt-br">
+  {% load ui_extras static %}
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,6 +8,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://unpkg.com/unpoly@3.5.1/unpoly.min.css" rel="stylesheet">
+    <link href="{% static 'css/clarus-theme.css' %}" rel="stylesheet">
+    {% block extra_head %}{% endblock %}
     <style>
       .sidebar-collapsed .app-sidebar {
         width: 72px;
@@ -20,18 +23,34 @@
       .sidebar-collapsed .app-sidebar .sidebar-title {
         display: none;
       }
+      #toast-container {
+        z-index: 2000;
+      }
+      .sidebar-brand {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+      .sidebar-logo {
+        max-height: 32px;
+        width: auto;
+      }
     </style>
   </head>
   <body class="bg-light">
     <header class="navbar navbar-expand-lg bg-white border-bottom sticky-top shadow-sm">
       <div class="container-fluid">
-        <a class="navbar-brand fw-semibold" href="/" up-follow>
-          Clarus
-        </a>
+        <div class="d-flex align-items-center gap-2">
+          <a class="navbar-brand fw-semibold mb-0" href="/">
+            {% if request.tenant %}{{ request.tenant.name }}{% else %}Clarus{% endif %}
+          </a>
+          <button class="btn btn-sm d-none d-lg-inline-flex sidebar-toggle-btn" type="button" data-sidebar-toggle>
+            <i class="bi bi-layout-sidebar-inset"></i>
+          </button>
+        </div>
         <div class="d-flex align-items-center gap-3 ms-auto">
-          <span class="text-muted small d-none d-md-inline">
-            {% if request.tenant %}{{ request.tenant.name }}{% else %}Tenant{% endif %}
-          </span>
+          {% planta_select %}
           <div class="dropdown">
             <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
               {% if request.user.is_authenticated %}{{ request.user.get_full_name|default:request.user.username }}{% else %}Entrar{% endif %}
@@ -58,56 +77,18 @@
     <div class="container-fluid">
       <div class="row">
         <aside class="col-12 col-lg-2 bg-white border-end min-vh-100 p-0 app-sidebar">
-          <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
-            <div class="sidebar-title">
-              <div class="fw-semibold">Menu</div>
-              <div class="text-muted small">Navegacao modular</div>
-            </div>
-            <div class="d-flex gap-2">
+          <div class="p-3 border-bottom sidebar-brand">
+            <img src="{% static 'img/logo-system.png' %}" alt="Clarus" class="sidebar-logo">
+            <div class="d-flex gap-2 justify-content-center">
               <button class="btn btn-sm btn-outline-secondary d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
                 <i class="bi bi-list"></i>
-              </button>
-              <button class="btn btn-sm btn-outline-secondary d-none d-lg-inline-flex" type="button" data-sidebar-toggle>
-                <i class="bi bi-layout-sidebar-inset"></i>
               </button>
             </div>
           </div>
           {% load ui_extras %}
           <nav class="nav flex-column p-3 gap-1 collapse d-lg-block small" id="sidebarMenu">
             {% block sidebar %}
-              <a class="nav-link {% nav_active request '/' %}" href="{% url 'ui-home' %}" up-target="#content">
-                <i class="bi bi-speedometer2 me-2"></i><span class="sidebar-label">Dashboard</span>
-              </a>
-              <button class="nav-link text-start d-flex align-items-center gap-2" type="button" data-bs-toggle="collapse" data-bs-target="#cadastrosMenu" aria-expanded="false">
-                <i class="bi bi-folder2-open"></i><span class="sidebar-label">Cadastros</span>
-                <i class="bi bi-chevron-down ms-auto sidebar-label"></i>
-              </button>
-              <div class="collapse" id="cadastrosMenu">
-                <a class="nav-link ms-3 {% nav_active request '/funcionarios/' %}" href="{% url 'funcionarios:list' %}" up-target="#content">
-                  <i class="bi bi-people me-2"></i><span class="sidebar-label">Funcionarios</span>
-                </a>
-                <a class="nav-link ms-3 {% nav_active request '/cargos/' %}" href="{% url 'cargos:list' %}" up-target="#content">
-                  <i class="bi bi-briefcase me-2"></i><span class="sidebar-label">Cargos</span>
-                </a>
-                <a class="nav-link ms-3 {% nav_active request '/setores/' %}" href="{% url 'setores:list' %}" up-target="#content">
-                  <i class="bi bi-diagram-3 me-2"></i><span class="sidebar-label">Setores</span>
-                </a>
-                <a class="nav-link ms-3 {% nav_active request '/tipos_funcionario/' %}" href="{% url 'tipos_funcionario:list' %}" up-target="#content">
-                  <i class="bi bi-person-badge me-2"></i><span class="sidebar-label">Tipos de Funcionario</span>
-                </a>
-                <a class="nav-link ms-3 {% nav_active request '/fornecedores/' %}" href="{% url 'fornecedores:list' %}" up-target="#content">
-                  <i class="bi bi-truck me-2"></i><span class="sidebar-label">Fornecedores</span>
-                </a>
-                <a class="nav-link ms-3 {% nav_active request '/produtos/' %}" href="{% url 'produtos:list' %}" up-target="#content">
-                  <i class="bi bi-box-seam me-2"></i><span class="sidebar-label">Produtos</span>
-                </a>
-                <a class="nav-link ms-3 {% nav_active request '/depositos/' %}" href="{% url 'depositos:list' %}" up-target="#content">
-                  <i class="bi bi-building me-2"></i><span class="sidebar-label">Depositos</span>
-                </a>
-              </div>
-              <a class="nav-link {% nav_active request '/estoque/' %}" href="{% url 'estoque:list' %}" up-target="#content">
-                <i class="bi bi-archive me-2"></i><span class="sidebar-label">Estoque</span>
-              </a>
+              {% sidebar_menu %}
             {% endblock %}
           </nav>
         </aside>
@@ -121,20 +102,111 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3"></div>
     <script src="https://unpkg.com/unpoly@3.5.1/unpoly.min.js"></script>
     <script>
       (function () {
-        var key = "clarus.sidebar.collapsed";
+        var sidebarKey = "clarus.sidebar.collapsed";
         var body = document.body;
         var toggle = document.querySelector("[data-sidebar-toggle]");
-        if (localStorage.getItem(key) === "1") {
+        if (localStorage.getItem(sidebarKey) === "1") {
           body.classList.add("sidebar-collapsed");
         }
         if (toggle) {
           toggle.addEventListener("click", function () {
             body.classList.toggle("sidebar-collapsed");
-            localStorage.setItem(key, body.classList.contains("sidebar-collapsed") ? "1" : "0");
+            localStorage.setItem(sidebarKey, body.classList.contains("sidebar-collapsed") ? "1" : "0");
           });
+        }
+
+        var sidebar = document.querySelector(".app-sidebar");
+        if (sidebar) {
+          sidebar.addEventListener("click", function (event) {
+            var trigger = event.target.closest('[data-bs-toggle="collapse"]');
+            if (trigger && body.classList.contains("sidebar-collapsed")) {
+              event.preventDefault();
+              event.stopPropagation();
+            }
+          });
+        }
+
+        var collapses = document.querySelectorAll(".collapse[id]");
+        collapses.forEach(function (collapseEl) {
+          var key = "clarus.collapse." + collapseEl.id;
+          var hasActiveLink = collapseEl.querySelector(".nav-link.active");
+          if (hasActiveLink) {
+            collapseEl.classList.add("show");
+            localStorage.setItem(key, "1");
+          }
+          if (localStorage.getItem(key) === "1") {
+            collapseEl.classList.add("show");
+            var trigger = document.querySelector('[data-bs-target="#' + collapseEl.id + '"]');
+            if (trigger) {
+              trigger.setAttribute("aria-expanded", "true");
+            }
+          }
+          collapseEl.addEventListener("shown.bs.collapse", function () {
+            localStorage.setItem(key, "1");
+          });
+          collapseEl.addEventListener("hidden.bs.collapse", function () {
+            localStorage.setItem(key, "0");
+          });
+        });
+
+        var sidebarGroups = document.querySelectorAll(".app-sidebar .sidebar-group");
+        sidebarGroups.forEach(function (group) {
+          var removeTimer;
+          function openFlyout() {
+            if (!body.classList.contains("sidebar-collapsed")) {
+              return;
+            }
+            window.clearTimeout(removeTimer);
+            group.classList.add("is-hovered");
+          }
+          function closeFlyout() {
+            window.clearTimeout(removeTimer);
+            removeTimer = window.setTimeout(function () {
+              group.classList.remove("is-hovered");
+            }, 150);
+          }
+          group.addEventListener("mouseenter", openFlyout);
+          group.addEventListener("mouseleave", closeFlyout);
+          group.addEventListener("focusin", openFlyout);
+          group.addEventListener("focusout", closeFlyout);
+        });
+
+        function applyModalDefaults(root) {
+          var modals = (root || document).querySelectorAll(".modal");
+          modals.forEach(function (modal) {
+            if (!modal.hasAttribute("data-bs-backdrop")) {
+              modal.setAttribute("data-bs-backdrop", "static");
+            }
+            if (!modal.hasAttribute("data-bs-keyboard")) {
+              modal.setAttribute("data-bs-keyboard", "false");
+            }
+          });
+        }
+
+        applyModalDefaults(document);
+
+        if (window.MutationObserver) {
+          var observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+              mutation.addedNodes.forEach(function (node) {
+                if (node.nodeType !== 1) {
+                  return;
+                }
+                if (node.classList && node.classList.contains("modal")) {
+                  applyModalDefaults(node.parentNode || document);
+                  return;
+                }
+                if (node.querySelectorAll) {
+                  applyModalDefaults(node);
+                }
+              });
+            });
+          });
+          observer.observe(document.body, { childList: true, subtree: true });
         }
       })();
     </script>

@@ -1,0 +1,138 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Relatorios{% endblock %}
+
+{% block content %}
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+      <h1 class="h3 mb-1">Relatorios</h1>
+      <p class="text-muted mb-0">Crie e organize suas visualizacoes salvas.</p>
+    </div>
+    {% if can_add %}
+      <a class="btn btn-primary btn-sm" href="{% url 'relatorios:create' %}">
+        <i class="bi bi-plus-circle"></i>
+        Novo relatorio
+      </a>
+    {% endif %}
+  </div>
+
+  <div class="row g-3">
+    {% for relatorio in object_list %}
+      <div class="col-12 col-lg-6 col-xl-4" data-relatorio-card>
+        <div class="card h-100">
+          <div class="card-body d-flex flex-column">
+            <div class="fw-semibold">{{ relatorio.nome }}</div>
+            <div class="text-muted small mb-3">
+              {{ relatorio.descricao|default:"Sem descricao" }}
+            </div>
+            <div class="d-flex flex-wrap gap-2 mt-auto">
+              <a class="btn btn-outline-primary btn-sm" href="{% url 'relatorios:detail' relatorio.pk %}">
+                Abrir
+              </a>
+              <a class="btn btn-primary btn-sm" href="{% url 'relatorios:update' relatorio.pk %}">
+                Editar
+              </a>
+              {% if can_delete %}
+                <button
+                  class="btn btn-outline-danger btn-sm"
+                  type="button"
+                  data-relatorio-delete-trigger
+                  data-delete-url="{% url 'relatorios:delete' relatorio.pk %}"
+                  data-nome="{{ relatorio.nome|escapejs }}"
+                >
+                  Excluir
+                </button>
+              {% endif %}
+            </div>
+          </div>
+          <div class="card-footer text-muted small">
+            Atualizado em {{ relatorio.updated_at|date:"d/m/Y H:i" }}
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body text-center text-muted">
+            Nenhum relatorio criado ainda.
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+  {% if can_delete %}
+    {% include "components/_confirm_modal.html" with id="relatorioDeleteModal" title_id="relatorioDeleteModalLabel" title="Excluir relatorio" body="Deseja excluir este relatorio?" confirm_text="Excluir" confirm_class="btn-danger" confirm_button_id="relatorio-delete-confirm" %}
+    <script>
+      (function () {
+        function getCookie(name) {
+          var value = "; " + document.cookie;
+          var parts = value.split("; " + name + "=");
+          if (parts.length === 2) {
+            return parts.pop().split(";").shift();
+          }
+          return "";
+        }
+
+        var pendingDelete = { url: "", card: null };
+
+        document.querySelectorAll("[data-relatorio-delete-trigger]").forEach(function (button) {
+          button.addEventListener("click", function () {
+            var url = button.getAttribute("data-delete-url");
+            var card = button.closest("[data-relatorio-card]");
+            if (!url || !card) {
+              return;
+            }
+            pendingDelete = { url: url, card: card };
+            var modalEl = document.getElementById("relatorioDeleteModal");
+            if (!modalEl || !window.bootstrap) {
+              return;
+            }
+            var bodyEl = modalEl.querySelector(".modal-body");
+            var nome = button.getAttribute("data-nome") || "relatorio";
+            if (bodyEl) {
+              bodyEl.textContent = "Deseja excluir o relatorio " + nome + "?";
+            }
+            var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+          });
+        });
+
+        var confirmBtn = document.getElementById("relatorio-delete-confirm");
+        if (confirmBtn && !confirmBtn.dataset.bound) {
+          confirmBtn.dataset.bound = "1";
+          confirmBtn.addEventListener("click", function () {
+            if (!pendingDelete.url || !pendingDelete.card) {
+              return;
+            }
+            var modalEl = document.getElementById("relatorioDeleteModal");
+            if (modalEl && window.bootstrap) {
+              bootstrap.Modal.getInstance(modalEl).hide();
+            }
+            fetch(pendingDelete.url, {
+              method: "POST",
+              headers: {
+                "X-Requested-With": "XMLHttpRequest",
+                "X-CSRFToken": getCookie("csrftoken")
+              }
+            })
+              .then(function (response) {
+                if (!response.ok) {
+                  throw new Error("Erro ao excluir relatorio.");
+                }
+                return response.json();
+              })
+              .then(function (payload) {
+                if (payload && payload.ok) {
+                  pendingDelete.card.remove();
+                  pendingDelete = { url: "", card: null };
+                }
+              })
+              .catch(function () {
+                window.alert("Nao foi possivel excluir o relatorio.");
+              });
+          });
+        }
+      })();
+    </script>
+  {% endif %}
+{% endblock %}

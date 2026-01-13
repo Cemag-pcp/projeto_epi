@@ -1,0 +1,334 @@
+{% extends "layout/base.html" %}
+{% load static %}
+
+{% block title %}Relatorio{% endblock %}
+
+{% block extra_head %}
+  <style>
+    .relatorio-chart {
+      position: relative;
+      height: 200px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #ffffff 0%, #f6f6f6 100%);
+      border: 1px solid var(--clarus-gray-200);
+      padding: 12px 12px 28px 12px;
+      overflow: hidden;
+    }
+    .relatorio-chart .chart-labels {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.65rem;
+      color: #6c757d;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+  </style>
+  <script src="{% static 'vendor/apexcharts.min.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+      <h1 class="h3 mb-1">{{ object.nome }}</h1>
+      <p class="text-muted mb-0">{{ object.descricao|default:"Sem descricao" }}</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-outline-primary btn-sm" href="{% url 'relatorios:list' %}">
+        <i class="bi bi-arrow-left"></i>
+        Voltar
+      </a>
+      <a class="btn btn-primary btn-sm" href="{% url 'relatorios:update' object.pk %}">
+        <i class="bi bi-pencil"></i>
+        Editar
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    {% for widget in widgets %}
+      <div class="{% if widget.type == 'kpi' %}col-12 col-md-6 col-xl-3{% elif widget.type == 'grafico' and widget.size == 'full' %}col-12{% else %}col-12 col-lg-6{% endif %}">
+        <div class="card h-100">
+          <div class="card-header d-flex align-items-center justify-content-between">
+            <div class="fw-semibold">{{ widget.title|default:"Widget" }}</div>
+            <span class="badge bg-secondary-subtle text-secondary text-uppercase">
+              {{ widget.type }}
+            </span>
+          </div>
+          <div class="card-body">
+            {% if widget.type == "kpi" %}
+              <div class="text-muted small mb-2">
+                {% if widget.metric == "entregas_realizadas" %}
+                  Qtd. entregas realizadas
+                {% elif widget.metric == "entregas_pendentes" %}
+                  Qtd. entregas pendentes
+                {% elif widget.metric == "entregas_canceladas" %}
+                  Qtd. entregas canceladas
+                {% elif widget.metric == "estoque_critico" %}
+                  Itens em estoque critico
+                {% else %}
+                  KPI nao definido
+                {% endif %}
+              </div>
+              <div class="fs-3 fw-semibold">{{ widget.value|default:0 }}</div>
+              {% if widget.period_label %}
+                <div class="text-muted small">Periodo: {{ widget.period_label }}</div>
+              {% endif %}
+              {% if widget.plant_label %}
+                <div class="text-muted small">Planta: {{ widget.plant_label }}</div>
+              {% endif %}
+            {% elif widget.type == "tabela" %}
+              {% if widget.table_headers and widget.table_rows %}
+                <div class="table-responsive">
+                  <table class="table align-middle mb-0">
+                    <thead>
+                      <tr>
+                        {% for header in widget.table_headers %}
+                          <th>{{ header }}</th>
+                        {% endfor %}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in widget.table_rows %}
+                        <tr>
+                          {% for cell in row %}
+                            <td>{{ cell }}</td>
+                          {% endfor %}
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              {% else %}
+                <div class="text-muted small">Sem dados.</div>
+              {% endif %}
+            {% elif widget.type == "pendencias" %}
+              <div class="d-flex flex-column gap-3">
+                <div class="d-flex align-items-center justify-content-between">
+                  <span>Treinamentos vencidos</span>
+                  <span class="fw-semibold text-danger">3</span>
+                </div>
+                <div class="d-flex align-items-center justify-content-between">
+                  <span>EPIs sem assinatura</span>
+                  <span class="fw-semibold text-warning">7</span>
+                </div>
+                <div class="d-flex align-items-center justify-content-between">
+                  <span>Estoque critico</span>
+                  <span class="fw-semibold text-danger">4</span>
+                </div>
+              </div>
+            {% elif widget.type == "grafico" %}
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="text-muted small">
+                  {% if widget.source %}
+                    Grafico de {{ widget.source|title }}
+                  {% else %}
+                    Grafico nao definido
+                  {% endif %}
+                </div>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-chart-details-toggle>
+                  Detalhes
+                </button>
+              </div>
+              <div class="text-muted small mb-2 d-none" data-chart-details>
+                {% if widget.source %}
+                  <div>
+                    Origem: {{ widget.source|title }} · Agrupo por: {{ widget.group_by|default:"-"|title }} · Categoria: {{ widget.category|default:"-"|title }} · Valor: {{ widget.value_type|default:"-"|title }}
+                  </div>
+                {% endif %}
+                {% if widget.period_label %}
+                  <div>Periodo: {{ widget.period_label }}</div>
+                {% endif %}
+                {% if widget.plant_label %}
+                  <div>Planta: {{ widget.plant_label }}</div>
+                {% endif %}
+              </div>
+              {% with counter_str=forloop.counter|stringformat:"s" %}
+                {% with chart_id="chart-data-"|add:counter_str %}
+                  {{ widget.series_payload|json_script:chart_id }}
+                  <div class="relatorio-chart" data-chart data-series-id="{{ chart_id }}" data-chart-type="{{ widget.chart_type|default:'line' }}" data-chart-legend="{% if widget.show_legend %}1{% else %}0{% endif %}">
+                    <div class="apex-chart h-100 w-100"></div>
+                    <div class="chart-labels">
+                      {% for label in widget.series_payload.labels %}
+                        <span>{{ label }}</span>
+                      {% endfor %}
+                    </div>
+                  </div>
+                {% endwith %}
+              {% endwith %}
+            {% else %}
+              <div class="text-muted">Tipo de widget nao configurado.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body text-center text-muted">
+            Nenhum widget configurado.
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+  <script>
+    (function () {
+      var charts = document.querySelectorAll("[data-chart]");
+      charts.forEach(function (chart) {
+        var container = chart.querySelector(".apex-chart");
+        if (!container || typeof ApexCharts === "undefined") {
+          return;
+        }
+        var seriesId = chart.getAttribute("data-series-id");
+        var data = { labels: [], series: [] };
+        if (seriesId) {
+          var seriesEl = document.getElementById(seriesId);
+          if (seriesEl && seriesEl.textContent) {
+            try {
+              data = JSON.parse(seriesEl.textContent);
+            } catch (e) {
+              data = { labels: [], series: [] };
+            }
+          }
+        }
+        var chartType = chart.getAttribute("data-chart-type") || "line";
+        var showLegend = chart.getAttribute("data-chart-legend") === "1";
+        var labelStrip = chart.querySelector(".chart-labels");
+        console.log("relatorio chart data", { seriesId: seriesId, chartType: chartType, data: data });
+        var seriesData = data.series || [];
+        if (chartType !== "pie") {
+          if (Array.isArray(seriesData) && seriesData.length && typeof seriesData[0] !== "object") {
+            seriesData = [{
+              name: "Total",
+              data: seriesData.map(function (value) {
+                var parsed = Number(value);
+                return Number.isFinite(parsed) ? parsed : 0;
+              })
+            }];
+          } else if (!Array.isArray(seriesData) && seriesData && Array.isArray(seriesData.data)) {
+            seriesData = [seriesData];
+          }
+        } else if (Array.isArray(seriesData)) {
+          seriesData = seriesData.map(function (value) {
+            var parsed = Number(value);
+            return Number.isFinite(parsed) ? parsed : 0;
+          });
+        } else {
+          seriesData = [];
+        }
+        var hasData = Array.isArray(seriesData) && seriesData.length > 0;
+        var options = {
+          chart: {
+            type: chartType,
+            height: 200,
+            toolbar: { show: false }
+          },
+          series: seriesData,
+          xaxis: {
+            categories: data.labels || [],
+            labels: { show: chartType === "bar" },
+            axisBorder: { show: false },
+            axisTicks: { show: false }
+          },
+          yaxis: {
+            labels: { show: true }
+          },
+          grid: {
+            strokeDashArray: 4,
+            padding: { left: 8, right: 8, top: 0, bottom: 0 }
+          },
+          colors: ["#e10600"],
+          stroke: {
+            width: 3,
+            curve: "smooth"
+          },
+          fill: {
+            type: "gradient",
+            gradient: {
+              shadeIntensity: 0.4,
+              opacityFrom: 0.35,
+              opacityTo: 0
+            }
+          },
+          markers: {
+            size: 4,
+            strokeWidth: 2,
+            strokeColors: "#ffffff"
+          },
+          dataLabels: { enabled: false },
+          tooltip: {
+            theme: "dark",
+            x: { show: true }
+          },
+          legend: { show: showLegend },
+          noData: {
+            text: hasData ? "" : "Sem dados",
+            align: "center",
+            verticalAlign: "middle",
+            style: { color: "#6c757d" }
+          }
+        };
+        if (chartType === "bar") {
+          options.chart.height = 200;
+          options.plotOptions = { bar: { borderRadius: 8, columnWidth: "45%" } };
+          options.fill = { opacity: 0.85 };
+          options.grid.padding.top = 8;
+          options.grid.padding.bottom = 8;
+          options.xaxis.labels = {
+            show: true,
+            rotate: -30,
+            trim: true,
+            hideOverlappingLabels: true,
+            style: { fontSize: "10px" }
+          };
+          if (labelStrip) {
+            labelStrip.style.display = "none";
+          }
+        } else if (chartType === "line") {
+          options.chart.height = 150;
+          options.grid.padding.top = 8;
+          options.grid.padding.bottom = 0;
+          if (labelStrip) {
+            labelStrip.style.display = "";
+          }
+        } else if (labelStrip) {
+          labelStrip.style.display = "";
+        }
+        if (chartType === "pie") {
+          options.labels = data.labels || [];
+          options.series = seriesData;
+          options.stroke = { width: 0 };
+          options.legend = { show: true, position: "bottom" };
+          options.fill = { type: "solid", opacity: 1 };
+          options.colors = ["#e10600", "#ff7a59", "#ffb56b", "#ffd4a3", "#f2a0a1"];
+          if (labelStrip) {
+            labelStrip.style.display = "none";
+          }
+        }
+
+        var apexChart = new ApexCharts(container, options);
+        apexChart.render();
+      });
+
+      document.querySelectorAll("[data-chart-details-toggle]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          var card = button.closest(".card");
+          if (!card) {
+            return;
+          }
+          var details = card.querySelector("[data-chart-details]");
+          if (!details) {
+            return;
+          }
+          var isHidden = details.classList.contains("d-none");
+          details.classList.toggle("d-none", !isHidden);
+          button.textContent = isHidden ? "Ocultar" : "Detalhes";
+        });
+      });
+    })();
+  </script>
+{% endblock %}

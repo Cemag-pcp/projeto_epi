@@ -1,0 +1,74 @@
+<tr id="ghe-row-{{ ghe.pk }}">
+  <td>{{ ghe.codigo|default:"-" }}</td>
+  <td>{{ ghe.descricao|default:"-" }}</td>
+  <td>{{ ghe.responsavel|default:"-" }}</td>
+  <td class="js-ghe-ativo">
+    <span class="badge {% if ghe.ativo %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+      {{ ghe.ativo|yesno:"Ativo,Inativo" }}
+    </span>
+  </td>
+  <td class="text-end">
+    {% if perms.funcionarios.change_ghe %}
+      <button
+        class="btn btn-outline-primary btn-icon"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#editModal-{{ ghe.pk }}"
+        title="Editar"
+        aria-label="Editar"
+      >
+        <i class="bi bi-pencil"></i>
+      </button>
+      <form
+        class="d-inline js-ghe-toggle"
+        id="ghe-toggle-{{ ghe.pk }}"
+        method="post"
+        action="{% url 'funcionarios:ghe_toggle' ghe.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn {% if ghe.ativo %}btn-outline-danger{% else %}btn-outline-success{% endif %} btn-icon js-ghe-toggle-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#gheToggleModal"
+        data-form-id="ghe-toggle-{{ ghe.pk }}"
+        data-nome="{{ ghe.descricao|default_if_none:''|escapejs }}"
+        data-ativo="{{ ghe.ativo|yesno:'1,0' }}"
+        title="{% if ghe.ativo %}Desativar{% else %}Ativar{% endif %}"
+        aria-label="{% if ghe.ativo %}Desativar{% else %}Ativar{% endif %}"
+      >
+        {% if ghe.ativo %}
+          <i class="bi bi-person-x"></i>
+        {% else %}
+          <i class="bi bi-person-check"></i>
+        {% endif %}
+      </button>
+    {% endif %}
+    {% if perms.funcionarios.delete_ghe %}
+      <form
+        class="d-inline js-ghe-delete"
+        id="ghe-delete-{{ ghe.pk }}"
+        method="post"
+        action="{% url 'funcionarios:ghe_delete' ghe.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn btn-outline-danger btn-icon js-ghe-delete-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#gheDeleteModal"
+        data-form-id="ghe-delete-{{ ghe.pk }}"
+        data-nome="{{ ghe.descricao|default_if_none:''|escapejs }}"
+        title="Excluir"
+        aria-label="Excluir"
+      >
+        <i class="bi bi-trash"></i>
+      </button>
+    {% endif %}
+    {% if not perms.funcionarios.change_ghe and not perms.funcionarios.delete_ghe %}
+      <span class="text-muted">-</span>
+    {% endif %}
+  </td>
+</tr>

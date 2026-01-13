@@ -1,0 +1,189 @@
+{% extends "layout/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+  {% include "components/_alerts.html" %}
+  {% include "components/_page_header.html" with title=title subtitle=subtitle create_url=create_url %}
+
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'treinamentos:list' %}">Treinamentos</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'treinamentos:turmas_list' %}">Turmas</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link active" href="{% url 'treinamentos:documentos_list' %}">Configuracao de documentos</a>
+    </li>
+  </ul>
+
+  <div class="alert alert-info small">
+    Edite apenas os textos. As classes e a estrutura ficam bloqueadas.
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          {% for header in headers %}
+            <th scope="col">{{ header }}</th>
+          {% endfor %}
+          <th scope="col" class="text-end">Acoes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for object in object_list %}
+          {% include "treinamentos/_documento_row.html" with documento=object %}
+        {% empty %}
+          <tr>
+            <td colspan="{{ headers|length|add:1 }}" class="text-muted text-center py-4">Sem registros</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% include "components/_pagination.html" with page_obj=page_obj %}
+
+  {% if create_form %}
+    <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="createModalLabel">Novo template</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            {% include "components/_form.html" with form=create_form form_action=create_url %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% for row in edit_rows %}
+    <div class="modal fade" id="editModal-{{ row.object.pk }}" tabindex="-1" aria-labelledby="editModalLabel-{{ row.object.pk }}" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editModalLabel-{{ row.object.pk }}">Editar template</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            {% include "components/_form.html" with form=row.form form_action=row.update_url %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+
+  {% include "components/_confirm_modal.html" with id="documentoDeleteModal" title_id="documentoDeleteModalLabel" title="Excluir documento" body="Deseja excluir este documento?" confirm_text="Excluir" confirm_class="btn-danger" confirm_button_id="documento-delete-confirm" %}
+
+  <script>
+    (function () {
+      function setupHtmlEditor(textarea) {
+        if (!textarea || textarea.dataset.htmlEditor === "1") {
+          return;
+        }
+        textarea.dataset.htmlEditor = "1";
+        var editor = document.createElement("div");
+        editor.className = "form-control";
+        editor.style.minHeight = "280px";
+        editor.style.whiteSpace = "pre-wrap";
+        editor.contentEditable = "true";
+        editor.innerHTML = textarea.value || "";
+        textarea.style.display = "none";
+        textarea.parentNode.insertBefore(editor, textarea);
+
+        function lockEditableNodes() {
+          editor.querySelectorAll("*").forEach(function (node) {
+            if (node.getAttribute("data-editable") === "1") {
+              node.setAttribute("contenteditable", "true");
+              return;
+            }
+            node.setAttribute("contenteditable", "false");
+          });
+        }
+
+        function syncToTextarea() {
+          textarea.value = editor.innerHTML || "";
+        }
+
+        lockEditableNodes();
+
+        editor.addEventListener("input", function () {
+          lockEditableNodes();
+          syncToTextarea();
+        });
+
+        var form = textarea.closest("form");
+        if (form) {
+          form.addEventListener("submit", function () {
+            syncToTextarea();
+          });
+        }
+      }
+
+      function initHtmlEditors() {
+        document.querySelectorAll("textarea[name='corpo_html']").forEach(function (textarea) {
+          setupHtmlEditor(textarea);
+        });
+      }
+
+      function bindDocumentoDelete() {
+        var triggers = document.querySelectorAll(".js-documento-delete-trigger");
+        triggers.forEach(function (trigger) {
+          trigger.addEventListener("click", function () {
+            var formId = trigger.getAttribute("data-form-id");
+            var confirmBtn = document.getElementById("documento-delete-confirm");
+            if (!confirmBtn) {
+              return;
+            }
+            confirmBtn.setAttribute("data-form-id", formId || "");
+            var modalEl = document.getElementById("documentoDeleteModal");
+            if (!modalEl) {
+              return;
+            }
+            var bodyEl = modalEl.querySelector(".modal-body");
+            if (!bodyEl) {
+              return;
+            }
+            var nome = trigger.getAttribute("data-nome") || "documento";
+            bodyEl.textContent = "Deseja excluir o documento " + nome + "?";
+          });
+        });
+
+        var confirmBtn = document.getElementById("documento-delete-confirm");
+        if (confirmBtn && !confirmBtn.dataset.bound) {
+          confirmBtn.dataset.bound = "1";
+          confirmBtn.addEventListener("click", function () {
+            var formId = confirmBtn.getAttribute("data-form-id");
+            if (!formId) {
+              return;
+            }
+            var form = document.getElementById(formId);
+            if (!form) {
+              return;
+            }
+            var modalEl = document.getElementById("documentoDeleteModal");
+            if (modalEl && window.bootstrap) {
+              bootstrap.Modal.getInstance(modalEl).hide();
+            }
+            form.submit();
+          });
+        }
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", function () {
+          initHtmlEditors();
+          bindDocumentoDelete();
+        });
+      } else {
+        initHtmlEditors();
+        bindDocumentoDelete();
+      }
+    })();
+  </script>
+{% endblock %}

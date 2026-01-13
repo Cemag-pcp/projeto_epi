@@ -1,0 +1,173 @@
+{% extends "layout/base.html" %}
+{% load ui_extras %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+  {% include "components/_alerts.html" %}
+  {% include "components/_page_header.html" with title=title subtitle=subtitle create_url=create_url %}
+
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+      <a class="nav-link active" href="{% url 'treinamentos:list' %}">Treinamentos</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'treinamentos:turmas_list' %}">Turmas</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'treinamentos:documentos_list' %}">Configuracao de documentos</a>
+    </li>
+  </ul>
+
+  {% if filters %}
+    {% include "components/_filters.html" with filters=filters %}
+  {% endif %}
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          {% for header in headers %}
+            <th scope="col">{{ header }}</th>
+          {% endfor %}
+          <th scope="col" class="text-end">Acoes</th>
+        </tr>
+      </thead>
+      <tbody data-treinamento-rows>
+        {% for object in object_list %}
+          {% include "treinamentos/_treinamento_row.html" with treinamento=object %}
+        {% empty %}
+          <tr>
+            <td colspan="{{ headers|length|add:1 }}" class="text-muted text-center py-4">Sem registros</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div data-treinamento-pagination>
+    {% include "components/_pagination.html" with page_obj=page_obj %}
+  </div>
+
+  {% if create_form %}
+    <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="createModalLabel">Novo</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            {% include "components/_form.html" with form=create_form form_action=create_url %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% for row in edit_rows %}
+    <div class="modal fade" id="editModal-{{ row.object.pk }}" tabindex="-1" aria-labelledby="editModalLabel-{{ row.object.pk }}" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editModalLabel-{{ row.object.pk }}">Editar</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            {% include "components/_form.html" with form=row.form form_action=row.update_url %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+
+  {% include "components/_confirm_modal.html" with id="treinamentoToggleModal" title_id="treinamentoToggleModalLabel" title="Confirmar" body="Deseja atualizar o status deste treinamento?" confirm_text="Confirmar" confirm_class="btn-primary" confirm_button_id="treinamento-toggle-confirm" %}
+
+  <script>
+    (function () {
+      function bindTreinamentoToggle() {
+        var triggers = document.querySelectorAll(".js-treinamento-toggle-trigger");
+        triggers.forEach(function (trigger) {
+          trigger.addEventListener("click", function () {
+            var formId = trigger.getAttribute("data-form-id");
+            var confirmBtn = document.getElementById("treinamento-toggle-confirm");
+            if (!confirmBtn) {
+              return;
+            }
+            confirmBtn.setAttribute("data-form-id", formId || "");
+            var modalEl = document.getElementById("treinamentoToggleModal");
+            if (!modalEl) {
+              return;
+            }
+            var bodyEl = modalEl.querySelector(".modal-body");
+            if (!bodyEl) {
+              return;
+            }
+            var nome = trigger.getAttribute("data-nome") || "treinamento";
+            var ativo = trigger.getAttribute("data-ativo") === "1";
+            bodyEl.textContent = ativo
+              ? "Deseja desativar o treinamento " + nome + "?"
+              : "Deseja ativar o treinamento " + nome + "?";
+          });
+        });
+
+        var confirmBtn = document.getElementById("treinamento-toggle-confirm");
+        if (confirmBtn && !confirmBtn.dataset.bound) {
+          confirmBtn.dataset.bound = "1";
+          confirmBtn.addEventListener("click", function () {
+            var formId = confirmBtn.getAttribute("data-form-id");
+            if (!formId) {
+              return;
+            }
+            var form = document.getElementById(formId);
+            if (!form) {
+              return;
+            }
+            var modalEl = document.getElementById("treinamentoToggleModal");
+            if (modalEl && window.bootstrap) {
+              bootstrap.Modal.getInstance(modalEl).hide();
+            }
+            var formData = new FormData(form);
+            fetch(form.action, {
+              method: "POST",
+              body: formData,
+              headers: { "X-Requested-With": "XMLHttpRequest" },
+            })
+              .then(function (response) {
+                return response
+                  .json()
+                  .then(function (data) {
+                    return { ok: response.ok, data: data };
+                  })
+                  .catch(function () {
+                    return { ok: response.ok, data: null };
+                  });
+              })
+              .then(function (result) {
+                if (!result.ok || !result.data || !result.data.ok) {
+                  form.submit();
+                  return;
+                }
+                var row = document.getElementById("treinamento-row-" + result.data.row_id);
+                if (row) {
+                  row.outerHTML = result.data.row_html;
+                }
+                bindTreinamentoToggle();
+              })
+              .catch(function () {
+                form.submit();
+              });
+          });
+        }
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", function () {
+          bindTreinamentoToggle();
+        });
+      } else {
+        bindTreinamentoToggle();
+      }
+    })();
+  </script>
+{% endblock %}

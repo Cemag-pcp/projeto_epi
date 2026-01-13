@@ -1,0 +1,72 @@
+<tr id="centro-custo-row-{{ centro_custo.pk }}">
+  <td>{{ centro_custo.nome|default:"-" }}</td>
+  <td class="js-centro-custo-ativo">
+    <span class="badge {% if centro_custo.ativo %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+      {{ centro_custo.ativo|yesno:"Ativo,Inativo" }}
+    </span>
+  </td>
+  <td class="text-end">
+    {% if perms.funcionarios.change_centrocusto %}
+      <button
+        class="btn btn-outline-primary btn-icon"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#editModal-{{ centro_custo.pk }}"
+        title="Editar"
+        aria-label="Editar"
+      >
+        <i class="bi bi-pencil"></i>
+      </button>
+      <form
+        class="d-inline js-centro-custo-toggle"
+        id="centro-custo-toggle-{{ centro_custo.pk }}"
+        method="post"
+        action="{% url 'funcionarios:centro_custo_toggle' centro_custo.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn {% if centro_custo.ativo %}btn-outline-danger{% else %}btn-outline-success{% endif %} btn-icon js-centro-custo-toggle-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#centroCustoToggleModal"
+        data-form-id="centro-custo-toggle-{{ centro_custo.pk }}"
+        data-nome="{{ centro_custo.nome|escapejs }}"
+        data-ativo="{{ centro_custo.ativo|yesno:'1,0' }}"
+        title="{% if centro_custo.ativo %}Desativar{% else %}Ativar{% endif %}"
+        aria-label="{% if centro_custo.ativo %}Desativar{% else %}Ativar{% endif %}"
+      >
+        {% if centro_custo.ativo %}
+          <i class="bi bi-person-x"></i>
+        {% else %}
+          <i class="bi bi-person-check"></i>
+        {% endif %}
+      </button>
+    {% endif %}
+    {% if perms.funcionarios.delete_centrocusto %}
+      <form
+        class="d-inline js-centro-custo-delete"
+        id="centro-custo-delete-{{ centro_custo.pk }}"
+        method="post"
+        action="{% url 'funcionarios:centro_custo_delete' centro_custo.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn btn-outline-danger btn-icon js-centro-custo-delete-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#centroCustoDeleteModal"
+        data-form-id="centro-custo-delete-{{ centro_custo.pk }}"
+        data-nome="{{ centro_custo.nome|escapejs }}"
+        title="Excluir"
+        aria-label="Excluir"
+      >
+        <i class="bi bi-trash"></i>
+      </button>
+    {% endif %}
+    {% if not perms.funcionarios.change_centrocusto and not perms.funcionarios.delete_centrocusto %}
+      <span class="text-muted">-</span>
+    {% endif %}
+  </td>
+</tr>

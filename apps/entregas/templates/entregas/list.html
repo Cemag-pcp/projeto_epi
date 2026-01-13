@@ -1,0 +1,1451 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Entregas{% endblock %}
+
+{% block content %}
+  {% include "components/_alerts.html" %}
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h1 class="h4 mb-1">{{ title }}</h1>
+      {% if subtitle %}<p class="text-muted mb-0">{{ subtitle }}</p>{% endif %}
+    </div>
+    {% if create_url %}
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#createModal">
+          Novo
+        </button>
+        {% if can_add %}
+          <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#createModal" data-entrega-solicitar-trigger>
+            Solicitar entrega
+          </button>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+  {% if filters %}
+    <div data-entrega-filters>
+      {% include "components/_filters.html" with filters=filters %}
+    </div>
+  {% endif %}
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          {% for header in headers %}
+            <th scope="col">{{ header }}</th>
+          {% endfor %}
+          <th scope="col" class="text-end">Acoes</th>
+        </tr>
+      </thead>
+      <tbody data-entrega-rows>
+        {% for object in object_list %}
+          {% include "entregas/_entrega_row.html" with entrega=object %}
+        {% empty %}
+          <tr>
+            <td colspan="{{ headers|length|add:1 }}" class="text-muted text-center py-4">Sem registros</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div data-entrega-pagination>
+    {% include "components/_pagination.html" with page_obj=page_obj %}
+  </div>
+
+  {% if create_form %}
+    <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="createModalLabel">Nova entrega</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body" data-entrega-modal-body data-row-id="" data-entrega-depositos-url="{% url 'entregas:depositos' %}" data-entrega-produtos-url="{% url 'entregas:produtos' %}">
+            <div data-entrega-form>
+              {% include "components/_form.html" with form=create_form form_action=create_url form_id="entrega-form" form_hide_actions=True %}
+            </div>
+            <div class="alert alert-danger d-none" data-entrega-error></div>
+            <div class="mt-4">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <h6 class="mb-0">Itens adicionados</h6>
+                <button
+                  class="btn btn-outline-primary btn-icon"
+                  type="button"
+                  data-entrega-add-item
+                  title="Adicionar item"
+                  aria-label="Adicionar item"
+                >
+                  <i class="bi bi-plus"></i>
+                </button>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Funcionario</th>
+                      <th>Produto / CA</th>
+                      <th>Deposito</th>
+                      <th>Quantidade</th>
+                      <th class="text-end">Acoes</th>
+                    </tr>
+                  </thead>
+                  <tbody data-entrega-items>
+                    <tr>
+                      <td colspan="5" class="text-muted text-center py-3">Nenhum item adicionado</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="d-flex gap-2 justify-content-end mt-3">
+              <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+              <button class="btn btn-primary" type="submit" form="entrega-form">Salvar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <style>
+    #entregaConfirmModal {
+      z-index: 1080;
+    }
+    .entrega-confirm-backdrop {
+      z-index: 1070;
+    }
+    #entregaValidacaoModal {
+      z-index: 1090;
+    }
+    .entrega-validacao-backdrop {
+      z-index: 1085;
+    }
+    .entrega-loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.35);
+      z-index: 1100;
+    }
+  </style>
+
+  {% include "components/_confirm_modal.html" with id="entregaConfirmModal" title_id="entregaConfirmModalLabel" title="Confirmar entrega" body="Item com estoque zero, deseja continuar?" confirm_text="Continuar" confirm_class="btn-warning" confirm_button_id="entrega-confirm-continue" %}
+  <div class="modal fade" id="entregaCancelModal" tabindex="-1" aria-labelledby="entregaCancelModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="entregaCancelModalLabel">Cancelar entrega</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-2">Deseja cancelar esta entrega?</div>
+          <label class="form-label" for="entrega-cancel-motivo">Motivo do cancelamento</label>
+          <textarea class="form-control" id="entrega-cancel-motivo" rows="3"></textarea>
+          <div class="invalid-feedback d-block d-none" data-entrega-cancel-error></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Fechar</button>
+          <button class="btn btn-danger" type="button" id="entrega-cancel-confirm">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="entregaMotivoModal" tabindex="-1" aria-labelledby="entregaMotivoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="entregaMotivoModalLabel">Motivo do cancelamento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body" data-entrega-motivo-body>
+          <div class="text-muted">Sem motivo informado.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="entregaDetailModal" tabindex="-1" aria-labelledby="entregaDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="entregaDetailModalLabel">Detalhes da entrega</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body" data-entrega-detail-body>
+          <div class="text-muted">Carregando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="entregaValidacaoModal" tabindex="-1" aria-labelledby="entregaValidacaoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="entregaValidacaoModalLabel">Validacao de recebimento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body" data-entrega-validacao-body>
+          <p class="mb-3">Informe a senha do funcionario para continuar.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-primary" type="button" id="entrega-validacao-confirm">Confirmar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="entregaLoading" class="entrega-loading d-none">
+    <div class="spinner-border text-light" role="status" aria-hidden="true"></div>
+    <div class="mt-2 text-light">Processando...</div>
+  </div>
+
+  <script>
+    (function () {
+        function showEntregaLoading() {
+          var loading = document.getElementById("entregaLoading");
+          if (!loading) {
+            return;
+          }
+          loading.classList.remove("d-none");
+        }
+
+        function hideEntregaLoading() {
+          var loading = document.getElementById("entregaLoading");
+          if (!loading) {
+            return;
+          }
+          loading.classList.add("d-none");
+        }
+
+        function ensureConfirmBackdrop() {
+          var existing = document.querySelector(".entrega-confirm-backdrop");
+          if (existing) {
+            return existing;
+          }
+          var backdrop = document.createElement("div");
+          backdrop.className = "modal-backdrop fade show entrega-confirm-backdrop";
+          document.body.appendChild(backdrop);
+          return backdrop;
+        }
+
+        function removeConfirmBackdrop() {
+          var existing = document.querySelector(".entrega-confirm-backdrop");
+          if (existing) {
+            existing.remove();
+          }
+        }
+
+        function ensureValidacaoBackdrop() {
+          var existing = document.querySelector(".entrega-validacao-backdrop");
+          if (existing) {
+            return existing;
+          }
+          var backdrop = document.createElement("div");
+          backdrop.className = "modal-backdrop fade show entrega-validacao-backdrop";
+          document.body.appendChild(backdrop);
+          return backdrop;
+        }
+
+        function removeValidacaoBackdrop() {
+          var existing = document.querySelector(".entrega-validacao-backdrop");
+          if (existing) {
+            existing.remove();
+          }
+        }
+
+        function renderValidacaoModal(modal, message, funcionarios, invalid, items) {
+          var bodyEl = modal.querySelector("[data-entrega-validacao-body]");
+          if (!bodyEl) {
+            return;
+          }
+          bodyEl.innerHTML = "";
+          var messageEl = document.createElement("p");
+          messageEl.className = "mb-3";
+          messageEl.textContent = message || "Informe a senha do funcionario para continuar.";
+          bodyEl.appendChild(messageEl);
+          if (!funcionarios || !funcionarios.length) {
+            return;
+          }
+          function buildResumo(funcionarioId) {
+            if (!items || !items.length) {
+              return null;
+            }
+            var rows = items.filter(function (item) {
+              return String(item.funcionario_id) === String(funcionarioId);
+            });
+            if (!rows.length) {
+              return null;
+            }
+            var wrapper = document.createElement("div");
+            wrapper.className = "mb-2";
+            var title = document.createElement("div");
+            title.className = "fw-semibold small";
+            title.textContent = "Resumo da entrega";
+            wrapper.appendChild(title);
+            var table = document.createElement("table");
+            table.className = "table table-sm align-middle mb-2";
+            var thead = document.createElement("thead");
+            thead.className = "table-light";
+            thead.innerHTML = "<tr><th>Produto</th><th>Deposito</th><th>Quantidade</th></tr>";
+            var tbody = document.createElement("tbody");
+            rows.forEach(function (item) {
+              var row = document.createElement("tr");
+              var tdProduto = document.createElement("td");
+              tdProduto.textContent = item.produto_fornecedor_label || "-";
+              var tdDeposito = document.createElement("td");
+              tdDeposito.textContent = item.deposito_label || "-";
+              var tdQuantidade = document.createElement("td");
+              tdQuantidade.textContent = item.quantidade || "-";
+              row.appendChild(tdProduto);
+              row.appendChild(tdDeposito);
+              row.appendChild(tdQuantidade);
+              tbody.appendChild(row);
+            });
+            table.appendChild(thead);
+            table.appendChild(tbody);
+            wrapper.appendChild(table);
+            return wrapper;
+          }
+          funcionarios.forEach(function (funcionario) {
+            var wrapper = document.createElement("div");
+            wrapper.className = "mb-3";
+            var resumo = buildResumo(funcionario.id);
+            if (resumo) {
+              wrapper.appendChild(resumo);
+            }
+            var label = document.createElement("label");
+            label.className = "form-label";
+            label.textContent = "Senha de " + (funcionario.nome || "funcionario");
+            var input = document.createElement("input");
+            input.type = "password";
+            input.className = "form-control";
+            input.setAttribute("data-funcionario-validacao-id", funcionario.id);
+            wrapper.appendChild(label);
+            wrapper.appendChild(input);
+            if (invalid) {
+              var feedback = document.createElement("div");
+              feedback.className = "invalid-feedback d-block";
+              feedback.textContent = "Senha invalida.";
+              wrapper.appendChild(feedback);
+            }
+            bodyEl.appendChild(wrapper);
+          });
+        }
+
+        function bindEntregaForm(form) {
+          var items = [];
+          var depositosUrl = null;
+          var produtosUrl = null;
+          var modalBody = form.closest("[data-entrega-modal-body]");
+          if (modalBody) {
+            depositosUrl = modalBody.getAttribute("data-entrega-depositos-url");
+            produtosUrl = modalBody.getAttribute("data-entrega-produtos-url");
+            if (modalBody.dataset.items) {
+              try {
+                items = JSON.parse(modalBody.dataset.items) || [];
+              } catch (error) {
+                items = [];
+              }
+            }
+          }
+
+        function ensurePayloadInput() {
+          var input = form.querySelector("input[name='itens_payload']");
+          if (!input) {
+            input = document.createElement("input");
+            input.type = "hidden";
+            input.name = "itens_payload";
+            form.appendChild(input);
+          }
+          return input;
+        }
+
+        function ensureAllowNegativeInput() {
+          var input = form.querySelector("input[name='allow_negative']");
+          if (!input) {
+            input = document.createElement("input");
+            input.type = "hidden";
+            input.name = "allow_negative";
+            form.appendChild(input);
+          }
+          return input;
+        }
+
+        function ensureValidacaoPayloadInput() {
+          var input = form.querySelector("input[name='validacao_payload']");
+          if (!input) {
+            input = document.createElement("input");
+            input.type = "hidden";
+            input.name = "validacao_payload";
+            form.appendChild(input);
+          }
+          return input;
+        }
+
+        function renderConfirmItems(modal, message, confirmItems) {
+          var bodyEl = modal.querySelector(".modal-body");
+          if (!bodyEl) {
+            return;
+          }
+          bodyEl.innerHTML = "";
+          var messageEl = document.createElement("p");
+          messageEl.className = "mb-3";
+          messageEl.textContent = message || "Item com estoque zero, deseja continuar?";
+          bodyEl.appendChild(messageEl);
+          if (!confirmItems || !confirmItems.length) {
+            return;
+          }
+          var table = document.createElement("table");
+          table.className = "table table-sm align-middle mb-0";
+          var thead = document.createElement("thead");
+          thead.className = "table-light";
+          thead.innerHTML = "<tr><th>Produto</th><th>Deposito</th><th>Quantidade</th><th>Estoque</th></tr>";
+          var tbody = document.createElement("tbody");
+          confirmItems.forEach(function (item) {
+            var row = document.createElement("tr");
+            var tdProduto = document.createElement("td");
+            tdProduto.textContent = item.produto || "-";
+            var tdDeposito = document.createElement("td");
+            tdDeposito.textContent = item.deposito || "-";
+            var tdQuantidade = document.createElement("td");
+            tdQuantidade.textContent = item.quantidade || "-";
+            var tdEstoque = document.createElement("td");
+            tdEstoque.textContent = item.estoque || "-";
+            row.appendChild(tdProduto);
+            row.appendChild(tdDeposito);
+            row.appendChild(tdQuantidade);
+            row.appendChild(tdEstoque);
+            tbody.appendChild(row);
+          });
+          table.appendChild(thead);
+          table.appendChild(tbody);
+          bodyEl.appendChild(table);
+        }
+
+        function renderItems() {
+          var tbody = modalBody ? modalBody.querySelector("[data-entrega-items]") : null;
+          if (!tbody) {
+            return;
+          }
+          var isReadonly = modalBody && modalBody.dataset.entregaMode === "readonly";
+          if (modalBody) {
+            modalBody.dataset.items = JSON.stringify(items);
+          }
+          if (!items.length) {
+            tbody.innerHTML =
+              '<tr><td colspan="5" class="text-muted text-center py-3">Nenhum item adicionado</td></tr>';
+            return;
+          }
+          tbody.innerHTML = items
+            .map(function (item, index) {
+              return (
+                "<tr>" +
+                "<td>" +
+                item.funcionario_label +
+                "</td>" +
+                "<td>" +
+                item.produto_fornecedor_label +
+                "</td>" +
+                "<td>" +
+                item.deposito_label +
+                "</td>" +
+                "<td>" +
+                item.quantidade +
+                "</td>" +
+                '<td class="text-end">' +
+                (isReadonly
+                  ? '<span class="text-muted">-</span>'
+                  : '<button class="btn btn-outline-danger btn-icon" type="button" data-entrega-remove="' +
+                    index +
+                    '" title="Remover" aria-label="Remover"><i class="bi bi-trash"></i></button>') +
+                "</td>" +
+                "</tr>"
+              );
+            })
+            .join("");
+        }
+
+        form._setEntregaItems = function (newItems) {
+          items = Array.isArray(newItems) ? newItems : [];
+          renderItems();
+        };
+        form._renderEntregaItems = renderItems;
+
+        function bindRemoveButtons() {
+          var tbody = modalBody ? modalBody.querySelector("[data-entrega-items]") : null;
+          if (!tbody) {
+            return;
+          }
+          var token = String(Date.now()) + Math.random().toString(16).slice(2);
+          tbody.dataset.boundToken = token;
+          tbody.addEventListener("click", function (event) {
+            if (tbody.dataset.boundToken !== token) {
+              return;
+            }
+            var target = event.target;
+            if (!target || !target.hasAttribute("data-entrega-remove")) {
+              return;
+            }
+            if (modalBody && modalBody.dataset.entregaMode === "readonly") {
+              return;
+            }
+            var index = parseInt(target.getAttribute("data-entrega-remove"), 10);
+            if (isNaN(index)) {
+              return;
+            }
+            items.splice(index, 1);
+            renderItems();
+          });
+        }
+
+        function bindAddButton() {
+          var addButton = modalBody ? modalBody.querySelector("[data-entrega-add-item]") : null;
+          if (!addButton) {
+            return;
+          }
+          var token = String(Date.now()) + Math.random().toString(16).slice(2);
+          addButton.dataset.boundToken = token;
+          addButton.addEventListener("click", function () {
+            if (addButton.dataset.boundToken !== token) {
+              return;
+            }
+            if (modalBody && modalBody.dataset.entregaMode === "readonly") {
+              return;
+            }
+            var funcionarioField = form.querySelector("[name='funcionario']");
+            var produtoField = form.querySelector("[name='produto_fornecedor']");
+            var depositoField = form.querySelector("[name='deposito']");
+            var quantidadeField = form.querySelector("[name='quantidade']");
+            var observacaoField = form.querySelector("[name='observacao']");
+            if (!funcionarioField || !produtoField || !depositoField || !quantidadeField) {
+              return;
+            }
+            if (!funcionarioField.value || !produtoField.value || !depositoField.value || !quantidadeField.value) {
+              window.alert("Preencha funcionario, produto, deposito e quantidade.");
+              return;
+            }
+            items.push({
+              funcionario_id: funcionarioField.value,
+              funcionario_label: funcionarioField.options[funcionarioField.selectedIndex].text,
+              produto_fornecedor_id: produtoField.value,
+              produto_fornecedor_label: produtoField.options[produtoField.selectedIndex].text,
+              deposito_id: depositoField.value,
+              deposito_label: depositoField.options[depositoField.selectedIndex].text,
+              quantidade: quantidadeField.value,
+              observacao: observacaoField ? observacaoField.value : "",
+            });
+            if (quantidadeField) {
+              quantidadeField.value = "";
+            }
+            if (observacaoField) {
+              observacaoField.value = "";
+            }
+            renderItems();
+          });
+        }
+
+        function bindProdutoChange() {
+          var produtoField = form.querySelector("[name='produto_fornecedor']");
+          var depositoField = form.querySelector("[name='deposito']");
+          if (!produtoField || !depositoField) {
+            return;
+          }
+          function resetDepositos(message) {
+            depositoField.innerHTML = "";
+            var option = document.createElement("option");
+            option.value = "";
+            option.textContent = message || "Selecione um produto";
+            depositoField.appendChild(option);
+            depositoField.disabled = true;
+          }
+          function populateDepositos(items) {
+            depositoField.innerHTML = "";
+            var placeholder = document.createElement("option");
+            placeholder.value = "";
+            placeholder.textContent = "Selecione";
+            depositoField.appendChild(placeholder);
+            items.forEach(function (item) {
+              var opt = document.createElement("option");
+              opt.value = item.id;
+              opt.textContent = item.nome;
+              depositoField.appendChild(opt);
+            });
+            depositoField.disabled = false;
+          }
+          resetDepositos();
+          produtoField.addEventListener("change", function () {
+            if (!produtoField.value) {
+              resetDepositos();
+              return;
+            }
+            if (!depositosUrl) {
+              resetDepositos("Nao foi possivel carregar depositos");
+              return;
+            }
+            resetDepositos("Carregando...");
+            fetch(depositosUrl + "?produto_fornecedor_id=" + encodeURIComponent(produtoField.value), {
+              headers: { "X-Requested-With": "XMLHttpRequest" },
+            })
+              .then(function (response) {
+                return response.json();
+              })
+              .then(function (data) {
+                if (!data || !data.ok) {
+                  resetDepositos("Nenhum deposito encontrado");
+                  return;
+                }
+                if (!data.depositos || !data.depositos.length) {
+                  resetDepositos("Nenhum deposito encontrado");
+                  return;
+                }
+                populateDepositos(data.depositos);
+              })
+              .catch(function () {
+                resetDepositos("Erro ao carregar depositos");
+              });
+          });
+        }
+
+        function bindFuncionarioChange() {
+          var funcionarioField = form.querySelector("[name='funcionario']");
+          var produtoField = form.querySelector("[name='produto_fornecedor']");
+          var depositoField = form.querySelector("[name='deposito']");
+          if (!funcionarioField || !produtoField) {
+            return;
+          }
+          function resetProdutos(message) {
+            produtoField.innerHTML = "";
+            var option = document.createElement("option");
+            option.value = "";
+            option.textContent = message || "Selecione um funcionario";
+            produtoField.appendChild(option);
+            produtoField.disabled = true;
+            if (depositoField) {
+              depositoField.innerHTML = "";
+              var depoOpt = document.createElement("option");
+              depoOpt.value = "";
+              depoOpt.textContent = "Selecione um produto";
+              depositoField.appendChild(depoOpt);
+              depositoField.disabled = true;
+            }
+          }
+          function populateProdutos(items) {
+            produtoField.innerHTML = "";
+            var placeholder = document.createElement("option");
+            placeholder.value = "";
+            placeholder.textContent = "Selecione";
+            produtoField.appendChild(placeholder);
+            items.forEach(function (item) {
+              var opt = document.createElement("option");
+              opt.value = item.id;
+              opt.textContent = item.label;
+              produtoField.appendChild(opt);
+            });
+            produtoField.disabled = false;
+          }
+          resetProdutos();
+          funcionarioField.addEventListener("change", function () {
+            if (!funcionarioField.value) {
+              resetProdutos();
+              return;
+            }
+            if (!produtosUrl) {
+              resetProdutos("Nao foi possivel carregar produtos");
+              return;
+            }
+            resetProdutos("Carregando...");
+            fetch(produtosUrl + "?funcionario_id=" + encodeURIComponent(funcionarioField.value), {
+              headers: { "X-Requested-With": "XMLHttpRequest" },
+            })
+              .then(function (response) {
+                return response.json();
+              })
+              .then(function (data) {
+                if (!data || !data.ok) {
+                  resetProdutos("Nenhum produto encontrado");
+                  return;
+                }
+                if (!data.produtos || !data.produtos.length) {
+                  resetProdutos("Nenhum produto encontrado");
+                  return;
+                }
+                populateProdutos(data.produtos);
+              })
+              .catch(function () {
+                resetProdutos("Erro ao carregar produtos");
+              });
+          });
+        }
+
+        bindAddButton();
+        bindRemoveButtons();
+        bindFuncionarioChange();
+        bindProdutoChange();
+        renderItems();
+
+        form.noValidate = true;
+
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+
+          function submitForm(allowNegative, validacaoPayload) {
+            var formData = new FormData(form);
+            if (!items.length) {
+              var funcionarioField = form.querySelector("[name='funcionario']");
+              var produtoField = form.querySelector("[name='produto_fornecedor']");
+              var depositoField = form.querySelector("[name='deposito']");
+              var quantidadeField = form.querySelector("[name='quantidade']");
+              if (
+                !funcionarioField ||
+                !produtoField ||
+                !depositoField ||
+                !quantidadeField ||
+                !funcionarioField.value ||
+                !produtoField.value ||
+                !depositoField.value ||
+                !quantidadeField.value
+              ) {
+                window.alert("Preencha funcionario, produto, deposito e quantidade.");
+                return;
+              }
+            }
+            if (items.length) {
+              ensurePayloadInput().value = JSON.stringify(items);
+              formData.set("itens_payload", JSON.stringify(items));
+            } else {
+              var payloadInput = form.querySelector("input[name='itens_payload']");
+              if (payloadInput) {
+                payloadInput.value = "";
+              }
+              formData.delete("itens_payload");
+            }
+            if (allowNegative) {
+              ensureAllowNegativeInput().value = "1";
+              formData.set("allow_negative", "1");
+            } else {
+              var allowInput = form.querySelector("input[name='allow_negative']");
+              if (allowInput) {
+                allowInput.value = "";
+              }
+              formData.delete("allow_negative");
+            }
+            if (validacaoPayload) {
+              form._entregaValidacaoPayload = validacaoPayload;
+            }
+            if (form._entregaValidacaoPayload) {
+              var payloadString = JSON.stringify(form._entregaValidacaoPayload);
+              ensureValidacaoPayloadInput().value = payloadString;
+              formData.set("validacao_payload", payloadString);
+            } else {
+              var validacaoInput = form.querySelector("input[name='validacao_payload']");
+              if (validacaoInput) {
+                validacaoInput.value = "";
+              }
+              formData.delete("validacao_payload");
+            }
+            showEntregaLoading();
+            fetch(form.action, {
+              method: "POST",
+              body: formData,
+              headers: { "X-Requested-With": "XMLHttpRequest" },
+            })
+              .then(function (response) {
+                return response
+                  .json()
+                  .then(function (data) {
+                    return { ok: response.ok, data: data };
+                  })
+                  .catch(function () {
+                    return { ok: response.ok, data: null };
+                  });
+              })
+              .then(function (result) {
+                hideEntregaLoading();
+                if (!result.ok || !result.data || !result.data.ok) {
+                  if (result.data && result.data.confirm) {
+                    var message = result.data.message || "Item com estoque zero, deseja continuar?";
+                    var confirmModal = document.getElementById("entregaConfirmModal");
+                    var confirmBtn = document.getElementById("entrega-confirm-continue");
+                    if (confirmModal && confirmBtn && window.bootstrap) {
+                      renderConfirmItems(confirmModal, message, result.data.confirm_items);
+                      confirmBtn.setAttribute("data-allow", "1");
+                      ensureConfirmBackdrop();
+                      var instance = bootstrap.Modal.getOrCreateInstance(confirmModal);
+                      confirmModal.addEventListener(
+                        "hidden.bs.modal",
+                        function () {
+                          removeConfirmBackdrop();
+                        },
+                        { once: true }
+                      );
+                      instance.show();
+                      return;
+                    }
+                    return;
+                  }
+                  if (result.data && result.data.validate) {
+                    var message = result.data.message || "Informe a senha do funcionario para continuar.";
+                    var validacaoModal = document.getElementById("entregaValidacaoModal");
+                    var confirmBtn = document.getElementById("entrega-validacao-confirm");
+                    if (validacaoModal && confirmBtn && window.bootstrap) {
+                      renderValidacaoModal(
+                        validacaoModal,
+                        message,
+                        result.data.funcionarios || [],
+                        result.data.invalid,
+                        items
+                      );
+                      ensureValidacaoBackdrop();
+                      var instance = bootstrap.Modal.getOrCreateInstance(validacaoModal);
+                      validacaoModal.addEventListener(
+                        "hidden.bs.modal",
+                        function () {
+                          removeValidacaoBackdrop();
+                        },
+                        { once: true }
+                      );
+                      instance.show();
+                      return;
+                    }
+                  }
+                  if (modalBody && result.data && result.data.form_html) {
+                    if (modalBody) {
+                      modalBody.dataset.items = JSON.stringify(items);
+                    }
+                    var formContainer = modalBody.querySelector("[data-entrega-form]");
+                    var errorBox = modalBody.querySelector("[data-entrega-error]");
+                    var parsedMessage = "";
+                    if (result.data.form_html) {
+                      var parser = new DOMParser();
+                      var doc = parser.parseFromString(result.data.form_html, "text/html");
+                      var alertEl = doc.querySelector(".alert");
+                      if (alertEl) {
+                        parsedMessage = alertEl.textContent.trim();
+                      }
+                      if (!parsedMessage) {
+                        var invalidEl = doc.querySelector(".invalid-feedback");
+                        if (invalidEl) {
+                          parsedMessage = invalidEl.textContent.trim();
+                        }
+                      }
+                    }
+                    if (errorBox) {
+                      if (!parsedMessage) {
+                        parsedMessage = "Erro ao validar a entrega.";
+                      }
+                      errorBox.textContent = parsedMessage;
+                      errorBox.classList.remove("d-none");
+                    }
+                    if (formContainer) {
+                      formContainer.innerHTML = result.data.form_html;
+                      var newForm = formContainer.querySelector("form");
+                      if (newForm) {
+                        bindEntregaForm(newForm);
+                      }
+                    }
+                  }
+                  return;
+                }
+
+                if (result.data.action === "create") {
+                  var tbody = document.querySelector("[data-entrega-rows]");
+                  if (tbody) {
+                    var emptyRow = tbody.querySelector("td.text-muted");
+                    if (emptyRow) {
+                      emptyRow.parentElement.remove();
+                    }
+                    tbody.insertAdjacentHTML("afterbegin", result.data.row_html);
+                  }
+                  bindEntregaCancel();
+                  bindEntregaDetail();
+                  bindEntregaMotivo();
+                  bindEntregaAtender();
+                  if (modalBody && result.data.form_html) {
+                    if (modalBody) {
+                      modalBody.dataset.items = "";
+                    }
+                    var formContainer = modalBody.querySelector("[data-entrega-form]");
+                    var errorBox = modalBody.querySelector("[data-entrega-error]");
+                    if (errorBox) {
+                      errorBox.classList.add("d-none");
+                      errorBox.textContent = "";
+                    }
+                    if (formContainer) {
+                      formContainer.innerHTML = result.data.form_html;
+                      var refreshedForm = formContainer.querySelector("form");
+                      if (refreshedForm) {
+                        bindEntregaForm(refreshedForm);
+                      }
+                    }
+                  }
+                  var modalEl = document.getElementById("createModal");
+                  if (modalEl && window.bootstrap) {
+                    bootstrap.Modal.getInstance(modalEl).hide();
+                  }
+                  return;
+                }
+
+                if (result.data.row_html && result.data.row_id) {
+                  var row = document.getElementById("entrega-row-" + result.data.row_id);
+                  if (row) {
+                    row.outerHTML = result.data.row_html;
+                  }
+                  bindEntregaCancel();
+                  bindEntregaDetail();
+                  bindEntregaMotivo();
+                  bindEntregaAtender();
+                  var modalEl = document.getElementById("createModal");
+                  if (modalEl && window.bootstrap) {
+                    bootstrap.Modal.getInstance(modalEl).hide();
+                  }
+                }
+              })
+              .catch(function () {
+                hideEntregaLoading();
+                form.submit();
+              });
+          }
+
+          form._submitEntregaAllowNegative = function () {
+            submitForm(true);
+          };
+          form._submitEntregaComValidacao = function (payload) {
+            submitForm(false, payload);
+          };
+
+          submitForm(false);
+        });
+      }
+
+      function resetEntregaModal(form, titleText, actionUrl) {
+        var modalEl = document.getElementById("createModal");
+        if (modalEl) {
+          var title = modalEl.querySelector("#createModalLabel");
+          if (title && titleText) {
+            title.textContent = titleText;
+          }
+        }
+        if (form && actionUrl) {
+          form.action = actionUrl;
+        }
+        if (form && typeof form._setEntregaItems === "function") {
+          form._setEntregaItems([]);
+        }
+        if (form) {
+          form._entregaValidacaoPayload = null;
+          var validacaoInput = form.querySelector("input[name='validacao_payload']");
+          if (validacaoInput) {
+            validacaoInput.value = "";
+          }
+        }
+        if (modalEl) {
+          var errorBox = modalEl.querySelector("[data-entrega-error]");
+          if (errorBox) {
+            errorBox.classList.add("d-none");
+            errorBox.textContent = "";
+          }
+        }
+        setEntregaMode(form, "");
+      }
+
+      function setEntregaMode(form, mode) {
+        if (!form) {
+          return;
+        }
+        var modalBody = form.closest("[data-entrega-modal-body]");
+        if (!modalBody) {
+          return;
+        }
+        modalBody.dataset.entregaMode = mode || "";
+        var formContainer = modalBody.querySelector("[data-entrega-form]");
+        if (formContainer) {
+          if (mode === "readonly") {
+            formContainer.classList.add("d-none");
+          } else {
+            formContainer.classList.remove("d-none");
+          }
+        }
+        var addButton = modalBody.querySelector("[data-entrega-add-item]");
+        if (addButton) {
+          if (mode === "readonly") {
+            addButton.disabled = true;
+            addButton.classList.add("disabled");
+            addButton.setAttribute("aria-disabled", "true");
+            addButton.classList.add("d-none");
+          } else {
+            addButton.disabled = false;
+            addButton.classList.remove("disabled");
+            addButton.removeAttribute("aria-disabled");
+            addButton.classList.remove("d-none");
+          }
+        }
+        if (typeof form._renderEntregaItems === "function") {
+          form._renderEntregaItems();
+        }
+      }
+
+      function bindEntregaModalReset() {
+        var modalEl = document.getElementById("createModal");
+        if (!modalEl || modalEl.dataset.resetBound === "1") {
+          return;
+        }
+        modalEl.dataset.resetBound = "1";
+        modalEl.addEventListener("hidden.bs.modal", function () {
+          var form = modalEl.querySelector("form");
+          if (!form) {
+            return;
+          }
+          resetEntregaModal(form, "Nova entrega", "{{ create_url }}");
+        });
+      }
+
+      function bindEntregaConfirm() {
+        var confirmBtn = document.getElementById("entrega-confirm-continue");
+        if (!confirmBtn || confirmBtn.dataset.bound === "1") {
+          return;
+        }
+        confirmBtn.dataset.bound = "1";
+        confirmBtn.addEventListener("click", function () {
+          var modalEl = document.getElementById("entregaConfirmModal");
+          if (modalEl && window.bootstrap) {
+            bootstrap.Modal.getInstance(modalEl).hide();
+          }
+          removeConfirmBackdrop();
+          var form = document.querySelector("#createModal form");
+          if (!form) {
+            return;
+          }
+          if (typeof form._submitEntregaAllowNegative === "function") {
+            form._submitEntregaAllowNegative();
+          }
+        });
+
+        var confirmModal = document.getElementById("entregaConfirmModal");
+        if (confirmModal && !confirmModal.dataset.bound) {
+          confirmModal.dataset.bound = "1";
+          confirmModal.addEventListener("hidden.bs.modal", function () {
+            var form = document.querySelector("#createModal form");
+            if (!form) {
+              return;
+            }
+            form._entregaValidacaoPayload = null;
+            var input = form.querySelector("input[name='validacao_payload']");
+            if (input) {
+              input.value = "";
+            }
+          });
+        }
+      }
+
+      function bindEntregaValidacaoConfirm() {
+        var confirmBtn = document.getElementById("entrega-validacao-confirm");
+        if (!confirmBtn || confirmBtn.dataset.bound === "1") {
+          return;
+        }
+        confirmBtn.dataset.bound = "1";
+        confirmBtn.addEventListener("click", function () {
+          var modalEl = document.getElementById("entregaValidacaoModal");
+          if (modalEl && window.bootstrap) {
+            bootstrap.Modal.getInstance(modalEl).hide();
+          }
+          removeValidacaoBackdrop();
+          var form = document.querySelector("#createModal form");
+          if (!form || typeof form._submitEntregaComValidacao !== "function") {
+            return;
+          }
+          var payload = {};
+          var inputs = modalEl ? modalEl.querySelectorAll("[data-funcionario-validacao-id]") : [];
+          inputs.forEach(function (input) {
+            var id = input.getAttribute("data-funcionario-validacao-id");
+            if (id) {
+              payload[id] = input.value || "";
+            }
+          });
+          form._submitEntregaComValidacao(payload);
+        });
+      }
+
+      function initEntregaForms() {
+        var form = document.querySelector("#createModal form");
+        if (form) {
+          bindEntregaForm(form);
+        }
+      }
+
+      function updateEntregaTable(html) {
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(html, "text/html");
+        var newRows = doc.querySelector("[data-entrega-rows]");
+        var newPagination = doc.querySelector("[data-entrega-pagination]");
+        var currentRows = document.querySelector("[data-entrega-rows]");
+        var currentPagination = document.querySelector("[data-entrega-pagination]");
+        if (newRows && currentRows) {
+          currentRows.innerHTML = newRows.innerHTML;
+        }
+        if (newPagination && currentPagination) {
+          currentPagination.innerHTML = newPagination.innerHTML;
+        }
+        bindEntregaCancel();
+        bindEntregaDetail();
+        bindEntregaMotivo();
+        bindEntregaAtender();
+        bindEntregaPagination();
+      }
+
+      function bindEntregaDetail() {
+        var triggers = document.querySelectorAll(".js-entrega-detail-trigger");
+        triggers.forEach(function (trigger) {
+          trigger.addEventListener("click", function () {
+            var url = trigger.getAttribute("data-detail-url");
+            var modalBody = document.querySelector("[data-entrega-detail-body]");
+            if (modalBody) {
+              modalBody.innerHTML = '<div class="text-muted">Carregando...</div>';
+            }
+            if (!url) {
+              return;
+            }
+            fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+              .then(function (response) {
+                return response
+                  .json()
+                  .then(function (data) {
+                    return { ok: response.ok, data: data };
+                  })
+                  .catch(function () {
+                    return { ok: response.ok, data: null };
+                  });
+              })
+              .then(function (result) {
+                if (!result.ok || !result.data || !result.data.ok) {
+                  if (modalBody) {
+                    modalBody.innerHTML = '<div class="text-danger">Erro ao carregar detalhes.</div>';
+                  }
+                  return;
+                }
+                if (modalBody) {
+                  modalBody.innerHTML = result.data.html;
+                }
+              })
+              .catch(function () {
+                if (modalBody) {
+                  modalBody.innerHTML = '<div class="text-danger">Erro ao carregar detalhes.</div>';
+                }
+              });
+          });
+        });
+      }
+
+      function bindEntregaSolicitar() {
+        var trigger = document.querySelector("[data-entrega-solicitar-trigger]");
+        if (!trigger || trigger.dataset.bound === "1") {
+          return;
+        }
+        trigger.dataset.bound = "1";
+        trigger.addEventListener("click", function () {
+          var form = document.querySelector("#createModal form");
+          if (!form) {
+            return;
+          }
+          resetEntregaModal(form, "Solicitar entrega", "{{ solicitacao_url }}");
+        });
+      }
+
+      function bindEntregaAtender() {
+        var root = document.body;
+        if (!root || root.dataset.entregaAtenderBound === "1") {
+          return;
+        }
+        root.dataset.entregaAtenderBound = "1";
+        root.addEventListener("click", function (event) {
+          var target = event.target;
+          if (!target || !target.closest) {
+            return;
+          }
+          var trigger = target.closest(".js-entrega-atender-trigger");
+          if (!trigger) {
+            return;
+          }
+          var form = document.querySelector("#createModal form");
+          if (!form) {
+            return;
+          }
+          var entregarUrl = trigger.getAttribute("data-entregar-url");
+          var itensUrl = trigger.getAttribute("data-itens-url");
+          resetEntregaModal(form, "Entregar", entregarUrl);
+          setEntregaMode(form, "readonly");
+          if (!itensUrl) {
+            return;
+          }
+          fetch(itensUrl, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+            .then(function (response) {
+              return response
+                .json()
+                .then(function (data) {
+                  return { ok: response.ok, data: data };
+                })
+                .catch(function () {
+                  return { ok: response.ok, data: null };
+                });
+            })
+            .then(function (result) {
+              if (!result.ok || !result.data || !result.data.ok) {
+                return;
+              }
+              if (form && typeof form._setEntregaItems === "function") {
+                form._setEntregaItems(result.data.items || []);
+              }
+            })
+            .catch(function () {});
+        });
+      }
+
+      function bindEntregaCancel() {
+        var triggers = document.querySelectorAll(".js-entrega-cancel-trigger");
+        triggers.forEach(function (trigger) {
+          trigger.addEventListener("click", function () {
+            var formId = trigger.getAttribute("data-form-id");
+            var confirmBtn = document.getElementById("entrega-cancel-confirm");
+            if (!confirmBtn) {
+              return;
+            }
+            confirmBtn.setAttribute("data-form-id", formId || "");
+            var modalEl = document.getElementById("entregaCancelModal");
+            if (!modalEl) {
+              return;
+            }
+            var bodyEl = modalEl.querySelector(".modal-body");
+            if (!bodyEl) {
+              return;
+            }
+            var nome = trigger.getAttribute("data-nome") || "entrega";
+            var messageEl = bodyEl.querySelector(".mb-2");
+            if (messageEl) {
+              messageEl.textContent = "Deseja cancelar a entrega " + nome + "?";
+            }
+            var motivoField = modalEl.querySelector("#entrega-cancel-motivo");
+            if (motivoField) {
+              motivoField.value = "";
+            }
+            var errorEl = modalEl.querySelector("[data-entrega-cancel-error]");
+            if (errorEl) {
+              errorEl.textContent = "";
+              errorEl.classList.add("d-none");
+            }
+          });
+        });
+
+        var confirmBtn = document.getElementById("entrega-cancel-confirm");
+        if (confirmBtn && !confirmBtn.dataset.bound) {
+          confirmBtn.dataset.bound = "1";
+          confirmBtn.addEventListener("click", function () {
+            var formId = confirmBtn.getAttribute("data-form-id");
+            if (!formId) {
+              return;
+            }
+            var form = document.getElementById(formId);
+            if (!form) {
+              return;
+            }
+            var modalEl = document.getElementById("entregaCancelModal");
+            if (modalEl && window.bootstrap) {
+              var motivoField = modalEl.querySelector("#entrega-cancel-motivo");
+              var motivo = motivoField ? motivoField.value.trim() : "";
+              var errorEl = modalEl.querySelector("[data-entrega-cancel-error]");
+              if (!motivo) {
+                if (errorEl) {
+                  errorEl.textContent = "Informe o motivo do cancelamento.";
+                  errorEl.classList.remove("d-none");
+                }
+                return;
+              }
+              bootstrap.Modal.getInstance(modalEl).hide();
+            }
+            var formData = new FormData(form);
+            var motivoField = modalEl ? modalEl.querySelector("#entrega-cancel-motivo") : null;
+            if (motivoField) {
+              formData.set("motivo_cancelamento", motivoField.value.trim());
+            }
+            fetch(form.action, {
+              method: "POST",
+              body: formData,
+              headers: { "X-Requested-With": "XMLHttpRequest" },
+            })
+              .then(function (response) {
+                return response
+                  .json()
+                  .then(function (data) {
+                    return { ok: response.ok, data: data };
+                  })
+                  .catch(function () {
+                    return { ok: response.ok, data: null };
+                  });
+              })
+              .then(function (result) {
+                if (!result.ok || !result.data || !result.data.ok) {
+                  var errorEl = modalEl ? modalEl.querySelector("[data-entrega-cancel-error]") : null;
+                  if (errorEl && result.data && result.data.message) {
+                    errorEl.textContent = result.data.message;
+                    errorEl.classList.remove("d-none");
+                    return;
+                  }
+                  form.submit();
+                  return;
+                }
+                var row = document.getElementById("entrega-row-" + result.data.row_id);
+                if (row && result.data.row_html) {
+                  row.outerHTML = result.data.row_html;
+                }
+                if (result.data.motivo_cancelamento) {
+                  var updatedRow = document.getElementById("entrega-row-" + result.data.row_id);
+                  if (updatedRow) {
+                    var motivoTrigger = updatedRow.querySelector(".js-entrega-motivo-trigger");
+                    if (motivoTrigger) {
+                      motivoTrigger.setAttribute("data-motivo", result.data.motivo_cancelamento);
+                    }
+                  }
+                }
+                if (window.bindEntregaCancel) {
+                  window.bindEntregaCancel();
+                }
+                if (window.bindEntregaMotivo) {
+                  window.bindEntregaMotivo();
+                }
+              })
+              .catch(function () {
+                form.submit();
+              });
+          });
+        }
+      }
+
+      window.bindEntregaCancel = bindEntregaCancel;
+
+      function bindEntregaMotivo() {
+        var triggers = document.querySelectorAll(".js-entrega-motivo-trigger");
+        triggers.forEach(function (trigger) {
+          trigger.addEventListener("click", function () {
+            var modalEl = document.getElementById("entregaMotivoModal");
+            var bodyEl = modalEl ? modalEl.querySelector("[data-entrega-motivo-body]") : null;
+            if (!bodyEl) {
+              return;
+            }
+            var motivo = trigger.getAttribute("data-motivo") || "";
+            bodyEl.textContent = motivo || "Sem motivo informado.";
+          });
+        });
+      }
+
+      function bindEntregaFilters() {
+        var filtersContainer = document.querySelector("[data-entrega-filters]");
+        if (!filtersContainer) {
+          return;
+        }
+        var form = filtersContainer.querySelector("form");
+        var clearLink = filtersContainer.querySelector("a.btn-link");
+        if (!form) {
+          return;
+        }
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          var formData = new FormData(form);
+          var params = new URLSearchParams(formData);
+          var url = "?" + params.toString();
+          fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+            .then(function (response) {
+              return response.text();
+            })
+            .then(function (html) {
+              updateEntregaTable(html);
+            })
+            .catch(function () {
+              form.submit();
+            });
+        });
+
+        if (clearLink) {
+          clearLink.addEventListener("click", function (event) {
+            event.preventDefault();
+            if (form.reset) {
+              form.reset();
+            }
+            fetch(clearLink.getAttribute("href") || "?", {
+              headers: { "X-Requested-With": "XMLHttpRequest" },
+            })
+              .then(function (response) {
+                return response.text();
+              })
+              .then(function (html) {
+                updateEntregaTable(html);
+              })
+              .catch(function () {
+                window.location.href = clearLink.getAttribute("href") || "?";
+              });
+          });
+        }
+      }
+
+      function bindEntregaPagination() {
+        var pagination = document.querySelector("[data-entrega-pagination]");
+        if (!pagination) {
+          return;
+        }
+        var links = pagination.querySelectorAll("a.page-link");
+        links.forEach(function (link) {
+          link.addEventListener("click", function (event) {
+            event.preventDefault();
+            var url = link.getAttribute("href");
+            if (!url) {
+              return;
+            }
+            fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+              .then(function (response) {
+                return response.text();
+              })
+              .then(function (html) {
+                updateEntregaTable(html);
+              })
+              .catch(function () {
+                window.location.href = url;
+              });
+          });
+        });
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", function () {
+          initEntregaForms();
+          bindEntregaFilters();
+          bindEntregaPagination();
+          bindEntregaConfirm();
+          bindEntregaValidacaoConfirm();
+          bindEntregaCancel();
+          bindEntregaDetail();
+          bindEntregaMotivo();
+          bindEntregaSolicitar();
+          bindEntregaAtender();
+          bindEntregaModalReset();
+        });
+      } else {
+        initEntregaForms();
+        bindEntregaFilters();
+        bindEntregaPagination();
+        bindEntregaConfirm();
+        bindEntregaValidacaoConfirm();
+        bindEntregaCancel();
+        bindEntregaDetail();
+        bindEntregaMotivo();
+        bindEntregaSolicitar();
+        bindEntregaAtender();
+        bindEntregaModalReset();
+      }
+    })();
+  </script>
+{% endblock %}

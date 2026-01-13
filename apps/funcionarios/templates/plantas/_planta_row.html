@@ -1,0 +1,72 @@
+<tr id="planta-row-{{ planta.pk }}">
+  <td>{{ planta.nome|default:"-" }}</td>
+  <td class="js-planta-ativo">
+    <span class="badge {% if planta.ativo %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+      {{ planta.ativo|yesno:"Ativo,Inativo" }}
+    </span>
+  </td>
+  <td class="text-end">
+    {% if perms.funcionarios.change_planta %}
+      <button
+        class="btn btn-outline-primary btn-icon"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#editModal-{{ planta.pk }}"
+        title="Editar"
+        aria-label="Editar"
+      >
+        <i class="bi bi-pencil"></i>
+      </button>
+      <form
+        class="d-inline js-planta-toggle"
+        id="planta-toggle-{{ planta.pk }}"
+        method="post"
+        action="{% url 'funcionarios:plantas_toggle' planta.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn {% if planta.ativo %}btn-outline-danger{% else %}btn-outline-success{% endif %} btn-icon js-planta-toggle-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#plantaToggleModal"
+        data-form-id="planta-toggle-{{ planta.pk }}"
+        data-nome="{{ planta.nome|escapejs }}"
+        data-ativo="{{ planta.ativo|yesno:'1,0' }}"
+        title="{% if planta.ativo %}Desativar{% else %}Ativar{% endif %}"
+        aria-label="{% if planta.ativo %}Desativar{% else %}Ativar{% endif %}"
+      >
+        {% if planta.ativo %}
+          <i class="bi bi-person-x"></i>
+        {% else %}
+          <i class="bi bi-person-check"></i>
+        {% endif %}
+      </button>
+    {% endif %}
+    {% if perms.funcionarios.delete_planta %}
+      <form
+        class="d-inline js-planta-delete"
+        id="planta-delete-{{ planta.pk }}"
+        method="post"
+        action="{% url 'funcionarios:plantas_delete' planta.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn btn-outline-danger btn-icon js-planta-delete-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#plantaDeleteModal"
+        data-form-id="planta-delete-{{ planta.pk }}"
+        data-nome="{{ planta.nome|escapejs }}"
+        title="Excluir"
+        aria-label="Excluir"
+      >
+        <i class="bi bi-trash"></i>
+      </button>
+    {% endif %}
+    {% if not perms.funcionarios.change_planta and not perms.funcionarios.delete_planta %}
+      <span class="text-muted">-</span>
+    {% endif %}
+  </td>
+</tr>

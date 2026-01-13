@@ -5,4 +5,4 @@ from .models import Setor
 class SetorForm(BootstrapModelForm):
     class Meta:
         model = Setor
-        fields = ["nome", "descricao", "ativo"]
+        fields = ["nome", "descricao", "responsaveis", "ativo"]

@@ -12,6 +12,7 @@ ALLOWED_HOSTS = []
 SHARED_APPS = (
     "django_tenants",
     "apps.tenants",
+    "apps.caepi",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -38,6 +39,10 @@ TENANT_APPS = (
     "apps.produtos",
     "apps.depositos",
     "apps.estoque",
+    "apps.entregas",
+    "apps.treinamentos",
+    "apps.relatorios",
+    "apps.acessos",
 )
 
 INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
@@ -59,7 +64,10 @@ PUBLIC_SCHEMA_URLCONF = "clarus.public_urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [
+            BASE_DIR / "templates",
+            BASE_DIR / "apps" / "acessos" / "templates",
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [

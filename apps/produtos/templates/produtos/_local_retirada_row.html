@@ -1,0 +1,72 @@
+<tr id="local-retirada-row-{{ local_retirada.pk }}">
+  <td>{{ local_retirada.nome|default:"-" }}</td>
+  <td class="js-local-retirada-ativo">
+    <span class="badge {% if local_retirada.ativo %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+      {{ local_retirada.ativo|yesno:"Ativo,Inativo" }}
+    </span>
+  </td>
+  <td class="text-end">
+    {% if perms.produtos.change_localretirada %}
+      <button
+        class="btn btn-outline-primary btn-icon"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#editModal-{{ local_retirada.pk }}"
+        title="Editar"
+        aria-label="Editar"
+      >
+        <i class="bi bi-pencil"></i>
+      </button>
+      <form
+        class="d-inline js-local-retirada-toggle"
+        id="local-retirada-toggle-{{ local_retirada.pk }}"
+        method="post"
+        action="{% url 'produtos:locais_retirada_toggle' local_retirada.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn {% if local_retirada.ativo %}btn-outline-danger{% else %}btn-outline-success{% endif %} btn-icon js-local-retirada-toggle-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#localRetiradaToggleModal"
+        data-form-id="local-retirada-toggle-{{ local_retirada.pk }}"
+        data-nome="{{ local_retirada.nome|escapejs }}"
+        data-ativo="{{ local_retirada.ativo|yesno:'1,0' }}"
+        title="{% if local_retirada.ativo %}Desativar{% else %}Ativar{% endif %}"
+        aria-label="{% if local_retirada.ativo %}Desativar{% else %}Ativar{% endif %}"
+      >
+        {% if local_retirada.ativo %}
+          <i class="bi bi-person-x"></i>
+        {% else %}
+          <i class="bi bi-person-check"></i>
+        {% endif %}
+      </button>
+    {% endif %}
+    {% if perms.produtos.delete_localretirada %}
+      <form
+        class="d-inline js-local-retirada-delete"
+        id="local-retirada-delete-{{ local_retirada.pk }}"
+        method="post"
+        action="{% url 'produtos:locais_retirada_delete' local_retirada.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn btn-outline-danger btn-icon js-local-retirada-delete-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#localRetiradaDeleteModal"
+        data-form-id="local-retirada-delete-{{ local_retirada.pk }}"
+        data-nome="{{ local_retirada.nome|escapejs }}"
+        title="Excluir"
+        aria-label="Excluir"
+      >
+        <i class="bi bi-trash"></i>
+      </button>
+    {% endif %}
+    {% if not perms.produtos.change_localretirada and not perms.produtos.delete_localretirada %}
+      <span class="text-muted">-</span>
+    {% endif %}
+  </td>
+</tr>

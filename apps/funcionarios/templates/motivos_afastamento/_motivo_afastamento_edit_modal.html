@@ -1,0 +1,13 @@
+<div class="modal fade" id="editModal-{{ motivo.pk }}" tabindex="-1" aria-labelledby="editModalLabel-{{ motivo.pk }}" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editModalLabel-{{ motivo.pk }}">Editar motivo de afastamento</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body" data-motivo-afastamento-modal-body data-row-id="{{ motivo.pk }}">
+        {% include "components/_form.html" with form=form form_action=update_url %}
+      </div>
+    </div>
+  </div>
+</div>

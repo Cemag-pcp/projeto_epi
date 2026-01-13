@@ -1,0 +1,14 @@
+{% for item in results %}
+  <tr>
+    <td>{{ item.NomeEquipamento|default:"-" }}</td>
+    <td>{{ item.DescricaoEquipamento|default:"-"|truncatechars:60 }}</td>
+    <td>{{ item.RazaoSocial|default:"-" }}</td>
+    <td>{{ item.RegistroCA|default:"-" }}</td>
+    <td>{{ item.data_validade_display }}</td>
+    <td class="text-end">
+      <a class="btn btn-sm btn-outline-primary" href="?ca={{ item.RegistroCA }}{% if somente_validos %}&validos=1{% endif %}&buscar=1">
+        Selecionar
+      </a>
+    </td>
+  </tr>
+{% endfor %}

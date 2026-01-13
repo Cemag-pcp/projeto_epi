@@ -1,0 +1,26 @@
+{% if field.field.widget.input_type == "checkbox" %}
+  <div class="{{ col_class|default:'col-12 col-md-4' }}">
+    <div class="form-check mt-2">
+      {{ field }}
+      <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {% if field.errors %}
+        {% for error in field.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+{% else %}
+  <div class="{{ col_class|default:'col-12 col-md-6' }}">
+    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field }}
+    {% if field.help_text %}
+      <div class="form-text">{{ field.help_text }}</div>
+    {% endif %}
+    {% if field.errors %}
+      {% for error in field.errors %}
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      {% endfor %}
+    {% endif %}
+  </div>
+{% endif %}

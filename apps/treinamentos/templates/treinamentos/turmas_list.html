@@ -1,0 +1,265 @@
+{% extends "layout/base.html" %}
+{% load ui_extras %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+  {% include "components/_alerts.html" %}
+  {% include "components/_page_header.html" with title=title subtitle=subtitle create_url=create_url %}
+
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'treinamentos:list' %}">Treinamentos</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link active" href="{% url 'treinamentos:turmas_list' %}">Turmas</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'treinamentos:documentos_list' %}">Configuracao de documentos</a>
+    </li>
+  </ul>
+
+  {% if filters %}
+    {% include "components/_filters.html" with filters=filters %}
+  {% endif %}
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Treinamento</th>
+          <th>Local</th>
+          <th>Aulas</th>
+          <th>Instrutor</th>
+          <th>Capacidade</th>
+          <th>Participantes</th>
+          <th>Status</th>
+          <th class="text-end">Acoes</th>
+        </tr>
+      </thead>
+      <tbody>
+          {% for object in object_list %}
+          <tr>
+            <td>{{ object.treinamento }}</td>
+            <td>{{ object.local }}</td>
+            <td>{{ object.qtd_aulas }}</td>
+            <td>{{ object.instrutor|default:"-" }}</td>
+            <td>{{ object.capacidade_label }}</td>
+            <td>{{ object.participantes_count }}</td>
+            <td>
+              {% if object.finalizada %}
+                <span class="badge bg-success-subtle text-success">Finalizada</span>
+              {% else %}
+                <span class="badge bg-warning-subtle text-warning">Em andamento</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {% if can_change %}
+                <a class="btn btn-outline-secondary btn-icon" href="{% url 'treinamentos:turmas_presenca' object.pk %}" title="Presenca" aria-label="Presenca">
+                  <i class="bi bi-calendar-check"></i>
+                </a>
+                <a class="btn btn-outline-secondary btn-icon" href="{% url 'treinamentos:turmas_avaliacao' object.pk %}" title="Avaliacao" aria-label="Avaliacao">
+                  <i class="bi bi-clipboard-check"></i>
+                </a>
+                {% if not object.finalizada %}
+                  <button
+                    class="btn btn-outline-danger btn-icon"
+                    type="button"
+                    data-turma-finalizar
+                    data-form-id="turma-finalize-{{ object.pk }}"
+                    title="Finalizar"
+                    aria-label="Finalizar"
+                  >
+                    <i class="bi bi-check2-circle"></i>
+                  </button>
+                  <form id="turma-finalize-{{ object.pk }}" action="{% url 'treinamentos:turmas_finalizar' object.pk %}" method="post" class="d-none">
+                    {% csrf_token %}
+                  </form>
+                {% endif %}
+                <button class="btn btn-outline-primary btn-icon" type="button" data-bs-toggle="modal" data-bs-target="#editModal-{{ object.pk }}" title="Editar" aria-label="Editar">
+                  <i class="bi bi-pencil"></i>
+                </button>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="8" class="text-muted text-center py-4">Sem registros</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "components/_pagination.html" with page_obj=page_obj %}
+
+  {% if create_form %}
+    <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="createModalLabel">Novo</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            {% include "components/_form.html" with form=create_form form_action=create_url %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% for row in edit_rows %}
+    <div class="modal fade" id="editModal-{{ row.object.pk }}" tabindex="-1" aria-labelledby="editModalLabel-{{ row.object.pk }}" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editModalLabel-{{ row.object.pk }}">Editar</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            {% include "components/_form.html" with form=row.form form_action=row.update_url %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+  {% include "components/_confirm_modal.html" with id="turmaFinalizeModal" title_id="turmaFinalizeModalLabel" title="Finalizar turma" body="Deseja finalizar esta turma? Depois disso nao sera possivel alterar presenca ou avaliacao." confirm_text="Finalizar" confirm_class="btn-danger" confirm_button_id="turma-finalize-confirm" %}
+  <script>
+    (function () {
+      function initAulasForm(form) {
+        if (!form || form.dataset.aulasBound === "1") {
+          return;
+        }
+        var qtdField = form.querySelector("[name='qtd_aulas']");
+        var datasField = form.querySelector("[name='aulas_datas']");
+        if (!qtdField || !datasField) {
+          return;
+        }
+        var datasWrapper = datasField.closest(".mb-3");
+        if (datasWrapper) {
+          datasWrapper.classList.add("d-none");
+        }
+        var qtdWrapper = qtdField.closest(".mb-3");
+        if (!qtdWrapper) {
+          return;
+        }
+
+        var container = document.createElement("div");
+        container.className = "mb-3";
+        container.setAttribute("data-aulas-container", "1");
+        var label = document.createElement("label");
+        label.className = "form-label";
+        label.textContent = "Datas das aulas";
+        var inputsWrap = document.createElement("div");
+        inputsWrap.className = "d-flex flex-column gap-2";
+        var errorEl = document.createElement("div");
+        errorEl.className = "invalid-feedback d-block d-none";
+        errorEl.textContent = "Preencha todas as datas das aulas.";
+        container.appendChild(label);
+        container.appendChild(inputsWrap);
+        container.appendChild(errorEl);
+        qtdWrapper.insertAdjacentElement("afterend", container);
+
+        function parseExisting() {
+          return (datasField.value || "")
+            .split("\n")
+            .map(function (value) { return value.trim(); })
+            .filter(Boolean);
+        }
+
+        function renderInputs(count) {
+          inputsWrap.innerHTML = "";
+          var values = parseExisting();
+          for (var i = 0; i < count; i += 1) {
+            var input = document.createElement("input");
+            input.type = "date";
+            input.className = "form-control";
+            input.required = true;
+            input.value = values[i] || "";
+            input.setAttribute("data-aula-input", "1");
+            inputsWrap.appendChild(input);
+          }
+        }
+
+        function normalizeCount() {
+          var count = parseInt(qtdField.value, 10);
+          if (Number.isNaN(count) || count < 0) {
+            count = 0;
+          }
+          return count;
+        }
+
+        function syncInputs() {
+          var count = normalizeCount();
+          renderInputs(count);
+          errorEl.classList.add("d-none");
+        }
+
+        function collectDates() {
+          var inputs = inputsWrap.querySelectorAll("[data-aula-input]");
+          var values = [];
+          inputs.forEach(function (input) {
+            if (input.value) {
+              values.push(input.value);
+            }
+          });
+          datasField.value = values.join("\n");
+          return { total: inputs.length, filled: values.length };
+        }
+
+        qtdField.addEventListener("input", syncInputs);
+        syncInputs();
+
+        form.addEventListener("submit", function (event) {
+          var counts = collectDates();
+          if (counts.total > 0 && counts.filled !== counts.total) {
+            event.preventDefault();
+            errorEl.classList.remove("d-none");
+          }
+        });
+
+        form.dataset.aulasBound = "1";
+      }
+
+      function initAllForms() {
+        document.querySelectorAll("#createModal form, [id^='editModal-'] form").forEach(initAulasForm);
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initAllForms);
+      } else {
+        initAllForms();
+      }
+    })();
+  </script>
+  <script>
+    (function () {
+      var pendingFormId = "";
+      document.querySelectorAll("[data-turma-finalizar]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          pendingFormId = button.getAttribute("data-form-id") || "";
+          var modalEl = document.getElementById("turmaFinalizeModal");
+          if (!modalEl || !window.bootstrap) {
+            return;
+          }
+          var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+          modal.show();
+        });
+      });
+
+      var confirmBtn = document.getElementById("turma-finalize-confirm");
+      if (confirmBtn && !confirmBtn.dataset.bound) {
+        confirmBtn.dataset.bound = "1";
+        confirmBtn.addEventListener("click", function () {
+          if (!pendingFormId) {
+            return;
+          }
+          var form = document.getElementById(pendingFormId);
+          if (form) {
+            form.submit();
+          }
+        });
+      }
+    })();
+  </script>
+{% endblock %}

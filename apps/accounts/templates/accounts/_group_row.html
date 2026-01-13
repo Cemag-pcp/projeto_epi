@@ -1,0 +1,38 @@
+<tr id="group-row-{{ group.pk }}">
+  <td>{{ group.name }}</td>
+  <td>{{ group.permissions.count }}</td>
+  <td class="text-end">
+    {% if perms.auth.change_group %}
+      <button
+        class="btn btn-outline-primary btn-icon"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#editModal-{{ group.pk }}"
+        title="Editar"
+        aria-label="Editar"
+      >
+        <i class="bi bi-pencil"></i>
+      </button>
+    {% endif %}
+    {% if perms.auth.delete_group %}
+      <form class="d-inline js-group-delete" id="group-delete-{{ group.pk }}" action="{% url 'accounts:groups_delete' group.pk %}" method="post">
+        {% csrf_token %}
+        <button
+          class="btn btn-outline-danger btn-icon js-group-delete-trigger"
+          type="button"
+          data-bs-toggle="modal"
+          data-bs-target="#groupDeleteModal"
+          data-form-id="group-delete-{{ group.pk }}"
+          data-nome="{{ group.name|escapejs }}"
+          title="Excluir"
+          aria-label="Excluir"
+        >
+          <i class="bi bi-trash"></i>
+        </button>
+      </form>
+    {% endif %}
+    {% if not perms.auth.change_group and not perms.auth.delete_group %}
+      <span class="text-muted">-</span>
+    {% endif %}
+  </td>
+</tr>

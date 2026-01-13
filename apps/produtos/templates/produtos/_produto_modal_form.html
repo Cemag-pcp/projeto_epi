@@ -1,0 +1,480 @@
+{% load l10n %}
+<div class="modal fade" id="{{ modal_id }}" tabindex="-1" aria-labelledby="{{ modal_label_id }}" aria-hidden="true" data-produto-modal{% if prefix == "create" %} data-tabs-lock="1"{% endif %}{% if read_only %} data-readonly="1"{% endif %}>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="{{ modal_label_id }}">{{ modal_title }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <form method="post" action="{{ form_action }}" enctype="multipart/form-data">
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger py-2">
+              {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <ul class="nav nav-tabs mb-3" data-produto-tabs role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="tab-info-{{ prefix }}" data-bs-toggle="tab" data-bs-target="#tab-info-pane-{{ prefix }}" type="button" role="tab" aria-controls="tab-info-pane-{{ prefix }}" aria-selected="true">
+                1. Informacoes basicas
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="tab-outros-{{ prefix }}" data-bs-toggle="tab" data-bs-target="#tab-outros-pane-{{ prefix }}" type="button" role="tab" aria-controls="tab-outros-pane-{{ prefix }}" aria-selected="false">
+                2. Estoque ideal
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="tab-fornecedores-{{ prefix }}" data-bs-toggle="tab" data-bs-target="#tab-fornecedores-pane-{{ prefix }}" type="button" role="tab" aria-controls="tab-fornecedores-pane-{{ prefix }}" aria-selected="false">
+                3. Fornecedores
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="tab-anexos-{{ prefix }}" data-bs-toggle="tab" data-bs-target="#tab-anexos-pane-{{ prefix }}" type="button" role="tab" aria-controls="tab-anexos-pane-{{ prefix }}" aria-selected="false">
+                4. Anexos
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content">
+            <div class="tab-pane fade show active" id="tab-info-pane-{{ prefix }}" role="tabpanel" aria-labelledby="tab-info-{{ prefix }}" tabindex="0">
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.sku.id_for_label }}">{{ form.sku.label }}</label>
+                {{ form.sku }}
+                {% for error in form.sku.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.codigo_externo.id_for_label }}">{{ form.codigo_externo.label }}</label>
+                {{ form.codigo_externo }}
+                {% for error in form.codigo_externo.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
+                {{ form.nome }}
+                {% for error in form.nome.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.referencia.id_for_label }}">{{ form.referencia.label }}</label>
+                {{ form.referencia }}
+                {% for error in form.referencia.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.periodicidade_quantidade.id_for_label }}">{{ form.periodicidade_quantidade.label }}</label>
+                {{ form.periodicidade_quantidade }}
+                {% for error in form.periodicidade_quantidade.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.periodicidade.id_for_label }}">{{ form.periodicidade.label }}</label>
+                {{ form.periodicidade }}
+                {% for error in form.periodicidade.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.imposto_ipi.id_for_label }}">{{ form.imposto_ipi.label }}</label>
+                {{ form.imposto_ipi }}
+                {% for error in form.imposto_ipi.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.marca.id_for_label }}">{{ form.marca.label }}</label>
+                {{ form.marca }}
+                {% for error in form.marca.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.unidade.id_for_label }}">{{ form.unidade.label }}</label>
+                {{ form.unidade }}
+                {% for error in form.unidade.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}</label>
+                {{ form.tipo }}
+                {% for error in form.tipo.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.familia.id_for_label }}">{{ form.familia.label }}</label>
+                {{ form.familia }}
+                {% for error in form.familia.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.subfamilia.id_for_label }}">{{ form.subfamilia.label }}</label>
+                {{ form.subfamilia }}
+                {% for error in form.subfamilia.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.localizacao.id_for_label }}">{{ form.localizacao.label }}</label>
+                {{ form.localizacao }}
+                {% for error in form.localizacao.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+
+              <div class="form-check mb-3">
+                {{ form.monitora_uso }}
+                <label class="form-check-label" for="{{ form.monitora_uso.id_for_label }}">{{ form.monitora_uso.label }}</label>
+                {% for error in form.monitora_uso.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="form-check mb-3">
+                {{ form.troca_funcionario }}
+                <label class="form-check-label" for="{{ form.troca_funcionario.id_for_label }}">{{ form.troca_funcionario.label }}</label>
+                {% for error in form.troca_funcionario.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="form-check mb-3">
+                {{ form.obrigar_entrega }}
+                <label class="form-check-label" for="{{ form.obrigar_entrega.id_for_label }}">{{ form.obrigar_entrega.label }}</label>
+                {% for error in form.obrigar_entrega.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.dias_entrega.id_for_label }}">{{ form.dias_entrega.label }}</label>
+                {{ form.dias_entrega }}
+                {% for error in form.dias_entrega.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="form-check mb-3">
+                {{ form.controle_epi }}
+                <label class="form-check-label" for="{{ form.controle_epi.id_for_label }}">{{ form.controle_epi.label }}</label>
+                {% for error in form.controle_epi.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="form-check mb-3">
+                {{ form.ativo }}
+                <label class="form-check-label" for="{{ form.ativo.id_for_label }}">{{ form.ativo.label }}</label>
+                {% for error in form.ativo.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="d-flex gap-2 justify-content-end mt-3">
+                <button class="btn btn-primary" type="button" data-tab-next="#tab-outros-pane-{{ prefix }}">Continuar</button>
+              </div>
+            </div>
+
+            <div class="tab-pane fade" id="tab-outros-pane-{{ prefix }}" role="tabpanel" aria-labelledby="tab-outros-{{ prefix }}" tabindex="0">
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.estoque_minimo.id_for_label }}">{{ form.estoque_minimo.label }}</label>
+                {{ form.estoque_minimo }}
+                {% for error in form.estoque_minimo.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.estoque_ideal.id_for_label }}">{{ form.estoque_ideal.label }}</label>
+                {{ form.estoque_ideal }}
+                {% for error in form.estoque_ideal.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.imposto_st.id_for_label }}">{{ form.imposto_st.label }}</label>
+                {{ form.imposto_st }}
+                {% for error in form.imposto_st.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.imposto_outros.id_for_label }}">{{ form.imposto_outros.label }}</label>
+                {{ form.imposto_outros }}
+                {% for error in form.imposto_outros.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="d-flex gap-2 justify-content-end mt-3">
+                <button class="btn btn-outline-secondary" type="button" data-tab-prev="#tab-info-pane-{{ prefix }}">Voltar</button>
+                <button class="btn btn-primary" type="button" data-tab-next="#tab-fornecedores-pane-{{ prefix }}">Continuar</button>
+              </div>
+            </div>
+
+            <div class="tab-pane fade" id="tab-fornecedores-pane-{{ prefix }}" role="tabpanel" aria-labelledby="tab-fornecedores-{{ prefix }}" tabindex="0">
+              <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-2">
+                <div class="fw-semibold">Sessao de fornecedores</div>
+                <button
+                  class="btn btn-outline-primary btn-icon"
+                  type="button"
+                  data-fornecedor-add
+                  title="Adicionar fornecedor"
+                  aria-label="Adicionar fornecedor"
+                >
+                  <i class="bi bi-plus"></i>
+                </button>
+              </div>
+
+              <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                  <thead>
+                    <tr>
+                      <th scope="col">CA</th>
+                      <th scope="col">Fornecedor</th>
+                      <th scope="col">Codigo de barras</th>
+                      <th scope="col">Valor</th>
+                      <th scope="col">Fator de compra</th>
+                      <th scope="col">Codigo no fornecedor</th>
+                      <th scope="col" class="text-end">Acoes</th>
+                    </tr>
+                  </thead>
+                  <tbody data-fornecedor-rows>
+                    {% if fornecedores %}
+                      {% for rel in fornecedores %}
+                        <tr data-fornecedor-row>
+                          <td>
+                            <input class="form-control" type="text" data-field="ca" value="{{ rel.ca|default_if_none:'' }}">
+                          </td>
+                          <td>
+                            <select class="form-select" data-field="fornecedor">
+                              <option value="">Selecione</option>
+                              {% for fornecedor in form.fornecedor.field.queryset %}
+                                <option value="{{ fornecedor.pk }}"{% if fornecedor.pk == rel.fornecedor_id %} selected{% endif %}>{{ fornecedor }}</option>
+                              {% endfor %}
+                            </select>
+                          </td>
+                          <td>
+                            <input class="form-control" type="text" data-field="codigo_barras" value="{{ rel.codigo_barras|default_if_none:'' }}">
+                          </td>
+                          <td>
+                            <input class="form-control" type="number" step="0.01" min="0" data-field="valor" value="{{ rel.valor|unlocalize|default_if_none:'' }}">
+                          </td>
+                          <td>
+                            <input class="form-control" type="number" step="0.0001" min="0" data-field="fator_compra" value="{{ rel.fator_compra|unlocalize|default_if_none:'' }}">
+                          </td>
+                          <td>
+                            <input class="form-control" type="text" data-field="codigo_fornecedor" value="{{ rel.codigo_fornecedor|default_if_none:'' }}">
+                          </td>
+                          <td class="text-end">
+                            <button
+                              class="btn btn-outline-danger btn-icon"
+                              type="button"
+                              data-fornecedor-remove
+                              title="Remover"
+                              aria-label="Remover"
+                            >
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    {% else %}
+                      <tr data-fornecedor-row>
+                        <td>
+                          <input class="form-control" type="text" data-field="ca" placeholder="Ex: 12345">
+                        </td>
+                        <td>
+                          <select class="form-select" data-field="fornecedor">
+                            <option value="">Selecione</option>
+                            {% for fornecedor in form.fornecedor.field.queryset %}
+                              <option value="{{ fornecedor.pk }}">{{ fornecedor }}</option>
+                            {% endfor %}
+                          </select>
+                        </td>
+                        <td>
+                          <input class="form-control" type="text" data-field="codigo_barras" placeholder="Codigo de barras">
+                        </td>
+                        <td>
+                          <input class="form-control" type="number" step="0.01" min="0" data-field="valor" placeholder="0,00">
+                        </td>
+                        <td>
+                          <input class="form-control" type="number" step="0.0001" min="0" data-field="fator_compra" placeholder="1,0000">
+                        </td>
+                        <td>
+                          <input class="form-control" type="text" data-field="codigo_fornecedor" placeholder="Codigo interno">
+                        </td>
+                        <td class="text-end">
+                          <button
+                            class="btn btn-outline-danger btn-icon"
+                            type="button"
+                            data-fornecedor-remove
+                            title="Remover"
+                            aria-label="Remover"
+                          >
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    {% endif %}
+                  </tbody>
+                </table>
+              </div>
+
+              <template data-fornecedor-template>
+                <tr data-fornecedor-row>
+                  <td>
+                    <input class="form-control" type="text" data-field="ca" placeholder="Ex: 12345">
+                  </td>
+                  <td>
+                    <select class="form-select" data-field="fornecedor">
+                      <option value="">Selecione</option>
+                      {% for fornecedor in form.fornecedor.field.queryset %}
+                        <option value="{{ fornecedor.pk }}">{{ fornecedor }}</option>
+                      {% endfor %}
+                    </select>
+                  </td>
+                  <td>
+                    <input class="form-control" type="text" data-field="codigo_barras" placeholder="Codigo de barras">
+                  </td>
+                  <td>
+                    <input class="form-control" type="number" step="0.01" min="0" data-field="valor" placeholder="0,00">
+                  </td>
+                  <td>
+                    <input class="form-control" type="number" step="0.0001" min="0" data-field="fator_compra" placeholder="1,0000">
+                  </td>
+                  <td>
+                    <input class="form-control" type="text" data-field="codigo_fornecedor" placeholder="Codigo interno">
+                  </td>
+                  <td class="text-end">
+                    <button
+                      class="btn btn-outline-danger btn-icon"
+                      type="button"
+                      data-fornecedor-remove
+                      title="Remover"
+                      aria-label="Remover"
+                    >
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              </template>
+              <div class="d-flex gap-2 justify-content-end mt-3">
+                <button class="btn btn-outline-secondary" type="button" data-tab-prev="#tab-outros-pane-{{ prefix }}">Voltar</button>
+                <button class="btn btn-primary" type="button" data-tab-next="#tab-anexos-pane-{{ prefix }}">Continuar</button>
+              </div>
+            </div>
+
+            <div class="tab-pane fade" id="tab-anexos-pane-{{ prefix }}" role="tabpanel" aria-labelledby="tab-anexos-{{ prefix }}" tabindex="0">
+              <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-2">
+                <div class="fw-semibold">Anexos do produto</div>
+                <button
+                  class="btn btn-outline-primary btn-icon"
+                  type="button"
+                  data-anexo-add
+                  title="Adicionar anexo"
+                  aria-label="Adicionar anexo"
+                >
+                  <i class="bi bi-plus"></i>
+                </button>
+              </div>
+
+              <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                  <thead>
+                    <tr>
+                      <th scope="col">Arquivo</th>
+                      <th scope="col">Descricao</th>
+                      <th scope="col" class="text-end">Acoes</th>
+                    </tr>
+                  </thead>
+                  <tbody data-anexo-rows>
+                    {% if anexos %}
+                      {% for anexo in anexos %}
+                        <tr data-anexo-row>
+                          <td>
+                            {% if anexo.arquivo %}
+                              <div class="small mb-1">
+                                <a href="{{ anexo.arquivo.url }}" target="_blank" rel="noopener">{{ anexo.arquivo.name }}</a>
+                              </div>
+                            {% endif %}
+                            <input class="form-control" type="file" data-field="arquivo">
+                            <input type="hidden" data-field="id" value="{{ anexo.pk }}">
+                          </td>
+                          <td>
+                            <input class="form-control" type="text" data-field="descricao" value="{{ anexo.descricao|default_if_none:'' }}">
+                          </td>
+                          <td class="text-end">
+                            <button
+                              class="btn btn-outline-danger btn-icon"
+                              type="button"
+                              data-anexo-remove
+                              title="Remover"
+                              aria-label="Remover"
+                            >
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    {% else %}
+                      <tr data-anexo-row>
+                        <td>
+                          <input class="form-control" type="file" data-field="arquivo">
+                        </td>
+                        <td>
+                          <input class="form-control" type="text" data-field="descricao" placeholder="Descricao do anexo">
+                        </td>
+                        <td class="text-end">
+                          <button
+                            class="btn btn-outline-danger btn-icon"
+                            type="button"
+                            data-anexo-remove
+                            title="Remover"
+                            aria-label="Remover"
+                          >
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    {% endif %}
+                  </tbody>
+                </table>
+              </div>
+
+              <template data-anexo-template>
+                <tr data-anexo-row>
+                  <td>
+                    <input class="form-control" type="file" data-field="arquivo">
+                  </td>
+                  <td>
+                    <input class="form-control" type="text" data-field="descricao" placeholder="Descricao do anexo">
+                  </td>
+                  <td class="text-end">
+                    <button
+                      class="btn btn-outline-danger btn-icon"
+                      type="button"
+                      data-anexo-remove
+                      title="Remover"
+                      aria-label="Remover"
+                    >
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              </template>
+              <div class="d-flex gap-2 justify-content-end mt-3">
+                <button class="btn btn-outline-secondary" type="button" data-tab-prev="#tab-fornecedores-pane-{{ prefix }}">Voltar</button>
+                <button class="btn btn-primary" type="submit">Salvar</button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

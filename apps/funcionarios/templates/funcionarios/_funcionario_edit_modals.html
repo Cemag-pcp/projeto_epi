@@ -1,0 +1,3 @@
+{% for row in edit_rows %}
+  {% include "funcionarios/_funcionario_edit_modal.html" with funcionario=row.object form=row.form update_url=row.update_url %}
+{% endfor %}

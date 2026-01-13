@@ -1,0 +1,98 @@
+<tr id="funcionario-row-{{ funcionario.pk }}">
+  <td>{{ funcionario.registro|default:"-" }}</td>
+  <td>{{ funcionario.nome }}</td>
+  <td>{{ funcionario.cpf|default:"-" }}</td>
+  <td>{{ funcionario.setor|default:"-" }}</td>
+  <td>{{ funcionario.cargo|default:"-" }}</td>
+  <td>{{ funcionario.planta|default:"-" }}</td>
+  <td>{{ funcionario.centro_custo|default:"-" }}</td>
+  <td>{{ funcionario.ghe|default:"-" }}</td>
+  <td>
+    <span class="badge {% if funcionario.ativo %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %} js-funcionario-ativo">
+      {{ funcionario.ativo|yesno:"Ativo,Inativo" }}
+    </span>
+  </td>
+  <td class="text-end">
+    <a
+      class="btn btn-outline-secondary btn-icon"
+      href="{% url 'funcionarios:detail' funcionario.pk %}"
+      title="Ficha"
+      aria-label="Ficha"
+    >
+      <i class="bi bi-card-text"></i>
+    </a>
+    {% if perms.funcionarios.change_funcionario %}
+      <button
+        class="btn btn-outline-primary btn-icon"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#editModal-{{ funcionario.pk }}"
+        title="Editar"
+        aria-label="Editar"
+      >
+        <i class="bi bi-pencil"></i>
+      </button>
+    {% endif %}
+    <button
+      class="btn btn-outline-info btn-icon js-anexo-trigger"
+      type="button"
+      data-bs-toggle="modal"
+      data-bs-target="#anexoModal"
+      data-funcionario-id="{{ funcionario.pk }}"
+      data-funcionario-nome="{{ funcionario.nome|escapejs }}"
+      title="Anexos"
+      aria-label="Anexos"
+    >
+      <i class="bi bi-paperclip"></i>
+    </button>
+    {% if perms.funcionarios.change_funcionario %}
+      <button
+        class="btn btn-outline-warning btn-icon js-funcionario-validacao-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#validacaoModal"
+        data-funcionario-id="{{ funcionario.pk }}"
+        data-funcionario-nome="{{ funcionario.nome|escapejs }}"
+        title="Validacao de recebimento"
+        aria-label="Validacao de recebimento"
+      >
+        <i class="bi bi-shield-lock"></i>
+      </button>
+    {% endif %}
+    <button
+      class="btn btn-outline-dark btn-icon js-historico-trigger"
+      type="button"
+      data-bs-toggle="modal"
+      data-bs-target="#historicoModal"
+      data-funcionario-id="{{ funcionario.pk }}"
+      data-funcionario-nome="{{ funcionario.nome|escapejs }}"
+      title="Historico"
+      aria-label="Historico"
+    >
+      <i class="bi bi-clock-history"></i>
+    </button>
+    {% if perms.funcionarios.change_funcionario %}
+      <form
+        class="d-inline js-funcionario-toggle"
+        id="funcionario-toggle-{{ funcionario.pk }}"
+        method="post"
+        action="{% url 'funcionarios:toggle_active' funcionario.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn {% if funcionario.ativo %}btn-outline-danger{% else %}btn-outline-success{% endif %} btn-icon js-funcionario-toggle-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#funcionarioToggleModal"
+        data-form-id="funcionario-toggle-{{ funcionario.pk }}"
+        data-nome="{{ funcionario.nome|escapejs }}"
+        data-ativo="{{ funcionario.ativo|yesno:'1,0' }}"
+        title="{% if funcionario.ativo %}Desativar{% else %}Ativar{% endif %}"
+        aria-label="{% if funcionario.ativo %}Desativar{% else %}Ativar{% endif %}"
+      >
+        <i class="bi {% if funcionario.ativo %}bi-person-x{% else %}bi-person-check{% endif %} js-funcionario-toggle-icon"></i>
+      </button>
+    {% endif %}
+  </td>
+</tr>

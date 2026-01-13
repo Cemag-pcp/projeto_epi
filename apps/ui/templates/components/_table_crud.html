@@ -17,8 +17,15 @@
             <td>{{ object|get_attr:field }}</td>
           {% endfor %}
           <td class="text-end">
-            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#editModal-{{ object.pk }}">
-              Editar
+            <button
+              class="btn btn-outline-primary btn-icon"
+              type="button"
+              data-bs-toggle="modal"
+              data-bs-target="#editModal-{{ object.pk }}"
+              title="Editar"
+              aria-label="Editar"
+            >
+              <i class="bi bi-pencil"></i>
             </button>
           </td>
         </tr>

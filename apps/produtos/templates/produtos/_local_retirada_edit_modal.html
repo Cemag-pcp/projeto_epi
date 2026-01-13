@@ -1,0 +1,13 @@
+<div class="modal fade" id="editModal-{{ local_retirada.pk }}" tabindex="-1" aria-labelledby="editModalLabel-{{ local_retirada.pk }}" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editModalLabel-{{ local_retirada.pk }}">Editar local de retirada</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body" data-local-retirada-modal-body data-row-id="{{ local_retirada.pk }}">
+        {% include "components/_form.html" with form=form form_action=update_url %}
+      </div>
+    </div>
+  </div>
+</div>

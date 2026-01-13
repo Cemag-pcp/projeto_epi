@@ -1,0 +1,279 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Componentes UI{% endblock %}
+
+{% block content %}
+  <div class="clarus-hero mb-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
+      <div>
+        <div class="clarus-pill mb-3"><i class="bi bi-lightning-fill"></i> Design kit</div>
+        <h1 class="display-6 fw-bold mb-2">Componentes do SaaS Clarus</h1>
+        <p class="mb-0 text-white-50">
+          Base moderna em vermelho, preto e branco para interfaces multitenant.
+        </p>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-light">Aplicar tema</button>
+        <button class="btn btn-outline-light">Documentacao</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+      <div class="clarus-kpi">
+        <div class="text-muted small">Tenants ativos</div>
+        <div class="value">128</div>
+        <div class="text-muted small">+12% na semana</div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="clarus-kpi">
+        <div class="text-muted small">Entregas hoje</div>
+        <div class="value">34</div>
+        <div class="text-muted small">Status em tempo real</div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="clarus-kpi">
+        <div class="text-muted small">Saldo bloqueado</div>
+        <div class="value">R$ 9.240</div>
+        <div class="text-muted small">Critico em 2 plantas</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-12 col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <div class="clarus-section-title mb-0">Cores e badges</div>
+        </div>
+        <div class="card-body">
+          <div class="row g-3 mb-3">
+            <div class="col-4">
+              <div class="clarus-swatch">
+                <div class="swatch" style="background:#e10600"></div>
+                <div class="small text-muted">Vermelho</div>
+                <div class="fw-semibold">#E10600</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="clarus-swatch">
+                <div class="swatch" style="background:#0b0b0d"></div>
+                <div class="small text-muted">Preto</div>
+                <div class="fw-semibold">#0B0B0D</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="clarus-swatch">
+                <div class="swatch border" style="background:#ffffff"></div>
+                <div class="small text-muted">Branco</div>
+                <div class="fw-semibold">#FFFFFF</div>
+              </div>
+            </div>
+          </div>
+          <div class="d-flex flex-wrap gap-2">
+            <span class="badge text-bg-primary">Ativo</span>
+            <span class="badge text-bg-dark">Bloqueado</span>
+            <span class="badge text-bg-danger">Critico</span>
+            <span class="badge text-bg-light text-dark">Em analise</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <div class="clarus-section-title mb-0">Botoes</div>
+        </div>
+        <div class="card-body">
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <button class="btn btn-primary">Primario</button>
+            <button class="btn btn-outline-primary">Secundario</button>
+            <button class="btn btn-dark">Dark</button>
+            <button class="btn btn-light border">Light</button>
+          </div>
+          <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-sm btn-primary">Small</button>
+            <button class="btn btn-sm btn-outline-primary">Small</button>
+            <button class="btn btn-lg btn-primary">Large</button>
+            <button class="btn btn-lg btn-outline-primary">Large</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-7">
+      <div class="clarus-form-panel">
+        <div class="clarus-section-title">Formulario inteligente</div>
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label">Funcionario</label>
+            <input type="text" class="form-control" placeholder="Digite o nome">
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label">Tipo de acesso</label>
+            <select class="form-select">
+              <option>Administrador</option>
+              <option>Operador</option>
+              <option>Tecnico de seguranca</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Observacao</label>
+            <textarea class="form-control" rows="3" placeholder="Escreva detalhes da entrega..."></textarea>
+          </div>
+          <div class="col-12 d-flex justify-content-between align-items-center">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" checked>
+              <label class="form-check-label">Notificar gestor</label>
+            </div>
+            <button class="btn btn-primary">Salvar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-5">
+      <div class="card">
+        <div class="card-header">
+          <div class="clarus-section-title mb-0">Alertas</div>
+        </div>
+        <div class="card-body d-flex flex-column gap-3">
+          <div class="alert alert-danger">
+            Estoque critico. Acione o gestor da planta.
+          </div>
+          <div class="alert alert-dark">
+            Entrega aguardando confirmacao do operador.
+          </div>
+          <div class="alert alert-light border">
+            Nenhuma pendencia registrada.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="clarus-table-card">
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+          <div class="clarus-section-title mb-0">Tabela com status</div>
+          <button class="btn btn-outline-primary btn-sm">Exportar</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead>
+              <tr>
+                <th>Entrega</th>
+                <th>Funcionario</th>
+                <th>Planta</th>
+                <th>Status</th>
+                <th class="text-end">Acao</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>#0102</td>
+                <td>Mariana Costa</td>
+                <td>Planta Norte</td>
+                <td><span class="badge text-bg-primary">Entregue</span></td>
+                <td class="text-end">
+                  <button class="btn btn-outline-primary btn-icon" title="Detalhes">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td>#0103</td>
+                <td>Victor Hugo</td>
+                <td>Planta Sul</td>
+                <td><span class="badge text-bg-dark">Aguardando</span></td>
+                <td class="text-end">
+                  <button class="btn btn-outline-primary btn-icon" title="Entregar">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td>#0104</td>
+                <td>Aline Souza</td>
+                <td>Planta Oeste</td>
+                <td><span class="badge text-bg-danger">Cancelada</span></td>
+                <td class="text-end">
+                  <button class="btn btn-outline-primary btn-icon" title="Motivo">
+                    <i class="bi bi-chat-left-text"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <div class="clarus-section-title mb-0">Timeline</div>
+        </div>
+        <div class="card-body clarus-timeline">
+          <div class="item">
+            <div class="fw-semibold">Solicitacao criada</div>
+            <div class="text-muted small">10:02 - Planta Norte</div>
+          </div>
+          <div class="item">
+            <div class="fw-semibold">Separacao em andamento</div>
+            <div class="text-muted small">10:15 - Operador Lucas</div>
+          </div>
+          <div class="item">
+            <div class="fw-semibold">Entrega confirmada</div>
+            <div class="text-muted small">10:42 - Senha validada</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <div class="clarus-section-title mb-0">Resumo rapido</div>
+        </div>
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+              <div class="fw-semibold">Kit EPI Basico</div>
+              <div class="text-muted small">Entrega mensal</div>
+            </div>
+            <span class="badge text-bg-primary">Ativo</span>
+          </div>
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+              <div class="fw-semibold">CA 38927</div>
+              <div class="text-muted small">Luva nitrilica</div>
+            </div>
+            <span class="badge text-bg-dark">Renovar</span>
+          </div>
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <div class="fw-semibold">Deposito Central</div>
+              <div class="text-muted small">Saldo 120 unidades</div>
+            </div>
+            <button class="btn btn-outline-primary btn-sm">Ver estoque</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <div class="clarus-section-title mb-0">Paginacao</div>
+        </div>
+        <div class="card-body">
+          {% include "components/_pagination.html" with page_obj=pagination_page_obj %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

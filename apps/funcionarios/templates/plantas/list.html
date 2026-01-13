@@ -1,0 +1,406 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Plantas{% endblock %}
+
+{% block content %}
+  {% include "components/_alerts.html" %}
+  {% include "components/_page_header.html" with title=title subtitle=subtitle create_url=create_url %}
+  {% if filters %}
+    <div data-planta-filters>
+      {% include "components/_filters.html" with filters=filters %}
+    </div>
+  {% endif %}
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          {% for header in headers %}
+            <th scope="col">{{ header }}</th>
+          {% endfor %}
+          <th scope="col" class="text-end">Acoes</th>
+        </tr>
+      </thead>
+      <tbody data-planta-rows>
+        {% for object in object_list %}
+          {% include "plantas/_planta_row.html" with planta=object %}
+        {% empty %}
+          <tr>
+            <td colspan="{{ headers|length|add:1 }}" class="text-muted text-center py-4">Sem registros</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div data-planta-pagination>
+    {% include "components/_pagination.html" with page_obj=page_obj %}
+  </div>
+
+  {% if create_form %}
+    <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="createModalLabel">Nova planta</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body" data-planta-modal-body data-row-id="">
+            {% include "components/_form.html" with form=create_form form_action=create_url %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <div data-planta-modals>
+    {% for row in edit_rows %}
+      {% include "plantas/_planta_edit_modal.html" with planta=row.object form=row.form update_url=row.update_url %}
+    {% endfor %}
+  </div>
+
+  {% include "components/_confirm_modal.html" with id="plantaToggleModal" title_id="plantaToggleModalLabel" title="Confirmar" body="Deseja atualizar o status desta planta?" confirm_text="Confirmar" confirm_class="btn-primary" confirm_button_id="planta-toggle-confirm" %}
+  {% include "components/_confirm_modal.html" with id="plantaDeleteModal" title_id="plantaDeleteModalLabel" title="Excluir planta" body="Deseja excluir esta planta?" confirm_text="Excluir" confirm_class="btn-danger" confirm_button_id="planta-delete-confirm" %}
+
+  <script>
+    (function () {
+      function bindPlantaForm(form) {
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          var modalBody = form.closest("[data-planta-modal-body]");
+          var rowId = modalBody ? modalBody.getAttribute("data-row-id") : null;
+          var formData = new FormData(form);
+          fetch(form.action, {
+            method: "POST",
+            body: formData,
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          })
+            .then(function (response) {
+              return response
+                .json()
+                .then(function (data) {
+                  return { ok: response.ok, data: data };
+                })
+                .catch(function () {
+                  return { ok: response.ok, data: null };
+                });
+            })
+            .then(function (result) {
+              if (!result.ok || !result.data || !result.data.ok) {
+                if (modalBody && result.data && result.data.form_html) {
+                  modalBody.innerHTML = result.data.form_html;
+                  var newForm = modalBody.querySelector("form");
+                  if (newForm) {
+                    bindPlantaForm(newForm);
+                  }
+                }
+                return;
+              }
+
+              if (result.data.action === "create") {
+                var tbody = document.querySelector("[data-planta-rows]");
+                if (tbody) {
+                  var emptyRow = tbody.querySelector("td.text-muted");
+                  if (emptyRow) {
+                    emptyRow.parentElement.remove();
+                  }
+                  tbody.insertAdjacentHTML("afterbegin", result.data.row_html);
+                }
+                if (result.data.edit_modal_html) {
+                  var modalsContainer = document.querySelector("[data-planta-modals]");
+                  if (modalsContainer) {
+                    modalsContainer.insertAdjacentHTML("beforeend", result.data.edit_modal_html);
+                    var editForm = modalsContainer.querySelector(
+                      "#editModal-" + result.data.row_id + " form"
+                    );
+                    if (editForm) {
+                      bindPlantaForm(editForm);
+                    }
+                  }
+                }
+                if (modalBody && result.data.form_html) {
+                  modalBody.innerHTML = result.data.form_html;
+                  var refreshedForm = modalBody.querySelector("form");
+                  if (refreshedForm) {
+                    bindPlantaForm(refreshedForm);
+                  }
+                }
+                var modalEl = document.getElementById("createModal");
+                if (modalEl && window.bootstrap) {
+                  bootstrap.Modal.getInstance(modalEl).hide();
+                }
+                bindPlantaToggle();
+                bindPlantaDelete();
+                return;
+              }
+
+              if (result.data.action === "update" && result.data.row_id) {
+                var row = document.getElementById("planta-row-" + result.data.row_id);
+                if (row) {
+                  row.outerHTML = result.data.row_html;
+                }
+                if (rowId) {
+                  var editModalEl = document.getElementById("editModal-" + rowId);
+                  if (editModalEl && window.bootstrap) {
+                    bootstrap.Modal.getInstance(editModalEl).hide();
+                  }
+                }
+                bindPlantaToggle();
+                bindPlantaDelete();
+              }
+            })
+            .catch(function () {
+              form.submit();
+            });
+        });
+      }
+
+      function initPlantaForms() {
+        var forms = document.querySelectorAll("#createModal form, [id^='editModal-'] form");
+        forms.forEach(function (form) {
+          bindPlantaForm(form);
+        });
+      }
+
+      function updatePlantaTable(html) {
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(html, "text/html");
+        var newRows = doc.querySelector("[data-planta-rows]");
+        var newPagination = doc.querySelector("[data-planta-pagination]");
+        var newModals = doc.querySelector("[data-planta-modals]");
+        var currentRows = document.querySelector("[data-planta-rows]");
+        var currentPagination = document.querySelector("[data-planta-pagination]");
+        var currentModals = document.querySelector("[data-planta-modals]");
+        if (newRows && currentRows) {
+          currentRows.innerHTML = newRows.innerHTML;
+        }
+        if (newPagination && currentPagination) {
+          currentPagination.innerHTML = newPagination.innerHTML;
+        }
+        if (newModals && currentModals) {
+          currentModals.innerHTML = newModals.innerHTML;
+          initPlantaForms();
+        }
+        bindPlantaToggle();
+        bindPlantaDelete();
+      }
+
+      function bindPlantaFilters() {
+        var filtersContainer = document.querySelector("[data-planta-filters]");
+        if (!filtersContainer) {
+          return;
+        }
+        var form = filtersContainer.querySelector("form");
+        var clearLink = filtersContainer.querySelector("a.btn-link");
+        if (!form) {
+          return;
+        }
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          var formData = new FormData(form);
+          var params = new URLSearchParams(formData);
+          var url = "?" + params.toString();
+          fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+            .then(function (response) {
+              return response.text();
+            })
+            .then(function (html) {
+              updatePlantaTable(html);
+            })
+            .catch(function () {
+              form.submit();
+            });
+        });
+
+        if (clearLink) {
+          clearLink.addEventListener("click", function (event) {
+            event.preventDefault();
+            if (form.reset) {
+              form.reset();
+            }
+            fetch(clearLink.getAttribute("href") || "?", {
+              headers: { "X-Requested-With": "XMLHttpRequest" },
+            })
+              .then(function (response) {
+                return response.text();
+              })
+              .then(function (html) {
+                updatePlantaTable(html);
+              })
+              .catch(function () {
+                window.location.href = clearLink.getAttribute("href") || "?";
+              });
+          });
+        }
+      }
+
+      function bindPlantaToggle() {
+        var triggers = document.querySelectorAll(".js-planta-toggle-trigger");
+        triggers.forEach(function (trigger) {
+          trigger.addEventListener("click", function () {
+            var formId = trigger.getAttribute("data-form-id");
+            var confirmBtn = document.getElementById("planta-toggle-confirm");
+            if (!confirmBtn) {
+              return;
+            }
+            confirmBtn.setAttribute("data-form-id", formId || "");
+            var modalEl = document.getElementById("plantaToggleModal");
+            if (!modalEl) {
+              return;
+            }
+            var bodyEl = modalEl.querySelector(".modal-body");
+            if (!bodyEl) {
+              return;
+            }
+            var nome = trigger.getAttribute("data-nome") || "planta";
+            var ativo = trigger.getAttribute("data-ativo") === "1";
+            bodyEl.textContent = ativo
+              ? "Deseja desativar a planta " + nome + "?"
+              : "Deseja ativar a planta " + nome + "?";
+          });
+        });
+
+        var confirmBtn = document.getElementById("planta-toggle-confirm");
+        if (confirmBtn && !confirmBtn.dataset.bound) {
+          confirmBtn.dataset.bound = "1";
+          confirmBtn.addEventListener("click", function () {
+            var formId = confirmBtn.getAttribute("data-form-id");
+            if (!formId) {
+              return;
+            }
+            var form = document.getElementById(formId);
+            if (!form) {
+              return;
+            }
+            var modalEl = document.getElementById("plantaToggleModal");
+            if (modalEl && window.bootstrap) {
+              bootstrap.Modal.getInstance(modalEl).hide();
+            }
+            var formData = new FormData(form);
+            fetch(form.action, {
+              method: "POST",
+              body: formData,
+              headers: { "X-Requested-With": "XMLHttpRequest" },
+            })
+              .then(function (response) {
+                return response
+                  .json()
+                  .then(function (data) {
+                    return { ok: response.ok, data: data };
+                  })
+                  .catch(function () {
+                    return { ok: response.ok, data: null };
+                  });
+              })
+              .then(function (result) {
+                if (!result.ok || !result.data || !result.data.ok) {
+                  form.submit();
+                  return;
+                }
+                var row = document.getElementById("planta-row-" + result.data.row_id);
+                if (row) {
+                  row.outerHTML = result.data.row_html;
+                }
+                bindPlantaToggle();
+                bindPlantaDelete();
+              })
+              .catch(function () {
+                form.submit();
+              });
+          });
+        }
+      }
+
+      function bindPlantaDelete() {
+        var triggers = document.querySelectorAll(".js-planta-delete-trigger");
+        triggers.forEach(function (trigger) {
+          trigger.addEventListener("click", function () {
+            var formId = trigger.getAttribute("data-form-id");
+            var confirmBtn = document.getElementById("planta-delete-confirm");
+            if (!confirmBtn) {
+              return;
+            }
+            confirmBtn.setAttribute("data-form-id", formId || "");
+            var modalEl = document.getElementById("plantaDeleteModal");
+            if (!modalEl) {
+              return;
+            }
+            var bodyEl = modalEl.querySelector(".modal-body");
+            if (!bodyEl) {
+              return;
+            }
+            var nome = trigger.getAttribute("data-nome") || "planta";
+            bodyEl.textContent = "Deseja excluir a planta " + nome + "?";
+          });
+        });
+
+        var confirmBtn = document.getElementById("planta-delete-confirm");
+        if (confirmBtn && !confirmBtn.dataset.bound) {
+          confirmBtn.dataset.bound = "1";
+          confirmBtn.addEventListener("click", function () {
+            var formId = confirmBtn.getAttribute("data-form-id");
+            if (!formId) {
+              return;
+            }
+            var form = document.getElementById(formId);
+            if (!form) {
+              return;
+            }
+            var modalEl = document.getElementById("plantaDeleteModal");
+            if (modalEl && window.bootstrap) {
+              bootstrap.Modal.getInstance(modalEl).hide();
+            }
+            var formData = new FormData(form);
+            fetch(form.action, {
+              method: "POST",
+              body: formData,
+              headers: { "X-Requested-With": "XMLHttpRequest" },
+            })
+              .then(function (response) {
+                return response
+                  .json()
+                  .then(function (data) {
+                    return { ok: response.ok, data: data };
+                  })
+                  .catch(function () {
+                    return { ok: response.ok, data: null };
+                  });
+              })
+              .then(function (result) {
+                if (!result.ok || !result.data || !result.data.ok) {
+                  form.submit();
+                  return;
+                }
+                var row = document.getElementById("planta-row-" + result.data.row_id);
+                if (row) {
+                  row.remove();
+                }
+                var tbody = document.querySelector("[data-planta-rows]");
+                if (tbody && !tbody.querySelector("tr")) {
+                  tbody.innerHTML =
+                    '<tr><td colspan="3" class="text-muted text-center py-4">Sem registros</td></tr>';
+                }
+              })
+              .catch(function () {
+                form.submit();
+              });
+          });
+        }
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", function () {
+          initPlantaForms();
+          bindPlantaFilters();
+          bindPlantaToggle();
+          bindPlantaDelete();
+        });
+      } else {
+        initPlantaForms();
+        bindPlantaFilters();
+        bindPlantaToggle();
+        bindPlantaDelete();
+      }
+    })();
+  </script>
+{% endblock %}

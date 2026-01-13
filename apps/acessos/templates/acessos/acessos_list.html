@@ -1,0 +1,165 @@
+{% extends "layout/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+  {% include "components/_alerts.html" %}
+  {% include "components/_page_header.html" with title=title subtitle=subtitle create_url=create_url %}
+  {% if filters %}
+    {% include "components/_filters.html" with filters=filters %}
+  {% endif %}
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          {% for header in headers %}
+            <th scope="col">{{ header }}</th>
+          {% endfor %}
+          <th scope="col" class="text-end">Acoes</th>
+        </tr>
+      </thead>
+      <tbody data-acesso-rows>
+        {% for object in object_list %}
+          {% include "acessos/_acesso_row.html" with acesso=object row_fields=row_fields %}
+        {% empty %}
+          <tr>
+            <td colspan="{{ headers|length|add:1 }}" class="text-muted text-center py-4">Sem registros</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div data-acesso-pagination>
+    {% include "components/_pagination.html" with page_obj=page_obj %}
+  </div>
+
+  {% if create_form %}
+    <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="createModalLabel">Novo acesso</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body" data-acesso-modal-body data-row-id="">
+            {% include "components/_form.html" with form=create_form form_action=create_url %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <div data-acesso-modals>
+    {% for row in edit_rows %}
+      {% include "acessos/_acesso_edit_modal.html" with acesso=row.object form=row.form update_url=row.update_url %}
+    {% endfor %}
+  </div>
+
+  <script>
+    (function () {
+      function bindAcessoForm(form) {
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          var modalBody = form.closest("[data-acesso-modal-body]");
+          var rowId = modalBody ? modalBody.getAttribute("data-row-id") : null;
+          var formData = new FormData(form);
+          fetch(form.action, {
+            method: "POST",
+            body: formData,
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          })
+            .then(function (response) {
+              return response
+                .json()
+                .then(function (data) {
+                  return { ok: response.ok, data: data };
+                })
+                .catch(function () {
+                  return { ok: response.ok, data: null };
+                });
+            })
+            .then(function (result) {
+              if (!result.ok || !result.data || !result.data.ok) {
+                if (modalBody && result.data && result.data.form_html) {
+                  modalBody.innerHTML = result.data.form_html;
+                  var newForm = modalBody.querySelector("form");
+                  if (newForm) {
+                    bindAcessoForm(newForm);
+                  }
+                }
+                return;
+              }
+
+              if (result.data.action === "create") {
+                var tbody = document.querySelector("[data-acesso-rows]");
+                if (tbody) {
+                  var emptyRow = tbody.querySelector("td.text-muted");
+                  if (emptyRow) {
+                    emptyRow.parentElement.remove();
+                  }
+                  tbody.insertAdjacentHTML("afterbegin", result.data.row_html);
+                }
+                if (result.data.edit_modal_html) {
+                  var modalsContainer = document.querySelector("[data-acesso-modals]");
+                  if (modalsContainer) {
+                    modalsContainer.insertAdjacentHTML("beforeend", result.data.edit_modal_html);
+                    var editForm = modalsContainer.querySelector(
+                      "#editModal-" + result.data.row_id + " form"
+                    );
+                    if (editForm) {
+                      bindAcessoForm(editForm);
+                    }
+                  }
+                }
+                if (modalBody && result.data.form_html) {
+                  modalBody.innerHTML = result.data.form_html;
+                  var refreshedForm = modalBody.querySelector("form");
+                  if (refreshedForm) {
+                    bindAcessoForm(refreshedForm);
+                  }
+                }
+                var modalEl = document.getElementById("createModal");
+                if (modalEl && window.bootstrap) {
+                  bootstrap.Modal.getInstance(modalEl).hide();
+                }
+                return;
+              }
+
+              if (result.data.action === "update" && result.data.row_id) {
+                var row = document.getElementById("acesso-row-" + result.data.row_id);
+                if (row) {
+                  row.outerHTML = result.data.row_html;
+                }
+                if (rowId) {
+                  var editModalEl = document.getElementById("editModal-" + rowId);
+                  if (editModalEl && window.bootstrap) {
+                    bootstrap.Modal.getInstance(editModalEl).hide();
+                  }
+                }
+              }
+            })
+            .catch(function () {
+              form.submit();
+            });
+        });
+      }
+
+      function initAcessoForms() {
+        var forms = document.querySelectorAll("#createModal form, [id^='editModal-'] form");
+        forms.forEach(function (form) {
+          bindAcessoForm(form);
+        });
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", function () {
+          initAcessoForms();
+        });
+      } else {
+        initAcessoForms();
+      }
+    })();
+  </script>
+{% endblock %}

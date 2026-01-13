@@ -8,4 +8,5 @@ urlpatterns = [
     path("depositos/", views.DepositoListView.as_view(), name="list"),
     path("depositos/novo/", views.DepositoCreateView.as_view(), name="create"),
     path("depositos/<int:pk>/editar/", views.DepositoUpdateView.as_view(), name="update"),
+    path("depositos/<int:pk>/toggle/", views.DepositoToggleActiveView.as_view(), name="toggle"),
 ]

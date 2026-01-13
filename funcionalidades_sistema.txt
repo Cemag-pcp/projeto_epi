@@ -1,0 +1,70 @@
+FUNCIONALIDADES DO SISTEMA (Clarus)
+
+1) Multi-tenant e configuracoes
+- Gestao de empresas (tenants) e dominios por schema.
+- Parametro de ativacao por módulos por empresa.
+
+2) Usuarios, perfis e permissoes
+- Perfis de usuario vinculados a funcionario, setor e planta.
+- Grupos e permissoes para controlar acesso a modulos e acoes.
+
+3) Cadastros base
+- Cargos e setores.
+- Depositos (com regra de bloqueio de movimento negativo).
+- Fornecedores.
+- Tipos de funcionario e configuracao de produtos permitidos por tipo.
+- Plantas, centros de custo, turnos e GHE.
+- Motivos de afastamento e riscos (com nivel e descricao).
+
+4) Produtos e EPI
+- Cadastro de produtos com foto, codigos, referencia, periodicidade, impostos, marca e unidade.
+- Classificacao por tipo, familia, subfamilia e localizacao.
+- Regras de controle (monitora uso, troca por funcionario, controle EPI, obrigar entrega e dias).
+- Estoque minimo/ideal e produto ativo/inativo.
+- Fornecedores por produto com CA, codigos e preco (inclui fator de compra).
+- Anexos por produto com limite de tamanho.
+- Historico de movimentacoes e logs por produto.
+- Importacao/consulta de CA EPI por CA, descricao ou fornecedor (com filtro de validade).
+
+5) Estoque
+- Saldo por produto e deposito (por planta quando filtrado).
+- Movimentacoes de entrada, saida e transferencia.
+- Bloqueio de saldo negativo quando configurado no deposito.
+- Extrato do produto com filtros de data, deposito, tipo e produto.
+- Logs de acao de movimentacoes.
+
+6) Entregas de EPI
+- Criacao de entrega e solicitacao de entrega.
+- Itens por funcionario com validacao de permissao por tipo/funcionario.
+- Validacao de recebimento por senha (opcional).
+- Baixa automatica no estoque e registro no historico do funcionario.
+- Atendimento de entrega, detalhes, itens e cancelamento.
+
+7) Funcionarios (RH)
+- Cadastro completo de funcionario (dados pessoais e vinculacoes).
+- Vinculo com cargo, setor, planta, centro de custo, GHE e turno.
+- Lider, gestor, tipo de funcionario e datas de admissao/demissao.
+- Controle de afastamentos, advertencias e motivos.
+- Controle de anexos e historico do funcionario.
+- Definicao de produtos liberados por funcionario.
+- Associacao de riscos e valida de recebimento configuravel.
+
+8) Acessos e terceiros
+- Cadastro de empresas parceiras e terceiros.
+- Registro de acesso de EPI com status de EPI e treinamento.
+- Controle de consumo de EPI por parceiros.
+- Endpoint para listar terceiros por empresa parceira.
+
+9) Treinamentos
+- Cadastro de treinamentos com tipo, validade e obrigatoriedade.
+- Turmas, aulas, agenda mensal e instrutores.
+- Presenca e avaliacao de turma.
+- Participacao e pendencias de treinamento.
+- Modelos de documentos e impressao de certificados.
+- Rotina de revalidacao e alertas de vencimento via comando.
+
+10) Relatorios e dashboards
+- Editor de relatorios com widgets.
+- Filtros por periodo e planta.
+- Agrupamentos por produto, funcionario, setor e planta.
+- Series temporais por dia, semana ou mes.

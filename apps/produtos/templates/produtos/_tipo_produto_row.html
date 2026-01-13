@@ -1,0 +1,69 @@
+<tr id="tipo-produto-row-{{ tipo.pk }}">
+  <td>{{ tipo.nome|default:"-" }}</td>
+  <td>
+    <span class="badge {% if tipo.ativo %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+      {{ tipo.ativo|yesno:"Ativo,Inativo" }}
+    </span>
+  </td>
+  <td class="text-end">
+    {% if perms.produtos.change_tipoproduto or perms.produtos.delete_tipoproduto %}
+      {% if perms.produtos.change_tipoproduto %}
+      <button
+        class="btn btn-outline-primary btn-icon"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#editModal-{{ tipo.pk }}"
+        title="Editar"
+        aria-label="Editar"
+      >
+        <i class="bi bi-pencil"></i>
+      </button>
+      <form
+        class="d-inline js-tipo-produto-toggle"
+        id="tipo-produto-toggle-{{ tipo.pk }}"
+        method="post"
+        action="{% url 'produtos:tipos_toggle' tipo.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn {% if tipo.ativo %}btn-outline-danger{% else %}btn-outline-success{% endif %} btn-icon js-tipo-produto-toggle-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#tipoProdutoToggleModal"
+        data-form-id="tipo-produto-toggle-{{ tipo.pk }}"
+        data-nome="{{ tipo.nome|escapejs }}"
+        data-ativo="{{ tipo.ativo|yesno:'1,0' }}"
+        title="{% if tipo.ativo %}Desativar{% else %}Ativar{% endif %}"
+        aria-label="{% if tipo.ativo %}Desativar{% else %}Ativar{% endif %}"
+      >
+        <i class="bi {% if tipo.ativo %}bi-person-x{% else %}bi-person-check{% endif %}"></i>
+      </button>
+      {% endif %}
+      {% if perms.produtos.delete_tipoproduto %}
+      <form
+        class="d-inline js-tipo-produto-delete"
+        id="tipo-produto-delete-{{ tipo.pk }}"
+        method="post"
+        action="{% url 'produtos:tipos_delete' tipo.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn btn-outline-danger btn-icon js-tipo-produto-delete-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#tipoProdutoDeleteModal"
+        data-form-id="tipo-produto-delete-{{ tipo.pk }}"
+        data-nome="{{ tipo.nome|escapejs }}"
+        title="Excluir"
+        aria-label="Excluir"
+      >
+        <i class="bi bi-trash"></i>
+      </button>
+      {% endif %}
+    {% else %}
+      <span class="text-muted">-</span>
+    {% endif %}
+  </td>
+</tr>

@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8">
+    <title>Certificado de treinamento</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 24mm;
+      }
+      body {
+        font-family: "DejaVu Sans", Arial, sans-serif;
+        color: #222;
+        margin: 0;
+      }
+      .toolbar {
+        padding: 12px 16px;
+        background: #f6f6f6;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+      .btn {
+        border: 1px solid #333;
+        background: #fff;
+        padding: 6px 12px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .page {
+        padding: 24mm;
+      }
+      .title {
+        text-align: center;
+        font-size: 26px;
+        font-weight: 700;
+        margin-bottom: 24px;
+      }
+      .subtitle {
+        text-align: center;
+        font-size: 14px;
+        color: #555;
+        margin-bottom: 32px;
+      }
+      .content {
+        font-size: 16px;
+        line-height: 1.6;
+      }
+      .content-center {
+        text-align: center;
+      }
+      .highlight {
+        font-weight: 700;
+      }
+      .footer {
+        margin-top: 48px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: #666;
+      }
+      .signature {
+        margin-top: 64px;
+        text-align: center;
+        font-size: 12px;
+        color: #444;
+      }
+      .signature-line {
+        border-top: 1px solid #333;
+        width: 220px;
+        margin: 0 auto 6px;
+      }
+      @media print {
+        .toolbar {
+          display: none;
+        }
+        .page {
+          padding: 0;
+        }
+      }
+    </style>
+    <style id="print-orientation-style">
+      @page {
+        size: A4 portrait;
+        margin: 24mm;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <button class="btn" type="button" data-toggle-orientacao>Modo paisagem</button>
+      <button class="btn" type="button" onclick="window.print()">Imprimir</button>
+    </div>
+    <div class="page">
+        {% if logo_url %}
+          <div style="text-align: center; margin-bottom: 12px;">
+            <img src="{{ logo_url }}" alt="Logo" style="max-height: 80px;">
+          </div>
+        {% endif %}
+        {% if corpo_html %}
+          {{ corpo_html|safe }}
+        {% else %}
+          <div class="title">Certificado de Treinamento</div>
+          <div class="subtitle">{{ empresa.name|default:empresa }}</div>
+
+          <div class="content content-center">
+            Certificamos que <span class="highlight">{{ funcionario.nome }}</span>
+            participou e foi aprovado no treinamento
+            <span class="highlight">{{ treinamento.nome }}</span>,
+            realizado pela turma <span class="highlight">{{ turma.pk }}</span>.
+          </div>
+
+          <div class="content content-center" style="margin-top: 16px;">
+            Instrutor: <span class="highlight">{{ instrutor|default:"-" }}</span><br>
+            Datas: <span class="highlight">{{ datas_aulas|default:"-" }}</span><br>
+            Emissao: <span class="highlight">{{ data_emissao|date:"d/m/Y" }}</span>
+          </div>
+        {% endif %}
+
+        <div class="signature">
+          <div class="signature-line"></div>
+          Assinatura
+        </div>
+
+        <!-- <div class="footer">
+          <span>Funcionario: {{ funcionario.id }}</span>
+          <span>Treinamento: {{ treinamento.id }}</span>
+        </div> -->
+
+      <!-- <div style="margin-top: 32px; font-size: 13px; color: #444;">
+        <div style="font-weight: 700;">Dados obrigatorios</div>
+        <div>Treinamento: {{ treinamento.nome }}</div>
+        <div>Instrutor: {{ instrutor|default:"-" }}</div>
+        <div>Datas das aulas: {{ datas_aulas|default:"-" }}</div>
+      </div> -->
+    </div>
+    <script>
+      (function () {
+        var toggleButton = document.querySelector("[data-toggle-orientacao]");
+        var orientationStyle = document.getElementById("print-orientation-style");
+        var isLandscape = false;
+        if (toggleButton) {
+          toggleButton.addEventListener("click", function () {
+            isLandscape = !isLandscape;
+            if (orientationStyle) {
+              orientationStyle.textContent =
+                "@page { size: A4 " +
+                (isLandscape ? "landscape" : "portrait") +
+                "; margin: 24mm; }";
+            }
+            toggleButton.textContent = isLandscape ? "Modo retrato" : "Modo paisagem";
+          });
+        }
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", function () {
+            window.print();
+          });
+        } else {
+          window.print();
+        }
+      })();
+    </script>
+  </body>
+</html>

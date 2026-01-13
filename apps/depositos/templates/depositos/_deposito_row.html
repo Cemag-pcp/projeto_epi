@@ -1,0 +1,48 @@
+<tr id="deposito-row-{{ deposito.pk }}">
+  <td>{{ deposito.nome|default:"-" }}</td>
+  <td>{{ deposito.endereco|default:"-" }}</td>
+  <td>{{ deposito.planta|default:"-" }}</td>
+  <td>{{ deposito.bloquear_movimento_negativo|yesno:"Sim,Nao" }}</td>
+  <td>
+    <span class="badge {% if deposito.ativo %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+      {{ deposito.ativo|yesno:"Ativo,Inativo" }}
+    </span>
+  </td>
+  <td class="text-end">
+    {% if perms.depositos.change_deposito %}
+      <button
+        class="btn btn-outline-primary btn-icon"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#editModal-{{ deposito.pk }}"
+        title="Editar"
+        aria-label="Editar"
+      >
+        <i class="bi bi-pencil"></i>
+      </button>
+      <form
+        class="d-inline js-deposito-toggle"
+        id="deposito-toggle-{{ deposito.pk }}"
+        method="post"
+        action="{% url 'depositos:toggle' deposito.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn {% if deposito.ativo %}btn-outline-danger{% else %}btn-outline-success{% endif %} btn-icon js-deposito-toggle-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#depositoToggleModal"
+        data-form-id="deposito-toggle-{{ deposito.pk }}"
+        data-nome="{{ deposito.nome|escapejs }}"
+        data-ativo="{{ deposito.ativo|yesno:'1,0' }}"
+        title="{% if deposito.ativo %}Desativar{% else %}Ativar{% endif %}"
+        aria-label="{% if deposito.ativo %}Desativar{% else %}Ativar{% endif %}"
+      >
+        <i class="bi {% if deposito.ativo %}bi-person-x{% else %}bi-person-check{% endif %}"></i>
+      </button>
+    {% else %}
+      <span class="text-muted">-</span>
+    {% endif %}
+  </td>
+</tr>

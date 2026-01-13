@@ -1,0 +1,165 @@
+{% extends "layout/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+  {% include "components/_alerts.html" %}
+  {% include "components/_page_header.html" with title=title subtitle=subtitle create_url=create_url %}
+  {% if filters %}
+    {% include "components/_filters.html" with filters=filters %}
+  {% endif %}
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          {% for header in headers %}
+            <th scope="col">{{ header }}</th>
+          {% endfor %}
+          <th scope="col" class="text-end">Acoes</th>
+        </tr>
+      </thead>
+      <tbody data-advertencia-rows>
+        {% for object in object_list %}
+          {% include "advertencias/_advertencia_row.html" with advertencia=object %}
+        {% empty %}
+          <tr>
+            <td colspan="{{ headers|length|add:1 }}" class="text-muted text-center py-4">Sem registros</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div data-advertencia-pagination>
+    {% include "components/_pagination.html" with page_obj=page_obj %}
+  </div>
+
+  {% if create_form %}
+    <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="createModalLabel">Nova advertencia</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body" data-advertencia-modal-body data-row-id="">
+            {% include "components/_form.html" with form=create_form form_action=create_url %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <div data-advertencia-modals>
+    {% for row in edit_rows %}
+      {% include "advertencias/_advertencia_edit_modal.html" with advertencia=row.object form=row.form update_url=row.update_url %}
+    {% endfor %}
+  </div>
+
+  <script>
+    (function () {
+      function bindAdvertenciaForm(form) {
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          var modalBody = form.closest("[data-advertencia-modal-body]");
+          var rowId = modalBody ? modalBody.getAttribute("data-row-id") : null;
+          var formData = new FormData(form);
+          fetch(form.action, {
+            method: "POST",
+            body: formData,
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          })
+            .then(function (response) {
+              return response
+                .json()
+                .then(function (data) {
+                  return { ok: response.ok, data: data };
+                })
+                .catch(function () {
+                  return { ok: response.ok, data: null };
+                });
+            })
+            .then(function (result) {
+              if (!result.ok || !result.data || !result.data.ok) {
+                if (modalBody && result.data && result.data.form_html) {
+                  modalBody.innerHTML = result.data.form_html;
+                  var newForm = modalBody.querySelector("form");
+                  if (newForm) {
+                    bindAdvertenciaForm(newForm);
+                  }
+                }
+                return;
+              }
+
+              if (result.data.action === "create") {
+                var tbody = document.querySelector("[data-advertencia-rows]");
+                if (tbody) {
+                  var emptyRow = tbody.querySelector("td.text-muted");
+                  if (emptyRow) {
+                    emptyRow.parentElement.remove();
+                  }
+                  tbody.insertAdjacentHTML("afterbegin", result.data.row_html);
+                }
+                if (result.data.edit_modal_html) {
+                  var modalsContainer = document.querySelector("[data-advertencia-modals]");
+                  if (modalsContainer) {
+                    modalsContainer.insertAdjacentHTML("beforeend", result.data.edit_modal_html);
+                    var editForm = modalsContainer.querySelector(
+                      "#editModal-" + result.data.row_id + " form"
+                    );
+                    if (editForm) {
+                      bindAdvertenciaForm(editForm);
+                    }
+                  }
+                }
+                if (modalBody && result.data.form_html) {
+                  modalBody.innerHTML = result.data.form_html;
+                  var refreshedForm = modalBody.querySelector("form");
+                  if (refreshedForm) {
+                    bindAdvertenciaForm(refreshedForm);
+                  }
+                }
+                var modalEl = document.getElementById("createModal");
+                if (modalEl && window.bootstrap) {
+                  bootstrap.Modal.getInstance(modalEl).hide();
+                }
+                return;
+              }
+
+              if (result.data.action === "update" && result.data.row_id) {
+                var row = document.getElementById("advertencia-row-" + result.data.row_id);
+                if (row) {
+                  row.outerHTML = result.data.row_html;
+                }
+                if (rowId) {
+                  var editModalEl = document.getElementById("editModal-" + rowId);
+                  if (editModalEl && window.bootstrap) {
+                    bootstrap.Modal.getInstance(editModalEl).hide();
+                  }
+                }
+              }
+            })
+            .catch(function () {
+              form.submit();
+            });
+        });
+      }
+
+      function initAdvertenciaForms() {
+        var forms = document.querySelectorAll("#createModal form, [id^='editModal-'] form");
+        forms.forEach(function (form) {
+          bindAdvertenciaForm(form);
+        });
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", function () {
+          initAdvertenciaForms();
+        });
+      } else {
+        initAdvertenciaForms();
+      }
+    })();
+  </script>
+{% endblock %}

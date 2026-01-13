@@ -1,0 +1,827 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Builder de relatorio{% endblock %}
+
+{% block extra_head %}
+  <style>
+    .widget-handle {
+      cursor: move;
+    }
+    .widget-empty {
+      border: 2px dashed var(--clarus-gray-200);
+      border-radius: 16px;
+      padding: 1.5rem;
+      text-align: center;
+      color: #6c757d;
+    }
+    .widget-dragging {
+      opacity: 0.6;
+      transform: scale(0.98);
+      box-shadow: 0 18px 36px rgba(11, 11, 13, 0.18);
+    }
+    .widget-drop-target {
+      outline: 2px dashed rgba(225, 6, 0, 0.55);
+      outline-offset: 6px;
+      border-radius: 18px;
+      background: rgba(225, 6, 0, 0.04);
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <form method="post" id="relatorio-form" class="d-flex flex-column gap-4">
+    {% csrf_token %}
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <div>
+        <h1 class="h3 mb-1">Builder de relatorio</h1>
+        <p class="text-muted mb-0">Monte sua visualizacao escolhendo os widgets.</p>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        {% if relatorio %}
+          <a class="btn btn-outline-primary btn-sm" href="{% url 'relatorios:detail' relatorio.pk %}">
+            <i class="bi bi-eye"></i>
+            Visualizar
+          </a>
+        {% endif %}
+        <button class="btn btn-primary btn-sm" type="submit">
+          <i class="bi bi-save"></i>
+          Salvar
+        </button>
+      </div>
+    </div>
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="card mb-3">
+      <div class="card-header">
+        <div class="clarus-section-title mb-0">Detalhes do relatorio</div>
+        <div class="text-muted small">Nome, descricao e widgets</div>
+      </div>
+      <div class="card-body">
+        <div class="row g-3 align-items-start">
+          <div class="col-12 col-lg-6">
+            <div class="d-flex flex-column gap-3">
+              <div>
+                <label class="form-label" for="{{ form.nome.id_for_label }}">Nome</label>
+                {{ form.nome }}
+                {{ form.nome.errors }}
+              </div>
+              <div>
+                <label class="form-label" for="{{ form.descricao.id_for_label }}">Descricao</label>
+                {{ form.descricao }}
+                {{ form.descricao.errors }}
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-lg-6">
+            <div class="clarus-section-title mb-2">Adicionar widgets</div>
+            <div class="d-flex flex-wrap gap-2">
+              <button class="btn btn-outline-primary btn-sm" type="button" data-widget-add="kpi">
+                <i class="bi bi-speedometer2"></i>
+                KPI
+              </button>
+              <button class="btn btn-outline-primary btn-sm" type="button" data-widget-add="tabela">
+                <i class="bi bi-table"></i>
+                Tabela
+              </button>
+              <button class="btn btn-outline-primary btn-sm" type="button" data-widget-add="pendencias">
+                <i class="bi bi-exclamation-circle"></i>
+                Pendencias
+              </button>
+              <button class="btn btn-outline-primary btn-sm" type="button" data-widget-add="grafico">
+                <i class="bi bi-bar-chart"></i>
+                Grafico
+              </button>
+            </div>
+            <div class="alert alert-light border mt-3 mb-0">
+              <div class="fw-semibold mb-1">Dica</div>
+              <div class="text-muted small">
+                Arraste os cards para reorganizar e ajuste o tipo dentro de cada widget.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card h-100">
+      <div class="card-header">
+        <div class="clarus-section-title mb-0">Canvas de widgets</div>
+        <div class="text-muted small">Organize os blocos do relatorio</div>
+      </div>
+      <div class="card-body">
+        <div class="row g-3" id="widget-list"></div>
+        <div class="widget-empty mt-3 d-none" id="widget-empty">
+          Nenhum widget adicionado ainda.
+        </div>
+      </div>
+    </div>
+
+    {{ form.widgets_json }}
+  </form>
+
+  {{ widgets|json_script:"widgets-data" }}
+
+  {{ plantas|json_script:"plantas-data" }}
+  <script>
+    (function () {
+      var widgetList = document.getElementById("widget-list");
+      var emptyState = document.getElementById("widget-empty");
+      var widgetsInput = document.getElementById("id_widgets_json");
+      var initialWidgets = JSON.parse(document.getElementById("widgets-data").textContent || "[]");
+      var widgetTypes = {
+        kpi: "KPI",
+        tabela: "Tabela",
+        pendencias: "Pendencias",
+        grafico: "Grafico"
+      };
+      var metricLabels = {
+        entregas_realizadas: "Qtd. entregas realizadas",
+        entregas_pendentes: "Qtd. entregas pendentes",
+        entregas_canceladas: "Qtd. entregas canceladas",
+        estoque_critico: "Itens em estoque critico",
+        entregas_por_dia: "Grafico de entregas por dia",
+        entregas_pendentes_por_dia: "Grafico de pendencias por dia",
+        entregas_canceladas_por_dia: "Grafico de canceladas por dia",
+        ultimas_entregas: "Ultimas entregas realizadas",
+        ranking_itens: "Ranking de itens mais entregues"
+      };
+      var metricsByType = {
+        kpi: ["entregas_realizadas", "entregas_pendentes", "entregas_canceladas", "estoque_critico"],
+        grafico: [
+          "entregas_por_dia",
+          "entregas_pendentes_por_dia",
+          "entregas_canceladas_por_dia",
+          "estoque_critico"
+        ],
+        tabela: ["entregas_pendentes", "ultimas_entregas", "ranking_itens"]
+      };
+      var sizeLabels = {
+        half: "50% da linha",
+        full: "100% da linha"
+      };
+      var periodLabels = {
+        today: "Hoje",
+        week: "Esta semana",
+        last7: "Ultimos 7 dias",
+        month: "Este mes",
+        last30: "Ultimos 30 dias",
+        year: "Este ano",
+        custom: "Personalizado"
+      };
+      var sourceLabels = {
+        entregas: "Entregas",
+        estoque: "Estoque"
+      };
+      var groupByLabels = {
+        produto: "Produto",
+        funcionario: "Funcionario",
+        planta: "Planta",
+        setor: "Setor"
+      };
+      var categoryLabels = {
+        dia: "Dia",
+        semana: "Semana",
+        mes: "Mes"
+      };
+      var valueTypeLabels = {
+        quantidade: "Quantidade",
+        itens: "Itens"
+      };
+      var chartTypeLabels = {
+        line: "Linha",
+        bar: "Barra",
+        pie: "Pizza"
+      };
+      var plantas = JSON.parse(document.getElementById("plantas-data").textContent || "[]");
+      var widgets = Array.isArray(initialWidgets) ? initialWidgets : [];
+      var dragId = null;
+
+      function getColClass(widget) {
+        if (widget.type === "kpi") {
+          return "col-12 col-md-6 col-xl-3";
+        }
+        if (widget.type === "grafico" && widget.size === "full") {
+          return "col-12";
+        }
+        return "col-12 col-lg-6";
+      }
+
+      function buildWidgetCard(widget) {
+        var col = document.createElement("div");
+        col.className = getColClass(widget);
+        col.dataset.widgetItem = "1";
+        col.dataset.widgetId = widget.id;
+
+        var card = document.createElement("div");
+        card.className = "card h-100";
+        card.setAttribute("draggable", "true");
+        card.dataset.widgetCard = "1";
+
+        var header = document.createElement("div");
+        header.className = "card-header d-flex align-items-center justify-content-between";
+
+        var title = document.createElement("div");
+        title.className = "d-flex align-items-center gap-2";
+        title.innerHTML = '<i class="bi bi-grip-vertical widget-handle text-muted"></i><span class="fw-semibold">Widget</span>';
+
+        var removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "btn btn-outline-danger btn-sm";
+        removeButton.dataset.widgetRemove = "1";
+        removeButton.innerHTML = '<i class="bi bi-trash"></i>';
+
+        header.appendChild(title);
+        header.appendChild(removeButton);
+
+        var body = document.createElement("div");
+        body.className = "card-body d-flex flex-column gap-3";
+
+        var titleField = document.createElement("input");
+        titleField.type = "text";
+        titleField.className = "form-control";
+        titleField.placeholder = "Titulo do widget";
+        titleField.value = widget.title || "";
+        titleField.dataset.widgetTitle = "1";
+
+        var typeField = document.createElement("select");
+        typeField.className = "form-select";
+        typeField.dataset.widgetType = "1";
+        Object.keys(widgetTypes).forEach(function (typeKey) {
+          var option = document.createElement("option");
+          option.value = typeKey;
+          option.textContent = widgetTypes[typeKey];
+          if (widget.type === typeKey) {
+            option.selected = true;
+          }
+          typeField.appendChild(option);
+        });
+
+        var metricField = document.createElement("select");
+        metricField.className = "form-select";
+        metricField.dataset.widgetMetric = "1";
+
+        var sizeField = document.createElement("select");
+        sizeField.className = "form-select";
+        sizeField.dataset.widgetSize = "1";
+        Object.keys(sizeLabels).forEach(function (sizeKey) {
+          var sizeOption = document.createElement("option");
+          sizeOption.value = sizeKey;
+          sizeOption.textContent = sizeLabels[sizeKey];
+          sizeField.appendChild(sizeOption);
+        });
+
+        var periodField = document.createElement("select");
+        periodField.className = "form-select";
+        periodField.dataset.widgetPeriod = "1";
+        Object.keys(periodLabels).forEach(function (periodKey) {
+          var periodOption = document.createElement("option");
+          periodOption.value = periodKey;
+          periodOption.textContent = periodLabels[periodKey];
+          periodField.appendChild(periodOption);
+        });
+
+        var plantField = document.createElement("select");
+        plantField.className = "form-select";
+        plantField.dataset.widgetPlant = "1";
+        var allOption = document.createElement("option");
+        allOption.value = "";
+        allOption.textContent = "Todas as plantas";
+        plantField.appendChild(allOption);
+        plantas.forEach(function (planta) {
+          var option = document.createElement("option");
+          option.value = String(planta.id);
+          option.textContent = planta.nome;
+          plantField.appendChild(option);
+        });
+
+        var customDatesWrapper = document.createElement("div");
+        customDatesWrapper.className = "d-none";
+        customDatesWrapper.dataset.widgetCustomDates = "1";
+        var customStartInput = document.createElement("input");
+        customStartInput.type = "date";
+        customStartInput.className = "form-control mb-2";
+        customStartInput.dataset.widgetStartDate = "1";
+        var customEndInput = document.createElement("input");
+        customEndInput.type = "date";
+        customEndInput.className = "form-control";
+        customEndInput.dataset.widgetEndDate = "1";
+        var customStartWrapper = buildField("Data inicio", customStartInput, "col-12 col-md-6");
+        var customEndWrapper = buildField("Data fim", customEndInput, "col-12 col-md-6");
+        var customDatesRow = document.createElement("div");
+        customDatesRow.className = "row g-2";
+        customDatesRow.appendChild(customStartWrapper);
+        customDatesRow.appendChild(customEndWrapper);
+        customDatesWrapper.appendChild(customDatesRow);
+
+        function buildSelect(labelText, options, dataAttr) {
+          var wrapper = document.createElement("div");
+          wrapper.className = "mb-2";
+          var label = document.createElement("label");
+          label.className = "form-label mb-1";
+          label.textContent = labelText;
+          var select = document.createElement("select");
+          select.className = "form-select";
+          select.dataset[dataAttr] = "1";
+          Object.keys(options).forEach(function (key) {
+            var opt = document.createElement("option");
+            opt.value = key;
+            opt.textContent = options[key];
+            select.appendChild(opt);
+          });
+          wrapper.appendChild(label);
+          wrapper.appendChild(select);
+          return { wrapper: wrapper, select: select };
+        }
+
+        function buildField(labelText, field, wrapperClass) {
+          var wrapper = document.createElement("div");
+          wrapper.className = wrapperClass || "mb-2";
+          var label = document.createElement("label");
+          label.className = "form-label mb-1";
+          label.textContent = labelText;
+          wrapper.appendChild(label);
+          wrapper.appendChild(field);
+          return wrapper;
+        }
+
+        var basicSection = document.createElement("div");
+        basicSection.className = "border rounded-4 p-3 bg-light";
+        var basicTitle = document.createElement("div");
+        basicTitle.className = "fw-semibold mb-2";
+        basicTitle.textContent = "Configuracao basica";
+        basicSection.appendChild(basicTitle);
+        var titleWrapper = buildField("Titulo do widget", titleField, "col-12");
+        var typeWrapper = buildField("Tipo de widget", typeField, "col-12 col-md-6");
+        var metricWrapper = buildField("Metrica", metricField, "col-12 col-md-6");
+        var sizeWrapper = buildField("Tamanho", sizeField, "col-12 col-md-6");
+        var basicRow = document.createElement("div");
+        basicRow.className = "row g-2";
+        basicRow.appendChild(titleWrapper);
+        basicRow.appendChild(typeWrapper);
+        basicRow.appendChild(metricWrapper);
+        basicRow.appendChild(sizeWrapper);
+        basicSection.appendChild(basicRow);
+
+        var periodSection = document.createElement("div");
+        periodSection.className = "border rounded-4 p-3 bg-white";
+        var periodTitle = document.createElement("div");
+        periodTitle.className = "fw-semibold mb-2";
+        periodTitle.textContent = "Periodo";
+        periodSection.appendChild(periodTitle);
+        var periodWrapper = buildField("Periodo", periodField, "col-12 col-md-6");
+        var plantWrapper = buildField("Planta", plantField, "col-12 col-md-6");
+        var periodRow = document.createElement("div");
+        periodRow.className = "row g-2";
+        periodRow.appendChild(periodWrapper);
+        periodRow.appendChild(plantWrapper);
+        periodSection.appendChild(periodRow);
+
+        var chartOptionsSection = document.createElement("div");
+        chartOptionsSection.className = "border rounded-4 p-3 bg-white d-none";
+        chartOptionsSection.dataset.widgetChartOptions = "1";
+
+        var chartTitle = document.createElement("div");
+        chartTitle.className = "fw-semibold mb-2";
+        chartTitle.textContent = "Opcoes do grafico";
+        chartOptionsSection.appendChild(chartTitle);
+
+        var chartTypeSelect = buildSelect("Tipo de grafico", chartTypeLabels, "widgetChartType");
+
+        var limitWrapper = document.createElement("div");
+        limitWrapper.className = "mb-2";
+        var limitLabel = document.createElement("label");
+        limitLabel.className = "form-label mb-1";
+        limitLabel.textContent = "Limite de categorias";
+        var limitInput = document.createElement("input");
+        limitInput.type = "number";
+        limitInput.min = "1";
+        limitInput.step = "1";
+        limitInput.className = "form-control";
+        limitInput.dataset.widgetLimit = "1";
+        limitWrapper.appendChild(limitLabel);
+        limitWrapper.appendChild(limitInput);
+        var chartRow = document.createElement("div");
+        chartRow.className = "row g-2";
+        chartTypeSelect.wrapper.classList.add("col-12", "col-md-6");
+        limitWrapper.classList.add("col-12", "col-md-6");
+        chartRow.appendChild(chartTypeSelect.wrapper);
+        chartRow.appendChild(limitWrapper);
+        chartOptionsSection.appendChild(chartRow);
+
+        var legendWrapper = document.createElement("div");
+        legendWrapper.className = "form-check mt-2";
+        var legendInput = document.createElement("input");
+        legendInput.type = "checkbox";
+        legendInput.className = "form-check-input";
+        legendInput.dataset.widgetLegend = "1";
+        var legendLabel = document.createElement("label");
+        legendLabel.className = "form-check-label";
+        legendLabel.textContent = "Mostrar legenda";
+        legendWrapper.appendChild(legendInput);
+        legendWrapper.appendChild(legendLabel);
+        chartOptionsSection.appendChild(legendWrapper);
+
+        var tableOptionsSection = document.createElement("div");
+        tableOptionsSection.className = "border rounded-4 p-3 bg-white d-none";
+        tableOptionsSection.dataset.widgetTableOptions = "1";
+        var tableTitle = document.createElement("div");
+        tableTitle.className = "fw-semibold mb-2";
+        tableTitle.textContent = "Opcoes da tabela";
+        tableOptionsSection.appendChild(tableTitle);
+        var tableLimitWrapper = document.createElement("div");
+        tableLimitWrapper.className = "mb-2";
+        var tableLimitLabel = document.createElement("label");
+        tableLimitLabel.className = "form-label mb-1";
+        tableLimitLabel.textContent = "Quantidade de linhas";
+        var tableLimitInput = document.createElement("input");
+        tableLimitInput.type = "number";
+        tableLimitInput.min = "1";
+        tableLimitInput.step = "1";
+        tableLimitInput.className = "form-control";
+        tableLimitInput.dataset.widgetTableLimit = "1";
+        tableLimitWrapper.appendChild(tableLimitLabel);
+        tableLimitWrapper.appendChild(tableLimitInput);
+        var tableValueType = buildSelect("Tipo de valor", valueTypeLabels, "widgetTableValueType");
+        var tableOptionsRow = document.createElement("div");
+        tableOptionsRow.className = "row g-2";
+        tableLimitWrapper.classList.add("col-12", "col-md-6");
+        tableValueType.wrapper.classList.add("col-12", "col-md-6");
+        tableOptionsRow.appendChild(tableLimitWrapper);
+        tableOptionsRow.appendChild(tableValueType.wrapper);
+        tableOptionsSection.appendChild(tableOptionsRow);
+
+        var dataSourceSection = document.createElement("div");
+        dataSourceSection.className = "border rounded-4 p-3 bg-light d-none";
+        dataSourceSection.dataset.widgetDataSource = "1";
+
+        var dataTitle = document.createElement("div");
+        dataTitle.className = "fw-semibold mb-2";
+        dataTitle.textContent = "Origem dos dados";
+        dataSourceSection.appendChild(dataTitle);
+
+        var sourceSelect = buildSelect("Origem", sourceLabels, "widgetSource");
+        var groupBySelect = buildSelect("Agrupo por", groupByLabels, "widgetGroupBy");
+        var categorySelect = buildSelect("Categoria", categoryLabels, "widgetCategory");
+        var valueTypeSelect = buildSelect("Tipo de valor", valueTypeLabels, "widgetValueType");
+
+        var dataSourceRow = document.createElement("div");
+        dataSourceRow.className = "row g-2";
+        sourceSelect.wrapper.classList.add("col-12", "col-md-6");
+        groupBySelect.wrapper.classList.add("col-12", "col-md-6");
+        categorySelect.wrapper.classList.add("col-12", "col-md-6");
+        valueTypeSelect.wrapper.classList.add("col-12", "col-md-6");
+        dataSourceRow.appendChild(sourceSelect.wrapper);
+        dataSourceRow.appendChild(groupBySelect.wrapper);
+        dataSourceRow.appendChild(categorySelect.wrapper);
+        dataSourceRow.appendChild(valueTypeSelect.wrapper);
+        dataSourceSection.appendChild(dataSourceRow);
+
+        var preview = document.createElement("div");
+        preview.className = "bg-light border rounded-4 p-3 text-muted small";
+        preview.textContent = "Area de visualizacao do widget selecionado.";
+        preview.dataset.widgetPreview = "1";
+
+        body.appendChild(basicSection);
+        body.appendChild(periodSection);
+        periodSection.appendChild(customDatesWrapper);
+        body.appendChild(chartOptionsSection);
+        body.appendChild(tableOptionsSection);
+        body.appendChild(dataSourceSection);
+        body.appendChild(preview);
+
+        card.appendChild(header);
+        card.appendChild(body);
+        col.appendChild(card);
+
+        function toggleCustomDates() {
+          if (periodWrapper.classList.contains("d-none") || periodField.value !== "custom") {
+            customDatesWrapper.classList.add("d-none");
+            return;
+          }
+          customDatesWrapper.classList.remove("d-none");
+        }
+
+        function updateMetricOptions() {
+          var selectedType = typeField.value;
+          var options = metricsByType[selectedType] || [];
+          metricField.innerHTML = "";
+          if (!options.length) {
+            metricWrapper.classList.add("d-none");
+            sizeWrapper.classList.add("d-none");
+            periodWrapper.classList.add("d-none");
+            plantWrapper.classList.add("d-none");
+            periodSection.classList.add("d-none");
+            customDatesWrapper.classList.add("d-none");
+            tableOptionsSection.classList.add("d-none");
+            return;
+          }
+          metricWrapper.classList.remove("d-none");
+          options.forEach(function (metricKey) {
+            var metricOption = document.createElement("option");
+            metricOption.value = metricKey;
+            metricOption.textContent = metricLabels[metricKey] || metricKey;
+            metricField.appendChild(metricOption);
+          });
+          var currentMetric = widget.metric || options[0];
+          if (!options.includes(currentMetric)) {
+            currentMetric = options[0];
+          }
+          metricField.value = currentMetric;
+          if (selectedType === "grafico") {
+            sizeWrapper.classList.remove("d-none");
+            var currentSize = widget.size || "half";
+            if (!sizeLabels[currentSize]) {
+              currentSize = "half";
+            }
+            sizeField.value = currentSize;
+            periodWrapper.classList.remove("d-none");
+            periodSection.classList.remove("d-none");
+            var currentPeriod = widget.period || "today";
+            if (!periodLabels[currentPeriod]) {
+              currentPeriod = "today";
+            }
+            periodField.value = currentPeriod;
+            plantWrapper.classList.remove("d-none");
+            plantField.value = widget.plant || "";
+            customStartInput.value = widget.start_date || "";
+            customEndInput.value = widget.end_date || "";
+            toggleCustomDates();
+            chartOptionsSection.classList.remove("d-none");
+            chartTypeSelect.select.value = widget.chart_type || "line";
+            limitInput.value = widget.limit || 10;
+            legendInput.checked = !!widget.show_legend;
+            dataSourceSection.classList.remove("d-none");
+            sourceSelect.select.value = widget.source || "entregas";
+            groupBySelect.select.value = widget.group_by || "produto";
+            categorySelect.select.value = widget.category || "semana";
+            valueTypeSelect.select.value = widget.value_type || "quantidade";
+            tableOptionsSection.classList.add("d-none");
+          } else if (selectedType === "kpi") {
+            sizeWrapper.classList.add("d-none");
+            sizeField.value = "half";
+            periodWrapper.classList.remove("d-none");
+            periodSection.classList.remove("d-none");
+            var currentKpiPeriod = widget.period || "today";
+            if (!periodLabels[currentKpiPeriod]) {
+              currentKpiPeriod = "today";
+            }
+            periodField.value = currentKpiPeriod;
+            plantWrapper.classList.remove("d-none");
+            plantField.value = widget.plant || "";
+            customStartInput.value = widget.start_date || "";
+            customEndInput.value = widget.end_date || "";
+            toggleCustomDates();
+            chartOptionsSection.classList.add("d-none");
+            dataSourceSection.classList.add("d-none");
+            tableOptionsSection.classList.add("d-none");
+          } else if (selectedType === "tabela") {
+            sizeWrapper.classList.add("d-none");
+            sizeField.value = "half";
+            periodWrapper.classList.remove("d-none");
+            periodSection.classList.remove("d-none");
+            var currentTablePeriod = widget.period || "last30";
+            if (!periodLabels[currentTablePeriod]) {
+              currentTablePeriod = "last30";
+            }
+            periodField.value = currentTablePeriod;
+            plantWrapper.classList.remove("d-none");
+            plantField.value = widget.plant || "";
+            customStartInput.value = widget.start_date || "";
+            customEndInput.value = widget.end_date || "";
+            toggleCustomDates();
+            chartOptionsSection.classList.add("d-none");
+            dataSourceSection.classList.add("d-none");
+            tableOptionsSection.classList.remove("d-none");
+            tableLimitInput.value = widget.limit || 10;
+            tableValueType.select.value = widget.value_type || "quantidade";
+          } else {
+            sizeWrapper.classList.add("d-none");
+            sizeField.value = "half";
+            periodWrapper.classList.add("d-none");
+            periodField.value = "today";
+            plantWrapper.classList.add("d-none");
+            plantField.value = "";
+            periodSection.classList.add("d-none");
+            customDatesWrapper.classList.add("d-none");
+            chartOptionsSection.classList.add("d-none");
+            dataSourceSection.classList.add("d-none");
+            tableOptionsSection.classList.add("d-none");
+          }
+          col.className = getColClass({
+            type: selectedType,
+            size: sizeField.value || "half"
+          });
+        }
+
+        updateMetricOptions();
+
+        typeField.addEventListener("change", function () {
+          updateMetricOptions();
+        });
+
+        periodField.addEventListener("change", function () {
+          toggleCustomDates();
+        });
+
+        sizeField.addEventListener("change", function () {
+          col.className = getColClass({
+            type: typeField.value,
+            size: sizeField.value
+          });
+        });
+
+        return col;
+      }
+
+      function renderWidgets() {
+        widgetList.innerHTML = "";
+        widgets.forEach(function (widget) {
+          widgetList.appendChild(buildWidgetCard(widget));
+        });
+        emptyState.classList.toggle("d-none", widgets.length > 0);
+        syncFromDom();
+      }
+
+      function syncFromDom() {
+        var items = widgetList.querySelectorAll("[data-widget-item]");
+        var updated = [];
+        items.forEach(function (item) {
+          var widgetId = item.dataset.widgetId;
+          var title = item.querySelector("[data-widget-title]");
+          var type = item.querySelector("[data-widget-type]");
+          var metric = item.querySelector("[data-widget-metric]");
+          var size = item.querySelector("[data-widget-size]");
+          var period = item.querySelector("[data-widget-period]");
+          var plant = item.querySelector("[data-widget-plant]");
+          var startDate = item.querySelector("[data-widget-start-date]");
+          var endDate = item.querySelector("[data-widget-end-date]");
+          var dataSection = item.querySelector("[data-widget-data-source]");
+          var source = item.querySelector("[data-widget-source]");
+          var groupBy = item.querySelector("[data-widget-group-by]");
+          var category = item.querySelector("[data-widget-category]");
+          var valueType = item.querySelector("[data-widget-value-type]");
+          var tableSection = item.querySelector("[data-widget-table-options]");
+          var tableLimit = item.querySelector("[data-widget-table-limit]");
+          var tableValueType = item.querySelector("[data-widget-table-value-type]");
+          var chartSection = item.querySelector("[data-widget-chart-options]");
+          var chartType = item.querySelector("[data-widget-chart-type]");
+          var limit = item.querySelector("[data-widget-limit]");
+          var legend = item.querySelector("[data-widget-legend]");
+          updated.push({
+            id: widgetId,
+            title: title ? title.value.trim() : "",
+            type: type ? type.value : "kpi",
+            metric: metric && !metric.closest(".d-none") ? metric.value : "",
+            size: size && !size.closest(".d-none") ? size.value : "",
+            period: period && !period.closest(".d-none") ? period.value : "",
+            plant: plant && !plant.closest(".d-none") ? plant.value : "",
+            start_date: startDate && !startDate.closest(".d-none") ? startDate.value : "",
+            end_date: endDate && !endDate.closest(".d-none") ? endDate.value : "",
+            source: source && dataSection && !dataSection.classList.contains("d-none") ? source.value : "",
+            group_by: groupBy && dataSection && !dataSection.classList.contains("d-none") ? groupBy.value : "",
+            category: category && dataSection && !dataSection.classList.contains("d-none") ? category.value : "",
+            value_type:
+              valueType && dataSection && !dataSection.classList.contains("d-none")
+                ? valueType.value
+                : tableValueType && tableSection && !tableSection.classList.contains("d-none")
+                  ? tableValueType.value
+                  : "",
+            chart_type: chartType && chartSection && !chartSection.classList.contains("d-none") ? chartType.value : "",
+            limit:
+              limit && chartSection && !chartSection.classList.contains("d-none")
+                ? limit.value
+                : tableLimit && tableSection && !tableSection.classList.contains("d-none")
+                  ? tableLimit.value
+                  : "",
+            show_legend: legend && chartSection && !chartSection.classList.contains("d-none") ? legend.checked : false
+          });
+        });
+        widgets = updated;
+        widgetsInput.value = JSON.stringify(widgets);
+      }
+
+      function addWidget(typeKey) {
+        var label = widgetTypes[typeKey] || "Widget";
+        var id = "w_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        var metric = (metricsByType[typeKey] && metricsByType[typeKey][0]) || "";
+        var size = typeKey === "grafico" ? "half" : "";
+        var period = (typeKey === "grafico" || typeKey === "kpi") ? "today" : "";
+        if (typeKey === "tabela") {
+          period = "last30";
+        }
+        var limit = typeKey === "tabela" ? 5 : 10;
+        widgets.push({
+          id: id,
+          type: typeKey,
+          title: label,
+          metric: metric,
+          size: size,
+          period: period,
+          plant: "",
+          start_date: "",
+          end_date: "",
+          source: "entregas",
+          group_by: "produto",
+          category: "semana",
+          value_type: "quantidade",
+          chart_type: "line",
+          limit: limit,
+          show_legend: false
+        });
+        renderWidgets();
+      }
+
+      document.querySelectorAll("[data-widget-add]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          var typeKey = button.getAttribute("data-widget-add");
+          addWidget(typeKey);
+        });
+      });
+
+      widgetList.addEventListener("input", function (event) {
+        if (event.target.closest("[data-widget-item]")) {
+          syncFromDom();
+        }
+      });
+
+      widgetList.addEventListener("change", function (event) {
+        if (event.target.closest("[data-widget-item]")) {
+          syncFromDom();
+        }
+      });
+
+      widgetList.addEventListener("click", function (event) {
+        var removeButton = event.target.closest("[data-widget-remove]");
+        if (!removeButton) {
+          return;
+        }
+        var item = removeButton.closest("[data-widget-item]");
+        if (!item) {
+          return;
+        }
+        item.remove();
+        syncFromDom();
+        emptyState.classList.toggle("d-none", widgetList.children.length > 0);
+      });
+
+      widgetList.addEventListener("dragstart", function (event) {
+        var card = event.target.closest("[data-widget-card]");
+        if (!card) {
+          return;
+        }
+        var item = card.closest("[data-widget-item]");
+        if (!item) {
+          return;
+        }
+        dragId = item.dataset.widgetId;
+        card.classList.add("widget-dragging");
+        event.dataTransfer.effectAllowed = "move";
+      });
+
+      widgetList.addEventListener("dragover", function (event) {
+        var item = event.target.closest("[data-widget-item]");
+        if (!item || !dragId || item.dataset.widgetId === dragId) {
+          return;
+        }
+        event.preventDefault();
+        widgetList.querySelectorAll(".widget-drop-target").forEach(function (el) {
+          if (el !== item) {
+            el.classList.remove("widget-drop-target");
+          }
+        });
+        var rect = item.getBoundingClientRect();
+        var after = (event.clientY - rect.top) > rect.height / 2;
+        var dragged = widgetList.querySelector('[data-widget-id="' + dragId + '"]');
+        if (!dragged) {
+          return;
+        }
+        item.classList.add("widget-drop-target");
+        widgetList.insertBefore(dragged, after ? item.nextSibling : item);
+      });
+
+      widgetList.addEventListener("drop", function (event) {
+        event.preventDefault();
+        widgetList.querySelectorAll(".widget-drop-target").forEach(function (el) {
+          el.classList.remove("widget-drop-target");
+        });
+        syncFromDom();
+      });
+
+      widgetList.addEventListener("dragend", function () {
+        widgetList.querySelectorAll(".widget-drop-target").forEach(function (el) {
+          el.classList.remove("widget-drop-target");
+        });
+        widgetList.querySelectorAll(".widget-dragging").forEach(function (el) {
+          el.classList.remove("widget-dragging");
+        });
+        dragId = null;
+        syncFromDom();
+      });
+
+      renderWidgets();
+    })();
+  </script>
+{% endblock %}

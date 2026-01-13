@@ -1,0 +1,72 @@
+<tr id="familia-row-{{ familia.pk }}">
+  <td>{{ familia.nome|default:"-" }}</td>
+  <td class="js-familia-ativo">
+    <span class="badge {% if familia.ativo %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+      {{ familia.ativo|yesno:"Ativo,Inativo" }}
+    </span>
+  </td>
+  <td class="text-end">
+    {% if perms.produtos.change_familiaproduto %}
+      <button
+        class="btn btn-outline-primary btn-icon"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#editModal-{{ familia.pk }}"
+        title="Editar"
+        aria-label="Editar"
+      >
+        <i class="bi bi-pencil"></i>
+      </button>
+      <form
+        class="d-inline js-familia-toggle"
+        id="familia-toggle-{{ familia.pk }}"
+        method="post"
+        action="{% url 'produtos:familias_toggle' familia.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn {% if familia.ativo %}btn-outline-danger{% else %}btn-outline-success{% endif %} btn-icon js-familia-toggle-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#familiaToggleModal"
+        data-form-id="familia-toggle-{{ familia.pk }}"
+        data-nome="{{ familia.nome|escapejs }}"
+        data-ativo="{{ familia.ativo|yesno:'1,0' }}"
+        title="{% if familia.ativo %}Desativar{% else %}Ativar{% endif %}"
+        aria-label="{% if familia.ativo %}Desativar{% else %}Ativar{% endif %}"
+      >
+        {% if familia.ativo %}
+          <i class="bi bi-person-x"></i>
+        {% else %}
+          <i class="bi bi-person-check"></i>
+        {% endif %}
+      </button>
+    {% endif %}
+    {% if perms.produtos.delete_familiaproduto %}
+      <form
+        class="d-inline js-familia-delete"
+        id="familia-delete-{{ familia.pk }}"
+        method="post"
+        action="{% url 'produtos:familias_delete' familia.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn btn-outline-danger btn-icon js-familia-delete-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#familiaDeleteModal"
+        data-form-id="familia-delete-{{ familia.pk }}"
+        data-nome="{{ familia.nome|escapejs }}"
+        title="Excluir"
+        aria-label="Excluir"
+      >
+        <i class="bi bi-trash"></i>
+      </button>
+    {% endif %}
+    {% if not perms.produtos.change_familiaproduto and not perms.produtos.delete_familiaproduto %}
+      <span class="text-muted">-</span>
+    {% endif %}
+  </td>
+</tr>

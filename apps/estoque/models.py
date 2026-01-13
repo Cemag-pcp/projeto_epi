@@ -59,6 +59,11 @@ class MovimentacaoEstoque(TenantModel):
                 ActionLog.log(self.company, self, "entrada", {"quantidade": str(self.quantidade)})
                 return
             if self.tipo == self.SAIDA:
+                if origem.deposito.bloquear_movimento_negativo:
+                    if origem.quantidade - self.quantidade < 0:
+                        raise ValidationError(
+                            {"quantidade": "Movimento negativo bloqueado para o deposito informado."}
+                        )
                 origem.quantidade -= self.quantidade
                 origem.save(update_fields=["quantidade"])
                 ActionLog.log(self.company, self, "saida", {"quantidade": str(self.quantidade)})
@@ -70,6 +75,11 @@ class MovimentacaoEstoque(TenantModel):
                     deposito=self.deposito_destino,
                     defaults={"quantidade": 0},
                 )
+                if origem.deposito.bloquear_movimento_negativo:
+                    if origem.quantidade - self.quantidade < 0:
+                        raise ValidationError(
+                            {"quantidade": "Movimento negativo bloqueado para o deposito informado."}
+                        )
                 origem.quantidade -= self.quantidade
                 destino.quantidade += self.quantidade
                 origem.save(update_fields=["quantidade"])

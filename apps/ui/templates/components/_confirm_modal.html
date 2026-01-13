@@ -1,0 +1,19 @@
+<div class="modal fade" id="{{ id }}" tabindex="-1" aria-labelledby="{{ title_id }}" aria-hidden="true">
+  <div class="modal-dialog {{ size|default:"" }}">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="{{ title_id }}">{{ title|default:"Confirmar" }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        {{ body|default:"" }}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn {{ confirm_class|default:"btn-primary" }}" id="{{ confirm_button_id }}">
+          {{ confirm_text|default:"Confirmar" }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,167 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Extrato de produto{% endblock %}
+
+{% block content %}
+  {% include "components/_alerts.html" %}
+  {% include "components/_page_header.html" with title=title subtitle=subtitle %}
+
+  {% if filters %}
+    <div data-extrato-filters>
+      {% include "components/_filters.html" with filters=filters %}
+    </div>
+  {% endif %}
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th scope="col">Produto</th>
+          <th scope="col">Deposito</th>
+          <th scope="col">Tipo</th>
+          <th scope="col">Quantidade</th>
+          <th scope="col">Saldo anterior</th>
+          <th scope="col">Saldo atual</th>
+          <th scope="col">Data</th>
+          <th scope="col">Usuario</th>
+          <th scope="col">Destino</th>
+          <th scope="col">Observacao</th>
+        </tr>
+      </thead>
+      <tbody data-extrato-rows>
+        {% for item in extrato_items %}
+          <tr>
+            <td>{{ item.produto|default:"-" }}</td>
+            <td>{{ item.deposito|default:"-" }}</td>
+            <td>
+              <span class="badge {% if item.mov.tipo == 'entrada' %}text-bg-success{% elif item.mov.tipo == 'saida' %}text-bg-danger{% else %}text-bg-warning text-dark{% endif %}">
+                {{ item.tipo }}
+              </span>
+            </td>
+            <td{% if item.mov.quantidade < 0 %} class="text-danger"{% endif %}>{{ item.mov.quantidade }}</td>
+            <td{% if item.saldo_anterior < 0 %} class="text-danger"{% endif %}>{{ item.saldo_anterior }}</td>
+            <td{% if item.saldo_atual < 0 %} class="text-danger"{% endif %}>{{ item.saldo_atual }}</td>
+            <td>{{ item.data|date:"d/m/Y H:i" }}</td>
+            <td>{{ item.usuario|default:"-" }}</td>
+            <td>{{ item.deposito_destino|default:"-" }}</td>
+            <td>{{ item.observacao|default:"-" }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="10" class="text-muted text-center py-4">Sem movimentacoes</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div data-extrato-pagination>
+    {% include "components/_pagination.html" with page_obj=page_obj %}
+  </div>
+
+  <script>
+    (function () {
+      function updateExtratoTable(html) {
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(html, "text/html");
+        var newRows = doc.querySelector("[data-extrato-rows]");
+        var newPagination = doc.querySelector("[data-extrato-pagination]");
+        var currentRows = document.querySelector("[data-extrato-rows]");
+        var currentPagination = document.querySelector("[data-extrato-pagination]");
+        if (newRows && currentRows) {
+          currentRows.innerHTML = newRows.innerHTML;
+        }
+        if (newPagination && currentPagination) {
+          currentPagination.innerHTML = newPagination.innerHTML;
+          bindExtratoPagination();
+        }
+      }
+
+      function bindExtratoFilters() {
+        var filtersContainer = document.querySelector("[data-extrato-filters]");
+        if (!filtersContainer) {
+          return;
+        }
+        var form = filtersContainer.querySelector("form");
+        var clearLink = filtersContainer.querySelector("a.btn-link");
+        if (!form) {
+          return;
+        }
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          var formData = new FormData(form);
+          var params = new URLSearchParams(formData);
+          var url = "?" + params.toString();
+          fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+            .then(function (response) {
+              return response.text();
+            })
+            .then(function (html) {
+              updateExtratoTable(html);
+            })
+            .catch(function () {
+              form.submit();
+            });
+        });
+
+        if (clearLink) {
+          clearLink.addEventListener("click", function (event) {
+            event.preventDefault();
+            if (form.reset) {
+              form.reset();
+            }
+            fetch(clearLink.getAttribute("href") || "?", {
+              headers: { "X-Requested-With": "XMLHttpRequest" },
+            })
+              .then(function (response) {
+                return response.text();
+              })
+              .then(function (html) {
+                updateExtratoTable(html);
+              })
+              .catch(function () {
+                window.location.href = clearLink.getAttribute("href") || "?";
+              });
+          });
+        }
+      }
+
+      function bindExtratoPagination() {
+        var pagination = document.querySelector("[data-extrato-pagination]");
+        if (!pagination) {
+          return;
+        }
+        var links = pagination.querySelectorAll("a.page-link");
+        links.forEach(function (link) {
+          link.addEventListener("click", function (event) {
+            event.preventDefault();
+            var url = link.getAttribute("href");
+            if (!url) {
+              return;
+            }
+            fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+              .then(function (response) {
+                return response.text();
+              })
+              .then(function (html) {
+                updateExtratoTable(html);
+              })
+              .catch(function () {
+                window.location.href = url;
+              });
+          });
+        });
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", function () {
+          bindExtratoFilters();
+          bindExtratoPagination();
+        });
+      } else {
+        bindExtratoFilters();
+        bindExtratoPagination();
+      }
+    })();
+  </script>
+{% endblock %}

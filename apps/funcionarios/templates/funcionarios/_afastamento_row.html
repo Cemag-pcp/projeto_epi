@@ -11,8 +11,19 @@
     {% endif %}
   </td>
   <td class="text-end">
-    <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#afastamentoEditModal-{{ afastamento.pk }}">
-      Editar
-    </button>
+    {% if perms.funcionarios.change_afastamento %}
+      <button
+        class="btn btn-outline-primary btn-icon"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#afastamentoEditModal-{{ afastamento.pk }}"
+        title="Editar"
+        aria-label="Editar"
+      >
+        <i class="bi bi-pencil"></i>
+      </button>
+    {% else %}
+      <span class="text-muted">-</span>
+    {% endif %}
   </td>
 </tr>

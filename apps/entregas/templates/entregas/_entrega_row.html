@@ -1,0 +1,84 @@
+<tr id="entrega-row-{{ entrega.pk }}">
+  <td>Entrega #{{ entrega.pk }}</td>
+  <td>{{ entrega.funcionario }}</td>
+  <td>{{ entrega.created_at|date:"d/m/Y H:i" }}</td>
+  <td>
+    {% if entrega.entregue_em %}
+      {{ entrega.entregue_em|date:"d/m/Y H:i" }}
+    {% else %}
+      -
+    {% endif %}
+  </td>
+  <td>{{ entrega.created_by|default:"-" }}</td>
+  <td>{{ entrega.funcionario.planta|default:"-" }}</td>
+  <td>
+    {% if entrega.status == "cancelada" %}
+      <span class="badge text-bg-danger">Cancelada</span>
+    {% elif entrega.status == "aguardando" %}
+      <span class="badge bg-warning text-dark">Aguardando</span>
+    {% else %}
+      <span class="badge bg-success">Entregue</span>
+    {% endif %}
+  </td>
+  <td class="text-end">
+    {% if perms.entregas.view_entrega %}
+      <button
+        class="btn btn-outline-secondary btn-icon js-entrega-detail-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#entregaDetailModal"
+        data-detail-url="{% url 'entregas:detail' entrega.pk %}"
+        title="Detalhes"
+        aria-label="Detalhes"
+      >
+        <i class="bi bi-eye"></i>
+      </button>
+    {% endif %}
+    {% if entrega.status == "aguardando" and perms.entregas.add_entrega %}
+      <button
+        class="btn btn-outline-primary btn-icon js-entrega-atender-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#createModal"
+        data-itens-url="{% url 'entregas:itens' entrega.pk %}"
+        data-entregar-url="{% url 'entregas:entregar' entrega.pk %}"
+        title="Entregar"
+        aria-label="Entregar"
+      >
+        <i class="bi bi-box-arrow-up-right"></i>
+      </button>
+    {% endif %}
+    {% if entrega.status == "cancelada" and entrega.motivo_cancelamento %}
+      <button
+        class="btn btn-outline-info btn-icon js-entrega-motivo-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#entregaMotivoModal"
+        data-motivo="{{ entrega.motivo_cancelamento|escapejs }}"
+        title="Ver motivo"
+        aria-label="Ver motivo"
+      >
+        <i class="bi bi-chat-left-text"></i>
+      </button>
+    {% endif %}
+    {% if perms.entregas.delete_entrega and entrega.status != "cancelada" %}
+      <form class="d-inline js-entrega-cancel" id="entrega-cancel-{{ entrega.pk }}" action="{% url 'entregas:cancel' entrega.pk %}" method="post">
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn btn-outline-danger btn-icon js-entrega-cancel-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#entregaCancelModal"
+        data-form-id="entrega-cancel-{{ entrega.pk }}"
+        data-nome="{{ entrega.produto|escapejs }} - {{ entrega.funcionario|escapejs }}"
+        title="Cancelar"
+        aria-label="Cancelar"
+      >
+        <i class="bi bi-x-circle"></i>
+      </button>
+    {% else %}
+      <span class="text-muted">-</span>
+    {% endif %}
+  </td>
+</tr>

@@ -1,0 +1,374 @@
+<form
+  method="post"
+  id="{{ form_id|default:'' }}"
+  {% if form_action %}action="{{ form_action }}"{% endif %}
+  {% if form.is_multipart %}enctype="multipart/form-data"{% endif %}
+>
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger py-2">
+      {% for error in form.non_field_errors %}
+        <div>{{ error }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="d-flex flex-column gap-3">
+    <div class="card">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-12 col-lg-3">
+            <div class="funcionario-avatar-card border rounded-4 h-100 position-relative overflow-hidden" data-avatar-has-current="{% if form.instance and form.instance.foto %}1{% else %}0{% endif %}">
+              <img
+                class="funcionario-avatar-img {% if not form.instance or not form.instance.foto %}d-none{% endif %}"
+                {% if form.instance and form.instance.foto %}
+                  src="{{ form.instance.foto.url }}"
+                {% endif %}
+                alt="Avatar do funcionario"
+                data-avatar-preview
+              >
+              <div class="funcionario-avatar-placeholder {% if form.instance and form.instance.foto %}d-none{% endif %}" data-avatar-placeholder>
+                <i class="bi bi-person-fill"></i>
+              </div>
+              <div class="funcionario-avatar-overlay">
+                <div class="text-white small fw-semibold">Foto do funcionario</div>
+                {% with cam_id=accordion_id|default:"funcionarioForm" %}
+                  <div class="d-flex flex-wrap gap-2 mt-2">
+                    <button class="btn btn-light btn-sm avatar-icon-btn" type="button" data-avatar-action="upload" title="Escolher foto" aria-label="Escolher foto">
+                      <i class="bi bi-folder2-open"></i>
+                    </button>
+                    <button
+                      class="btn btn-outline-light btn-sm avatar-icon-btn"
+                      type="button"
+                      data-avatar-action="camera"
+                      data-avatar-modal="#{{ cam_id }}-camera"
+                      title="Tirar foto"
+                      aria-label="Tirar foto"
+                    >
+                      <i class="bi bi-camera"></i>
+                    </button>
+                    <button
+                      class="btn btn-light btn-sm avatar-icon-btn avatar-remove-btn"
+                      type="button"
+                      data-avatar-action="clear"
+                      title="Remover foto"
+                      aria-label="Remover foto"
+                    >
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                {% endwith %}
+                <div class="avatar-file-native">
+                  {{ form.foto }}
+                </div>
+                <div class="small text-white-50 mt-2" data-avatar-status>
+                  {% if form.instance and form.instance.foto %}
+                    Foto atual definida
+                  {% else %}
+                    Nenhuma foto selecionada
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-lg-9">
+            <div class="row g-3">
+              {% include "funcionarios/_form_field.html" with field=form.nome col_class="col-12" %}
+              {% include "funcionarios/_form_field.html" with field=form.registro col_class="col-12 col-md-4" %}
+              {% include "funcionarios/_form_field.html" with field=form.cpf col_class="col-12 col-md-4" %}
+              {% include "funcionarios/_form_field.html" with field=form.tipo col_class="col-12 col-md-4" %}
+              {% include "funcionarios/_form_field.html" with field=form.rg col_class="col-12 col-md-4" %}
+              {% include "funcionarios/_form_field.html" with field=form.pis col_class="col-12 col-md-4" %}
+              {% include "funcionarios/_form_field.html" with field=form.data_admissao col_class="col-12 col-md-4" %}
+              {% include "funcionarios/_form_field.html" with field=form.data_nascimento col_class="col-12 col-md-4" %}
+              {% include "funcionarios/_form_field.html" with field=form.email col_class="col-12 col-md-8" %}
+              {% include "funcionarios/_form_field.html" with field=form.telefone col_class="col-12 col-md-4" %}
+              {% include "funcionarios/_form_field.html" with field=form.identificador col_class="col-12 col-md-4" %}
+              {% include "funcionarios/_form_field.html" with field=form.categoria_cnh col_class="col-12 col-md-4" %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-12 col-lg-6">
+            <div class="row g-3">
+              {% include "funcionarios/_form_field.html" with field=form.lider col_class="col-12" %}
+              {% include "funcionarios/_form_field.html" with field=form.turno col_class="col-12" %}
+              {% include "funcionarios/_form_field.html" with field=form.cargo col_class="col-12" %}
+              {% include "funcionarios/_form_field.html" with field=form.ghe col_class="col-12" %}
+              {% include "funcionarios/_form_field.html" with field=form.inicio_ferias col_class="col-12 col-md-6" %}
+              {% include "funcionarios/_form_field.html" with field=form.fim_ferias col_class="col-12 col-md-6" %}
+              {% include "funcionarios/_form_field.html" with field=form.ativo col_class="col-12 col-md-6" %}
+              {% include "funcionarios/_form_field.html" with field=form.temporario col_class="col-12 col-md-6" %}
+              
+            </div>
+          </div>
+          <div class="col-12 col-lg-6">
+            <div class="row g-3">
+              {% include "funcionarios/_form_field.html" with field=form.gestor col_class="col-12" %}
+              {% include "funcionarios/_form_field.html" with field=form.setor col_class="col-12" %}
+              {% include "funcionarios/_form_field.html" with field=form.centro_custo col_class="col-12" %}
+              {% include "funcionarios/_form_field.html" with field=form.planta col_class="col-12" %}
+              {% include "funcionarios/_form_field.html" with field=form.data_demissao col_class="col-12 col-md-6" %}
+              {% include "funcionarios/_form_field.html" with field=form.afastado col_class="col-12 col-md-6" %}
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if form.validacao_recebimento %}
+      <div class="card">
+        <div class="card-body">
+          <div class="row g-3">
+            {% include "funcionarios/_form_field.html" with field=form.validacao_recebimento col_class="col-12 col-md-4" %}
+            {% include "funcionarios/_form_field.html" with field=form.senha_recebimento col_class="col-12 col-md-4" %}
+            {% include "funcionarios/_form_field.html" with field=form.senha_recebimento_confirm col_class="col-12 col-md-4" %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if not form_hide_actions %}
+    <div class="d-flex gap-2 justify-content-end mt-3">
+      {% if form_cancel_url %}
+        <a class="btn btn-outline-secondary" href="{{ form_cancel_url }}">Cancelar</a>
+      {% else %}
+        <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+      {% endif %}
+      <button class="btn btn-primary" type="submit">Salvar</button>
+    </div>
+  {% endif %}
+</form>
+
+<script>
+  (function () {
+    if (window._clarusAvatarPreviewBound) {
+      return;
+    }
+    window._clarusAvatarPreviewBound = true;
+    document.addEventListener("click", function (event) {
+      var button = event.target.closest("[data-avatar-action]");
+      if (!button) {
+        return;
+      }
+      event.preventDefault();
+      var card = button.closest(".funcionario-avatar-card");
+      if (!card) {
+        return;
+      }
+      var input = card.querySelector("input[type='file'][data-avatar-input]");
+      if (!input) {
+        return;
+      }
+      var action = button.getAttribute("data-avatar-action");
+      if (action === "clear") {
+        var clearInput = card.querySelector("input[type='checkbox'][name$='-clear']");
+        if (clearInput) {
+          clearInput.checked = true;
+        }
+        input.value = "";
+        var preview = card.querySelector("[data-avatar-preview]");
+        var placeholder = card.querySelector("[data-avatar-placeholder]");
+        if (preview) {
+          preview.classList.add("d-none");
+        }
+        if (placeholder) {
+          placeholder.classList.remove("d-none");
+        }
+        var status = card.querySelector("[data-avatar-status]");
+        if (status) {
+          var hasCurrent = card.getAttribute("data-avatar-has-current") === "1";
+          status.textContent = hasCurrent ? "Foto sera removida ao salvar" : "Nenhuma foto selecionada";
+        }
+        return;
+      }
+      if (action === "camera") {
+        input.setAttribute("accept", "image/*");
+        var modalSelector = button.getAttribute("data-avatar-modal");
+        var modalEl = modalSelector ? document.querySelector(modalSelector) : null;
+        if (modalEl && window.bootstrap) {
+          var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+          modal.show();
+        }
+        return;
+      } else {
+        input.removeAttribute("capture");
+        input.setAttribute("accept", "image/*");
+      }
+      input.click();
+    });
+
+    document.addEventListener("change", function (event) {
+      var input = event.target;
+      if (!input.matches("input[type='file'][data-avatar-input]")) {
+        return;
+      }
+      if (!input.files || !input.files[0]) {
+        return;
+      }
+      var file = input.files[0];
+      if (!file.type || !file.type.startsWith("image/")) {
+        return;
+      }
+      var card = input.closest(".funcionario-avatar-card");
+      if (!card) {
+        return;
+      }
+      var preview = card.querySelector("[data-avatar-preview]");
+      var placeholder = card.querySelector("[data-avatar-placeholder]");
+      if (!preview || !placeholder) {
+        return;
+      }
+      var status = card.querySelector("[data-avatar-status]");
+      var clearInput = card.querySelector("input[type='checkbox'][name$='-clear']");
+      if (clearInput) {
+        clearInput.checked = false;
+      }
+      var reader = new FileReader();
+      reader.onload = function (evt) {
+        preview.src = evt.target.result;
+        preview.classList.remove("d-none");
+        placeholder.classList.add("d-none");
+        if (status) {
+          status.textContent = "Arquivo selecionado: " + file.name;
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    document.addEventListener("shown.bs.modal", function (event) {
+      var modalEl = event.target;
+      if (!modalEl || !modalEl.matches("[data-camera-modal]")) {
+        return;
+      }
+      modalEl.style.zIndex = "2005";
+      var backdrops = document.querySelectorAll(".modal-backdrop");
+      var backdrop = backdrops[backdrops.length - 1];
+      if (backdrop) {
+        backdrop.style.zIndex = "2000";
+      }
+      var video = modalEl.querySelector("video");
+      if (!video || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return;
+      }
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function (stream) {
+          modalEl._cameraStream = stream;
+          video.srcObject = stream;
+          video.play();
+        })
+        .catch(function () {});
+    });
+
+    document.addEventListener("hidden.bs.modal", function (event) {
+      var modalEl = event.target;
+      if (!modalEl || !modalEl.matches("[data-camera-modal]")) {
+        return;
+      }
+      modalEl.style.zIndex = "";
+      if (modalEl._cameraStream) {
+        modalEl._cameraStream.getTracks().forEach(function (track) { track.stop(); });
+        modalEl._cameraStream = null;
+      }
+      var video = modalEl.querySelector("video");
+      if (video) {
+        video.srcObject = null;
+      }
+    });
+
+    document.addEventListener("click", function (event) {
+      var captureBtn = event.target.closest("[data-camera-capture]");
+      if (!captureBtn) {
+        return;
+      }
+      event.preventDefault();
+      var modalEl = captureBtn.closest("[data-camera-modal]");
+      if (!modalEl) {
+        return;
+      }
+      var video = modalEl.querySelector("video");
+      var canvas = modalEl.querySelector("canvas");
+      if (!video || !canvas) {
+        return;
+      }
+      var width = video.videoWidth || 640;
+      var height = video.videoHeight || 480;
+      canvas.width = width;
+      canvas.height = height;
+      var ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0, width, height);
+      canvas.toBlob(function (blob) {
+        if (!blob) {
+          return;
+        }
+        var file = new File([blob], "foto.jpg", { type: "image/jpeg" });
+        var formId = modalEl.getAttribute("data-avatar-form-id");
+        var form = formId ? document.getElementById(formId) : null;
+        if (!form) {
+          return;
+        }
+        var input = form.querySelector("input[type='file'][data-avatar-input]");
+        if (!input) {
+          return;
+        }
+        var dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        input.files = dataTransfer.files;
+        var card = input.closest(".funcionario-avatar-card");
+        if (card) {
+          var preview = card.querySelector("[data-avatar-preview]");
+          var placeholder = card.querySelector("[data-avatar-placeholder]");
+          var status = card.querySelector("[data-avatar-status]");
+          var reader = new FileReader();
+          reader.onload = function (evt) {
+            if (preview) {
+              preview.src = evt.target.result;
+              preview.classList.remove("d-none");
+            }
+            if (placeholder) {
+              placeholder.classList.add("d-none");
+            }
+            if (status) {
+              status.textContent = "Arquivo selecionado: " + file.name;
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+        if (window.bootstrap) {
+          bootstrap.Modal.getInstance(modalEl).hide();
+        }
+      }, "image/jpeg", 0.9);
+    });
+  })();
+</script>
+
+{% with cam_id=accordion_id|default:"funcionarioForm" %}
+  <div class="modal fade" id="{{ cam_id }}-camera" tabindex="-1" aria-hidden="true" data-camera-modal data-avatar-form-id="{{ form_id|default:'' }}">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Tirar foto</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="ratio ratio-4x3 bg-dark rounded-3 overflow-hidden">
+            <video class="w-100 h-100" autoplay playsinline></video>
+          </div>
+          <canvas class="d-none"></canvas>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" data-camera-capture>Capturar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endwith %}

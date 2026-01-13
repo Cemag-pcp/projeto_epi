@@ -7,6 +7,11 @@ class Setor(TenantModel):
     nome = models.CharField(max_length=150)
     descricao = models.TextField(blank=True)
     ativo = models.BooleanField(default=True)
+    responsaveis = models.ManyToManyField(
+        "funcionarios.Funcionario",
+        related_name="setores_responsaveis",
+        blank=True,
+    )
 
     def __str__(self):
         return self.nome

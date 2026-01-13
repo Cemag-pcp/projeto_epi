@@ -1,0 +1,15 @@
+{% if plantas %}
+  <form method="post" action="{% url 'ui-planta-select' %}" class="d-flex align-items-center">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next_url }}">
+    <select name="planta_id" class="form-select form-select-sm" style="min-width: 150px;" onchange="this.form.submit()">
+      {% for planta in plantas %}
+        <option value="{{ planta.pk }}"{% if planta.pk == selected_id %} selected{% endif %}>{{ planta.nome }}</option>
+      {% endfor %}
+    </select>
+  </form>
+{% else %}
+  <span class="text-muted small d-none d-md-inline">
+    {% if request.tenant %}{{ request.tenant.name }}{% else %}Tenant{% endif %}
+  </span>
+{% endif %}

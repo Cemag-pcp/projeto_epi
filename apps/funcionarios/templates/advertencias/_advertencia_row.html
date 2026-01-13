@@ -1,0 +1,22 @@
+<tr id="advertencia-row-{{ advertencia.pk }}">
+  <td>{{ advertencia.funcionario }}</td>
+  <td>{{ advertencia.tipo_label }}</td>
+  <td>{{ advertencia.data|date:"d/m/Y" }}</td>
+  <td>{{ advertencia.descricao|default:"-" }}</td>
+  <td class="text-end">
+    {% if perms.funcionarios.change_advertencia %}
+      <button
+        class="btn btn-outline-primary btn-icon"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#editModal-{{ advertencia.pk }}"
+        title="Editar"
+        aria-label="Editar"
+      >
+        <i class="bi bi-pencil"></i>
+      </button>
+    {% else %}
+      <span class="text-muted">-</span>
+    {% endif %}
+  </td>
+</tr>

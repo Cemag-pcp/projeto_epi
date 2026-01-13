@@ -1,0 +1,19 @@
+{% load ui_extras %}
+
+<tr id="empresa-row-{{ empresa.pk }}">
+  {% for field in row_fields %}
+    <td>{{ empresa|get_attr:field }}</td>
+  {% endfor %}
+  <td class="text-end">
+    <button
+      class="btn btn-outline-primary btn-icon"
+      type="button"
+      data-bs-toggle="modal"
+      data-bs-target="#editModal-{{ empresa.pk }}"
+      title="Editar"
+      aria-label="Editar"
+    >
+      <i class="bi bi-pencil"></i>
+    </button>
+  </td>
+</tr>

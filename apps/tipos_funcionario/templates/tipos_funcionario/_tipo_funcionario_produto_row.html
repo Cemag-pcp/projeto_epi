@@ -1,0 +1,39 @@
+<tr id="tipo-produto-row-{{ vinculo.pk }}">
+  <td>{{ vinculo.tipo_funcionario }}</td>
+  <td>{{ vinculo.produto_fornecedor.produto }} | CA {{ vinculo.produto_fornecedor.ca|default:"-" }}</td>
+  <td>{{ vinculo.produto_fornecedor.fornecedor|default:"-" }}</td>
+  <td class="text-end">
+    {% if perms.tipos_funcionario.change_tipofuncionarioproduto %}
+      <button
+        class="btn btn-outline-primary btn-icon"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#editModal-{{ vinculo.pk }}"
+        title="Editar"
+        aria-label="Editar"
+      >
+        <i class="bi bi-pencil"></i>
+      </button>
+    {% endif %}
+    {% if perms.tipos_funcionario.delete_tipofuncionarioproduto %}
+      <form class="d-inline js-tipo-produto-delete" id="tipo-produto-delete-{{ vinculo.pk }}" action="{% url 'tipos_funcionario:produtos_delete' vinculo.pk %}" method="post">
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn btn-outline-danger btn-icon js-tipo-produto-delete-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#tipoProdutoDeleteModal"
+        data-form-id="tipo-produto-delete-{{ vinculo.pk }}"
+        data-nome="{{ vinculo.tipo_funcionario|escapejs }} - {{ vinculo.produto_fornecedor.produto|escapejs }}"
+        title="Excluir"
+        aria-label="Excluir"
+      >
+        <i class="bi bi-trash"></i>
+      </button>
+    {% endif %}
+    {% if not perms.tipos_funcionario.change_tipofuncionarioproduto and not perms.tipos_funcionario.delete_tipofuncionarioproduto %}
+      <span class="text-muted">-</span>
+    {% endif %}
+  </td>
+</tr>

@@ -1,0 +1,111 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Avaliacao da turma{% endblock %}
+
+{% block content %}
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+      <h1 class="h4 mb-1">Avaliacao da turma</h1>
+      <p class="text-muted mb-0">{{ turma.treinamento }}</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary btn-sm" href="{% url 'treinamentos:turmas_list' %}">Voltar</a>
+      <a class="btn btn-outline-primary btn-sm" href="{% url 'treinamentos:turmas_presenca' turma.pk %}">Presenca</a>
+    </div>
+  </div>
+
+  {% if aulas %}
+    <div class="mb-3">
+      <div class="text-muted small">Datas das aulas:</div>
+      <div class="d-flex flex-wrap gap-2">
+        {% for aula in aulas %}
+          <span class="badge bg-light text-dark">{{ aula.data|date:"d/m/Y" }}</span>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    {% if turma.finalizada %}
+      <div class="alert alert-info">Turma finalizada. Avaliacao somente para consulta.</div>
+    {% endif %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Funcionario</th>
+            <th>Presenca</th>
+            <th>Resultado</th>
+            <th>Nota</th>
+            <th>Observacao geral</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in participacoes %}
+            <tr>
+              <td>
+                {{ item.funcionario }}
+                <input type="hidden" name="participante_id" value="{{ item.funcionario.id }}">
+              </td>
+              <td>
+                {% if turma.qtd_aulas %}
+                  {{ item.aulas_presentes|default_if_none:0|floatformat:0 }} / {{ turma.qtd_aulas }}
+                {% else %}
+                  {{ item.aulas_presentes|default_if_none:0|floatformat:0 }}
+                {% endif %}
+              </td>
+              <td>
+                <select class="form-select" name="resultado_{{ item.funcionario.id }}" {% if turma.finalizada %}disabled{% endif %}>
+                  <option value="">Selecione</option>
+                  <option value="aprovado" {% if item.resultado == "aprovado" %}selected{% endif %}>Aprovado</option>
+                  <option value="reprovado" {% if item.resultado == "reprovado" %}selected{% endif %}>Reprovado</option>
+                </select>
+              </td>
+              <td style="max-width: 120px;">
+                <input class="form-control" type="number" step="0.1" min="0" max="10" name="nota_{{ item.funcionario.id }}" value="{{ item.nota|default_if_none:'' }}" {% if turma.finalizada %}disabled{% endif %}>
+              </td>
+              <td>
+                <input class="form-control" type="text" name="avaliacao_{{ item.funcionario.id }}" placeholder="Observacao geral" value="{{ item.avaliacao|default:'' }}" {% if turma.finalizada %}disabled{% endif %}>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="text-muted text-center py-4">Nenhum participante encontrado.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if not turma.finalizada %}
+      <div class="d-flex justify-content-end mt-3">
+        <button class="btn btn-primary" type="submit">Salvar</button>
+      </div>
+    {% endif %}
+  </form>
+  <script>
+    (function () {
+      function updateRowRequirements(row) {
+        var presencaText = row.querySelector("td:nth-child(2)");
+        var resultadoField = row.querySelector("select[name^='resultado_']");
+        if (!presencaText || !resultadoField) {
+          return;
+        }
+        if (resultadoField.disabled) {
+          return;
+        }
+        var value = presencaText.textContent || "";
+        var aulasPresentes = parseInt(value, 10);
+        var presente = !Number.isNaN(aulasPresentes) && aulasPresentes > 0;
+        resultadoField.required = presente;
+        if (!presente) {
+          resultadoField.value = "";
+        }
+      }
+
+      document.querySelectorAll("tbody tr").forEach(function (row) {
+        updateRowRequirements(row);
+      });
+    })();
+  </script>
+{% endblock %}

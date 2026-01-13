@@ -8,6 +8,7 @@ class Company(TenantMixin):
     paid_until = models.DateField(null=True, blank=True)
     on_trial = models.BooleanField(default=True)
     created_on = models.DateField(default=timezone.now)
+    estoque_enabled = models.BooleanField(default=True)
 
     auto_create_schema = True
 

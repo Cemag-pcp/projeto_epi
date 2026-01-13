@@ -13,67 +13,881 @@
     <table class="table table-hover align-middle">
       <thead class="table-light">
         <tr>
+          <th>Registro</th>
           <th>Nome</th>
-          <th>Cargo</th>
+          <th>CPF</th>
           <th>Setor</th>
-          <th>Tipo</th>
+          <th>Cargo</th>
+          <th>Planta</th>
+          <th>Centro de Custo</th>
+          <th>GHE</th>
           <th>Ativo</th>
           <th class="text-end">Acoes</th>
         </tr>
       </thead>
-      <tbody>
-        {% for object in object_list %}
-          <tr>
-            <td>{{ object.nome }}</td>
-            <td>{{ object.cargo }}</td>
-            <td>{{ object.setor }}</td>
-            <td>{{ object.tipo }}</td>
-            <td>{{ object.ativo }}</td>
-            <td class="text-end">
-              <a class="btn btn-sm btn-outline-secondary" href="{% url 'funcionarios:detail' object.pk %}">Ficha</a>
-              <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#editModal-{{ object.pk }}">Editar</button>
-            </td>
-          </tr>
-        {% empty %}
-          <tr>
-            <td colspan="6" class="text-muted text-center py-4">Sem registros</td>
-          </tr>
-        {% endfor %}
+      <tbody data-funcionario-rows>
+        {% include "funcionarios/_funcionario_rows.html" with object_list=object_list %}
       </tbody>
     </table>
   </div>
 
-  {% include "components/_pagination.html" with page_obj=page_obj %}
+  <div data-funcionario-pagination>
+    {% include "components/_pagination.html" with page_obj=page_obj %}
+  </div>
 
   {% if create_form %}
     <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-lg">
+      <div class="modal-dialog modal-xl">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="createModalLabel">Novo</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
           </div>
-          <div class="modal-body">
-            {% include "components/_form.html" with form=create_form form_action=create_url %}
+          <div class="modal-body" data-funcionario-modal-body data-row-id="">
+            {% include "funcionarios/_funcionario_form.html" with form=create_form form_action=create_url accordion_id="funcionarioFormCreate" form_id="funcionarioFormCreate-form" %}
           </div>
         </div>
       </div>
     </div>
   {% endif %}
 
-  {% for row in edit_rows %}
-    <div class="modal fade" id="editModal-{{ row.object.pk }}" tabindex="-1" aria-labelledby="editModalLabel-{{ row.object.pk }}" aria-hidden="true">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="editModalLabel-{{ row.object.pk }}">Editar</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-          </div>
-          <div class="modal-body">
-            {% include "components/_form.html" with form=row.form form_action=row.update_url %}
+  <div data-funcionario-modals>
+    {% include "funcionarios/_funcionario_edit_modals.html" with edit_rows=edit_rows %}
+  </div>
+
+  <div class="modal fade" id="anexoModal" tabindex="-1" aria-labelledby="anexoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="anexoModalLabel">Anexos do funcionario</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body" data-anexo-modal-body>
+          {% include "components/_form.html" with form=anexo_form form_action=anexo_create_url %}
+          <div class="mt-3">
+            <div class="fw-semibold mb-2">Anexos</div>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Descricao</th>
+                    <th>Arquivo</th>
+                    <th class="text-end">Acoes</th>
+                  </tr>
+                </thead>
+                <tbody data-anexo-rows>
+                  <tr>
+                    <td colspan="3" class="text-muted text-center py-3">Carregando...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  {% endfor %}
+  </div>
+
+  <div class="modal fade" id="historicoModal" tabindex="-1" aria-labelledby="historicoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="historicoModalLabel">Historico do funcionario</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body" data-historico-modal-body>
+          {% include "components/_filters.html" with filters=historico_filters %}
+          <div class="table-responsive mt-3">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Data</th>
+                  <th>Descricao</th>
+                </tr>
+              </thead>
+              <tbody data-historico-rows>
+                <tr>
+                  <td colspan="2" class="text-muted text-center py-3">Carregando...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="mt-3" data-historico-pagination></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="validacaoModal" tabindex="-1" aria-labelledby="validacaoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="validacaoModalLabel">Validacao de recebimento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body" data-validacao-modal-body>
+          <div class="text-muted text-center py-3">Carregando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% include "components/_confirm_modal.html" with id="funcionarioToggleModal" title_id="funcionarioToggleModalLabel" title="Confirmar" body="Deseja atualizar o status deste funcionario?" confirm_text="Confirmar" confirm_class="btn-primary" confirm_button_id="funcionario-toggle-confirm" %}
+
+  <script>
+    (function () {
+      function bindFuncionarioToggle() {
+        var triggers = document.querySelectorAll(".js-funcionario-toggle-trigger");
+        triggers.forEach(function (trigger) {
+          trigger.addEventListener("click", function () {
+            var formId = trigger.getAttribute("data-form-id");
+            var confirmBtn = document.getElementById("funcionario-toggle-confirm");
+            if (!confirmBtn) {
+              return;
+            }
+            confirmBtn.setAttribute("data-form-id", formId || "");
+            confirmBtn.setAttribute("data-row-id", trigger.closest("tr").id || "");
+            confirmBtn.setAttribute("data-ativo", trigger.getAttribute("data-ativo") || "0");
+            var modalEl = document.getElementById("funcionarioToggleModal");
+            if (!modalEl) {
+              return;
+            }
+            var bodyEl = modalEl.querySelector(".modal-body");
+            if (!bodyEl) {
+              return;
+            }
+            var nome = trigger.getAttribute("data-nome") || "funcionario";
+            var ativo = trigger.getAttribute("data-ativo") === "1";
+            bodyEl.textContent = ativo
+              ? "Deseja desativar o funcionario " + nome + "?"
+              : "Deseja ativar o funcionario " + nome + "?";
+          });
+        });
+
+        var confirmBtn = document.getElementById("funcionario-toggle-confirm");
+        if (confirmBtn && !confirmBtn.dataset.bound) {
+          confirmBtn.dataset.bound = "1";
+          confirmBtn.addEventListener("click", function () {
+            var formId = confirmBtn.getAttribute("data-form-id");
+            if (!formId) {
+              return;
+            }
+            var form = document.getElementById(formId);
+            if (!form) {
+              return;
+            }
+            var modalEl = document.getElementById("funcionarioToggleModal");
+            if (modalEl && window.bootstrap) {
+              bootstrap.Modal.getInstance(modalEl).hide();
+            }
+            var formData = new FormData(form);
+            fetch(form.action, {
+              method: "POST",
+              body: formData,
+              headers: { "X-Requested-With": "XMLHttpRequest" },
+            })
+              .then(function (response) {
+                return response
+                  .json()
+                  .then(function (data) {
+                    return { ok: response.ok, data: data };
+                  })
+                  .catch(function () {
+                    return { ok: response.ok, data: null };
+                  });
+              })
+              .then(function (result) {
+                if (!result.ok || !result.data || !result.data.ok) {
+                  form.submit();
+                  return;
+                }
+                var row = document.getElementById("funcionario-row-" + result.data.row_id);
+                if (!row) {
+                  return;
+                }
+                var ativoCell = row.querySelector(".js-funcionario-ativo");
+                if (ativoCell) {
+                  ativoCell.textContent = result.data.ativo ? "Ativo" : "Inativo";
+                  ativoCell.classList.toggle("bg-success-subtle", result.data.ativo);
+                  ativoCell.classList.toggle("text-success", result.data.ativo);
+                  ativoCell.classList.toggle("bg-secondary-subtle", !result.data.ativo);
+                  ativoCell.classList.toggle("text-secondary", !result.data.ativo);
+                }
+                var trigger = row.querySelector(".js-funcionario-toggle-trigger");
+                if (trigger) {
+                  trigger.setAttribute("data-ativo", result.data.ativo ? "1" : "0");
+                  var icon = trigger.querySelector(".js-funcionario-toggle-icon");
+                  if (icon) {
+                    icon.classList.toggle("bi-person-x", result.data.ativo);
+                    icon.classList.toggle("bi-person-check", !result.data.ativo);
+                  }
+                  trigger.setAttribute("title", result.data.ativo ? "Desativar" : "Ativar");
+                  trigger.setAttribute("aria-label", result.data.ativo ? "Desativar" : "Ativar");
+                  trigger.classList.toggle("btn-outline-danger", result.data.ativo);
+                  trigger.classList.toggle("btn-outline-success", !result.data.ativo);
+                }
+              })
+              .catch(function () {
+                form.submit();
+              });
+          });
+        }
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", bindFuncionarioToggle);
+      } else {
+        bindFuncionarioToggle();
+      }
+
+      window.bindFuncionarioToggle = bindFuncionarioToggle;
+    })();
+  </script>
+
+  <script>
+    (function () {
+      function bindAnexoForm(form) {
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          var modalBody = form.closest("[data-anexo-modal-body]");
+          var funcionarioId = modalBody ? modalBody.getAttribute("data-funcionario-id") : null;
+          var formData = new FormData(form);
+          if (funcionarioId) {
+            formData.append("funcionario", funcionarioId);
+          }
+          fetch(form.action, {
+            method: "POST",
+            body: formData,
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          })
+            .then(function (response) {
+              return response
+                .json()
+                .then(function (data) {
+                  return { ok: response.ok, data: data };
+                })
+                .catch(function () {
+                  return { ok: response.ok, data: null };
+                });
+            })
+            .then(function (result) {
+              if (!result.ok || !result.data || !result.data.ok) {
+                if (modalBody && result.data && result.data.form_html) {
+                  modalBody.innerHTML = result.data.form_html;
+                  var newForm = modalBody.querySelector("form");
+                  if (newForm) {
+                    bindAnexoForm(newForm);
+                  }
+                  bindAnexoTableLoad();
+                }
+                return;
+              }
+              form.reset();
+              loadAnexos(funcionarioId);
+            })
+            .catch(function () {
+              form.submit();
+            });
+        });
+      }
+
+      function loadAnexos(funcionarioId) {
+        var tbody = document.querySelector("[data-anexo-rows]");
+        if (!tbody || !funcionarioId) {
+          return;
+        }
+        tbody.innerHTML =
+          '<tr><td colspan="3" class="text-muted text-center py-3">Carregando...</td></tr>';
+        fetch("/funcionarios/" + funcionarioId + "/anexos/", {
+          headers: { "X-Requested-With": "XMLHttpRequest" },
+        })
+          .then(function (response) {
+            return response
+              .json()
+              .then(function (data) {
+                return { ok: response.ok, data: data };
+              })
+              .catch(function () {
+                return { ok: response.ok, data: null };
+              });
+          })
+          .then(function (result) {
+            if (!result.ok || !result.data || !result.data.ok) {
+              tbody.innerHTML =
+                '<tr><td colspan="3" class="text-muted text-center py-3">Erro ao carregar anexos</td></tr>';
+              return;
+            }
+            tbody.innerHTML = result.data.rows_html;
+          })
+          .catch(function () {
+            tbody.innerHTML =
+              '<tr><td colspan="3" class="text-muted text-center py-3">Erro ao carregar anexos</td></tr>';
+          });
+      }
+
+      function bindAnexoTableLoad() {
+        var modalBody = document.querySelector("[data-anexo-modal-body]");
+        if (!modalBody) {
+          return;
+        }
+        var funcionarioId = modalBody.getAttribute("data-funcionario-id");
+        loadAnexos(funcionarioId);
+      }
+
+      function bindAnexoTriggers() {
+        var triggers = document.querySelectorAll(".js-anexo-trigger");
+        triggers.forEach(function (trigger) {
+          trigger.addEventListener("click", function () {
+            var modalBody = document.querySelector("[data-anexo-modal-body]");
+            if (!modalBody) {
+              return;
+            }
+            modalBody.setAttribute("data-funcionario-id", trigger.getAttribute("data-funcionario-id"));
+            var title = document.getElementById("anexoModalLabel");
+            if (title) {
+              var nome = trigger.getAttribute("data-funcionario-nome") || "funcionario";
+              title.textContent = "Anexos de " + nome;
+            }
+            loadAnexos(trigger.getAttribute("data-funcionario-id"));
+          });
+        });
+      }
+
+      function initAnexoModal() {
+        var form = document.querySelector("#anexoModal form");
+        if (form) {
+          bindAnexoForm(form);
+        }
+        bindAnexoTriggers();
+        bindAnexoTableLoad();
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initAnexoModal);
+      } else {
+        initAnexoModal();
+      }
+
+      window.bindFuncionarioAnexoTriggers = bindAnexoTriggers;
+    })();
+  </script>
+
+  <script>
+    (function () {
+      function loadHistorico(funcionarioId, params) {
+        var tbody = document.querySelector("[data-historico-rows]");
+        var pagination = document.querySelector("[data-historico-pagination]");
+        if (!tbody || !funcionarioId) {
+          return;
+        }
+        tbody.innerHTML =
+          '<tr><td colspan="2" class="text-muted text-center py-3">Carregando...</td></tr>';
+        if (pagination) {
+          pagination.innerHTML = "";
+        }
+        var url = "/funcionarios/" + funcionarioId + "/historico/";
+        if (params) {
+          var query = params.toString();
+          if (query) {
+            url += "?" + query;
+          }
+        }
+        fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+          .then(function (response) {
+            return response
+              .json()
+              .then(function (data) {
+                return { ok: response.ok, data: data };
+              })
+              .catch(function () {
+                return { ok: response.ok, data: null };
+              });
+          })
+          .then(function (result) {
+            if (!result.ok || !result.data || !result.data.ok) {
+              tbody.innerHTML =
+                '<tr><td colspan="2" class="text-muted text-center py-3">Erro ao carregar historico</td></tr>';
+              return;
+            }
+            tbody.innerHTML = result.data.rows_html;
+            if (pagination && result.data.pagination_html) {
+              pagination.innerHTML = result.data.pagination_html;
+            }
+          })
+          .catch(function () {
+            tbody.innerHTML =
+              '<tr><td colspan="2" class="text-muted text-center py-3">Erro ao carregar historico</td></tr>';
+          });
+      }
+
+      function bindHistoricoFilters() {
+        var modalBody = document.querySelector("[data-historico-modal-body]");
+        if (!modalBody) {
+          return;
+        }
+        var form = modalBody.querySelector("form");
+        if (!form) {
+          return;
+        }
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          var funcionarioId = modalBody.getAttribute("data-funcionario-id");
+          var formData = new FormData(form);
+          var params = new URLSearchParams(formData);
+          loadHistorico(funcionarioId, params);
+        });
+
+        modalBody.addEventListener("click", function (event) {
+          var link = event.target.closest("a");
+          if (!link) {
+            return;
+          }
+          var href = link.getAttribute("href");
+          if (href === "?") {
+            event.preventDefault();
+            form.reset();
+            var funcionarioId = modalBody.getAttribute("data-funcionario-id");
+            loadHistorico(funcionarioId, new URLSearchParams());
+            return;
+          }
+          if (link.closest("[data-historico-pagination]") && href) {
+            event.preventDefault();
+            var funcionarioId = modalBody.getAttribute("data-funcionario-id");
+            var formData = new FormData(form);
+            var params = new URLSearchParams(formData);
+            try {
+              var url = new URL(href, window.location.origin);
+              var page = url.searchParams.get("page");
+              if (page) {
+                params.set("page", page);
+              }
+            } catch (err) {
+              return;
+            }
+            loadHistorico(funcionarioId, params);
+          }
+        });
+      }
+
+      function bindHistoricoTriggers() {
+        var triggers = document.querySelectorAll(".js-historico-trigger");
+        triggers.forEach(function (trigger) {
+          trigger.addEventListener("click", function () {
+            var modalBody = document.querySelector("[data-historico-modal-body]");
+            if (!modalBody) {
+              return;
+            }
+            modalBody.setAttribute("data-funcionario-id", trigger.getAttribute("data-funcionario-id"));
+            var title = document.getElementById("historicoModalLabel");
+            if (title) {
+              var nome = trigger.getAttribute("data-funcionario-nome") || "funcionario";
+              title.textContent = "Historico de " + nome;
+            }
+            var form = modalBody.querySelector("form");
+            if (form) {
+              form.reset();
+            }
+            loadHistorico(trigger.getAttribute("data-funcionario-id"), new URLSearchParams());
+          });
+        });
+      }
+
+      function initHistoricoModal() {
+        bindHistoricoFilters();
+        bindHistoricoTriggers();
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initHistoricoModal);
+      } else {
+        initHistoricoModal();
+      }
+
+      window.bindFuncionarioHistoricoTriggers = bindHistoricoTriggers;
+    })();
+  </script>
+
+  <script>
+    (function () {
+      function bindFuncionarioForm(form) {
+        function toggleValidacaoFields() {
+          var tipoField = form.querySelector("[name='validacao_recebimento']");
+          if (!tipoField) {
+            return;
+          }
+          var senhaField = form.querySelector("[name='senha_recebimento']");
+          var confirmField = form.querySelector("[name='senha_recebimento_confirm']");
+          var senhaWrapper = senhaField ? senhaField.closest(".mb-3") : null;
+          var confirmWrapper = confirmField ? confirmField.closest(".mb-3") : null;
+          var mostrar = tipoField.value === "senha";
+          if (senhaWrapper) {
+            senhaWrapper.classList.toggle("d-none", !mostrar);
+          }
+          if (confirmWrapper) {
+            confirmWrapper.classList.toggle("d-none", !mostrar);
+          }
+          if (senhaField) {
+            senhaField.disabled = !mostrar;
+          }
+          if (confirmField) {
+            confirmField.disabled = !mostrar;
+          }
+        }
+
+        var tipoField = form.querySelector("[name='validacao_recebimento']");
+        if (tipoField && !tipoField.dataset.bound) {
+          tipoField.dataset.bound = "1";
+          tipoField.addEventListener("change", toggleValidacaoFields);
+        }
+        toggleValidacaoFields();
+
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          var modalBody = form.closest("[data-funcionario-modal-body]");
+          var rowId = modalBody ? modalBody.getAttribute("data-row-id") : null;
+          var formData = new FormData(form);
+          fetch(form.action, {
+            method: "POST",
+            body: formData,
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          })
+            .then(function (response) {
+              return response
+                .json()
+                .then(function (data) {
+                  return { ok: response.ok, data: data };
+                })
+                .catch(function () {
+                  return { ok: response.ok, data: null };
+                });
+            })
+            .then(function (result) {
+              if (!result.ok || !result.data || !result.data.ok) {
+                if (modalBody && result.data && result.data.form_html) {
+                  modalBody.innerHTML = result.data.form_html;
+                  var newForm = modalBody.querySelector("form");
+                  if (newForm) {
+                    bindFuncionarioForm(newForm);
+                  }
+                }
+                return;
+              }
+
+              if (result.data.action === "create") {
+                var tbody = document.querySelector("[data-funcionario-rows]");
+                if (tbody) {
+                  var emptyRow = tbody.querySelector("td.text-muted");
+                  if (emptyRow) {
+                    emptyRow.parentElement.remove();
+                  }
+                  tbody.insertAdjacentHTML("afterbegin", result.data.row_html);
+                }
+                if (result.data.edit_modal_html) {
+                  var modalsContainer = document.querySelector("[data-funcionario-modals]");
+                  if (modalsContainer) {
+                    modalsContainer.insertAdjacentHTML("beforeend", result.data.edit_modal_html);
+                    var editForm = modalsContainer.querySelector(
+                      "#editModal-" + result.data.row_id + " form"
+                    );
+                    if (editForm) {
+                      bindFuncionarioForm(editForm);
+                    }
+                  }
+                }
+                if (modalBody && result.data.form_html) {
+                  modalBody.innerHTML = result.data.form_html;
+                  var refreshedForm = modalBody.querySelector("form");
+                  if (refreshedForm) {
+                    bindFuncionarioForm(refreshedForm);
+                  }
+                }
+                var modalEl = document.getElementById("createModal");
+                if (modalEl && window.bootstrap) {
+                  bootstrap.Modal.getInstance(modalEl).hide();
+                }
+                if (window.bindFuncionarioToggle) {
+                  window.bindFuncionarioToggle();
+                }
+                if (window.bindFuncionarioAnexoTriggers) {
+                  window.bindFuncionarioAnexoTriggers();
+                }
+                if (window.bindFuncionarioHistoricoTriggers) {
+                  window.bindFuncionarioHistoricoTriggers();
+                }
+                if (window.bindFuncionarioValidacaoTriggers) {
+                  window.bindFuncionarioValidacaoTriggers();
+                }
+                return;
+              }
+
+              if (result.data.action === "update" && result.data.row_id) {
+                var row = document.getElementById("funcionario-row-" + result.data.row_id);
+                if (row) {
+                  row.outerHTML = result.data.row_html;
+                }
+                if (rowId) {
+                  var editModalEl = document.getElementById("editModal-" + rowId);
+                  if (editModalEl && window.bootstrap) {
+                    bootstrap.Modal.getInstance(editModalEl).hide();
+                  }
+                }
+                if (window.bindFuncionarioToggle) {
+                  window.bindFuncionarioToggle();
+                }
+                if (window.bindFuncionarioAnexoTriggers) {
+                  window.bindFuncionarioAnexoTriggers();
+                }
+                if (window.bindFuncionarioHistoricoTriggers) {
+                  window.bindFuncionarioHistoricoTriggers();
+                }
+                if (window.bindFuncionarioValidacaoTriggers) {
+                  window.bindFuncionarioValidacaoTriggers();
+                }
+              }
+            })
+            .catch(function () {
+              form.submit();
+            });
+        });
+      }
+
+      function initFuncionarioForms() {
+        var forms = document.querySelectorAll("#createModal form, [id^='editModal-'] form");
+        forms.forEach(function (form) {
+          bindFuncionarioForm(form);
+        });
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initFuncionarioForms);
+      } else {
+        initFuncionarioForms();
+      }
+
+      window.bindFuncionarioForms = initFuncionarioForms;
+    })();
+  </script>
+
+  <script>
+    (function () {
+      function updateFuncionarioList(payload, url) {
+        var tbody = document.querySelector("[data-funcionario-rows]");
+        var pagination = document.querySelector("[data-funcionario-pagination]");
+        var modals = document.querySelector("[data-funcionario-modals]");
+        if (tbody) {
+          tbody.innerHTML = payload.rows_html || "";
+        }
+        if (pagination) {
+          pagination.innerHTML = payload.pagination_html || "";
+        }
+        if (modals) {
+          modals.innerHTML = payload.modals_html || "";
+        }
+        if (url && window.history && window.history.pushState) {
+          window.history.pushState({}, "", url);
+        }
+        if (window.bindFuncionarioForms) {
+          window.bindFuncionarioForms();
+        }
+        if (window.bindFuncionarioToggle) {
+          window.bindFuncionarioToggle();
+        }
+        if (window.bindFuncionarioAnexoTriggers) {
+          window.bindFuncionarioAnexoTriggers();
+        }
+        if (window.bindFuncionarioHistoricoTriggers) {
+          window.bindFuncionarioHistoricoTriggers();
+        }
+        if (window.bindFuncionarioValidacaoTriggers) {
+          window.bindFuncionarioValidacaoTriggers();
+        }
+        bindFuncionarioPagination();
+      }
+
+      function bindFuncionarioPagination() {
+        var pagination = document.querySelector("[data-funcionario-pagination]");
+        if (!pagination || pagination.dataset.bound) {
+          return;
+        }
+        pagination.dataset.bound = "1";
+        pagination.addEventListener("click", function (event) {
+          var link = event.target.closest("a");
+          if (!link || !pagination.contains(link)) {
+            return;
+          }
+          var href = link.getAttribute("href");
+          if (!href || href === "#") {
+            return;
+          }
+          event.preventDefault();
+          fetch(href, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+            .then(function (response) {
+              return response
+                .json()
+                .then(function (data) {
+                  return { ok: response.ok, data: data };
+                })
+                .catch(function () {
+                  return { ok: response.ok, data: null };
+                });
+            })
+            .then(function (result) {
+              if (!result.ok || !result.data || !result.data.ok) {
+                window.location.href = href;
+                return;
+              }
+              updateFuncionarioList(result.data, href);
+            })
+            .catch(function () {
+              window.location.href = href;
+            });
+        });
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", bindFuncionarioPagination);
+      } else {
+        bindFuncionarioPagination();
+      }
+    })();
+  </script>
+
+  <script>
+    (function () {
+      function bindFuncionarioValidacaoForm(form, funcionarioId) {
+        function toggleSenhaFields() {
+          var tipoField = form.querySelector("[name='validacao_recebimento']");
+          var senhaField = form.querySelector("[name='senha_recebimento']");
+          var confirmField = form.querySelector("[name='senha_recebimento_confirm']");
+          if (!tipoField) {
+            return;
+          }
+          var mostrar = tipoField.value === "senha";
+          var senhaWrapper = senhaField ? senhaField.closest(".mb-3") : null;
+          var confirmWrapper = confirmField ? confirmField.closest(".mb-3") : null;
+          if (senhaWrapper) {
+            senhaWrapper.classList.toggle("d-none", !mostrar);
+          }
+          if (confirmWrapper) {
+            confirmWrapper.classList.toggle("d-none", !mostrar);
+          }
+          if (senhaField) {
+            senhaField.disabled = !mostrar;
+          }
+          if (confirmField) {
+            confirmField.disabled = !mostrar;
+          }
+        }
+
+        var tipoField = form.querySelector("[name='validacao_recebimento']");
+        if (tipoField && !tipoField.dataset.bound) {
+          tipoField.dataset.bound = "1";
+          tipoField.addEventListener("change", toggleSenhaFields);
+        }
+        toggleSenhaFields();
+
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          var modalBody = document.querySelector("[data-validacao-modal-body]");
+          var formData = new FormData(form);
+          fetch(form.action, {
+            method: "POST",
+            body: formData,
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          })
+            .then(function (response) {
+              return response
+                .json()
+                .then(function (data) {
+                  return { ok: response.ok, data: data };
+                })
+                .catch(function () {
+                  return { ok: response.ok, data: null };
+                });
+            })
+            .then(function (result) {
+              if (!result.ok || !result.data || !result.data.ok) {
+                if (modalBody && result.data && result.data.form_html) {
+                  modalBody.innerHTML = result.data.form_html;
+                  var newForm = modalBody.querySelector("form");
+                  if (newForm) {
+                    bindFuncionarioValidacaoForm(newForm, funcionarioId);
+                  }
+                }
+                return;
+              }
+              var trigger = document.querySelector(
+                ".js-funcionario-validacao-trigger[data-funcionario-id='" + funcionarioId + "']"
+              );
+              if (trigger && result.data.validacao) {
+                trigger.setAttribute("data-validacao", result.data.validacao);
+              }
+              var modalEl = document.getElementById("validacaoModal");
+              if (modalEl && window.bootstrap) {
+                bootstrap.Modal.getInstance(modalEl).hide();
+              }
+            })
+            .catch(function () {
+              form.submit();
+            });
+        });
+      }
+
+      function bindFuncionarioValidacaoTriggers() {
+        var triggers = document.querySelectorAll(".js-funcionario-validacao-trigger");
+        triggers.forEach(function (trigger) {
+          trigger.addEventListener("click", function () {
+            var funcionarioId = trigger.getAttribute("data-funcionario-id");
+            var modalBody = document.querySelector("[data-validacao-modal-body]");
+            var title = document.getElementById("validacaoModalLabel");
+            if (!funcionarioId || !modalBody) {
+              return;
+            }
+            modalBody.innerHTML = '<div class="text-muted text-center py-3">Carregando...</div>';
+            if (title) {
+              var nome = trigger.getAttribute("data-funcionario-nome") || "funcionario";
+              title.textContent = "Validacao de recebimento - " + nome;
+            }
+            fetch("/funcionarios/" + funcionarioId + "/validacao/", {
+              headers: { "X-Requested-With": "XMLHttpRequest" },
+            })
+              .then(function (response) {
+                return response
+                  .json()
+                  .then(function (data) {
+                    return { ok: response.ok, data: data };
+                  })
+                  .catch(function () {
+                    return { ok: response.ok, data: null };
+                  });
+              })
+              .then(function (result) {
+                if (!result.ok || !result.data || !result.data.ok) {
+                  modalBody.innerHTML =
+                    '<div class="text-muted text-center py-3">Erro ao carregar.</div>';
+                  return;
+                }
+                modalBody.innerHTML = result.data.form_html;
+                var form = modalBody.querySelector("form");
+                if (form) {
+                  bindFuncionarioValidacaoForm(form, funcionarioId);
+                }
+              })
+              .catch(function () {
+                modalBody.innerHTML =
+                  '<div class="text-muted text-center py-3">Erro ao carregar.</div>';
+              });
+          });
+        });
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", bindFuncionarioValidacaoTriggers);
+      } else {
+        bindFuncionarioValidacaoTriggers();
+      }
+
+      window.bindFuncionarioValidacaoTriggers = bindFuncionarioValidacaoTriggers;
+    })();
+  </script>
 {% endblock %}

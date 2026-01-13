@@ -1,0 +1,19 @@
+{% load ui_extras %}
+
+<tr id="consumo-row-{{ consumo.pk }}">
+  {% for field in row_fields %}
+    <td>{{ consumo|get_attr:field }}</td>
+  {% endfor %}
+  <td class="text-end">
+    <button
+      class="btn btn-outline-primary btn-icon"
+      type="button"
+      data-bs-toggle="modal"
+      data-bs-target="#editModal-{{ consumo.pk }}"
+      title="Editar"
+      aria-label="Editar"
+    >
+      <i class="bi bi-pencil"></i>
+    </button>
+  </td>
+</tr>

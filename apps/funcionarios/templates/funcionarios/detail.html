@@ -14,113 +14,513 @@
   </div>
 
   <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white">
+      <ul class="nav nav-tabs card-header-tabs" id="funcionarioTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="tab-perfil" data-bs-toggle="tab" data-bs-target="#pane-perfil" type="button" role="tab" aria-controls="pane-perfil" aria-selected="true">
+            Perfil
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="tab-afastamentos" data-bs-toggle="tab" data-bs-target="#pane-afastamentos" type="button" role="tab" aria-controls="pane-afastamentos" aria-selected="false">
+            Afastamentos
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="tab-riscos" data-bs-toggle="tab" data-bs-target="#pane-riscos" type="button" role="tab" aria-controls="pane-riscos" aria-selected="false">
+            Riscos
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="tab-treinamentos" data-bs-toggle="tab" data-bs-target="#pane-treinamentos" type="button" role="tab" aria-controls="pane-treinamentos" aria-selected="false">
+            Treinamentos interno
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="tab-certificados" data-bs-toggle="tab" data-bs-target="#pane-certificados" type="button" role="tab" aria-controls="pane-certificados" aria-selected="false">
+            Certificados interno
+          </button>
+        </li>
+      </ul>
+    </div>
     <div class="card-body">
-      <div class="row g-4">
-        <div class="col-12 col-lg-3 text-center">
-          {% if object.foto %}
-            <img class="img-fluid rounded" src="{{ object.foto.url }}" alt="{{ object.nome }}">
-          {% else %}
-            <div class="border rounded bg-light d-flex align-items-center justify-content-center" style="height: 220px;">
-              <span class="text-muted">Sem foto</span>
+      <div class="tab-content" id="funcionarioTabsContent">
+        <div class="tab-pane fade show active" id="pane-perfil" role="tabpanel" aria-labelledby="tab-perfil" tabindex="0">
+          <div class="row g-4">
+            <div class="col-12 col-lg-3 text-center">
+              {% if object.foto %}
+                <img class="img-fluid rounded" src="{{ object.foto.url }}" alt="{{ object.nome }}">
+              {% else %}
+                <div class="border rounded bg-light d-flex align-items-center justify-content-center" style="height: 220px;">
+                  <span class="text-muted">Sem foto</span>
+                </div>
+              {% endif %}
             </div>
-          {% endif %}
+            <div class="col-12 col-lg-9">
+              <div class="row g-3">
+                <div class="col-12 col-md-4">
+                  <div class="text-muted small">Registro</div>
+                  <div class="fw-semibold">{{ object.registro|default:"-" }}</div>
+                </div>
+                <div class="col-12 col-md-4">
+                  <div class="text-muted small">Turno</div>
+                  <div class="fw-semibold">{{ object.turno|default:"-" }}</div>
+                </div>
+                <div class="col-12 col-md-4">
+                  <div class="text-muted small">Empresa</div>
+                  <div class="fw-semibold">{{ object.company }}</div>
+                </div>
+                <div class="col-12 col-md-4">
+                  <div class="text-muted small">Setor</div>
+                  <div class="fw-semibold">{{ object.setor|default:"-" }}</div>
+                </div>
+                <div class="col-12 col-md-4">
+                  <div class="text-muted small">Cargo</div>
+                  <div class="fw-semibold">{{ object.cargo|default:"-" }}</div>
+                </div>
+                <div class="col-12 col-md-4">
+                  <div class="text-muted small">Centro de Custo</div>
+                  <div class="fw-semibold">{{ object.centro_custo|default:"-" }}</div>
+                </div>
+                <div class="col-12 col-md-4">
+                  <div class="text-muted small">GHE</div>
+                  <div class="fw-semibold">{{ object.ghe|default:"-" }}</div>
+                </div>
+                <div class="col-12 col-md-4">
+                  <div class="text-muted small">Lider</div>
+                  <div class="fw-semibold">{{ object.lider|default:"-" }}</div>
+                </div>
+                <div class="col-12 col-md-4">
+                  <div class="text-muted small">Gestor</div>
+                  <div class="fw-semibold">{{ object.gestor|default:"-" }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="col-12 col-lg-9">
-          <div class="row g-3">
-            <div class="col-12 col-md-4">
-              <div class="text-muted small">Registro</div>
-              <div class="fw-semibold">{{ object.registro|default:"-" }}</div>
+        <div class="tab-pane fade" id="pane-afastamentos" role="tabpanel" aria-labelledby="tab-afastamentos" tabindex="0">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+              <div class="fw-semibold">Afastamentos</div>
+              <div class="text-muted small">Historico de afastamentos do funcionario</div>
             </div>
-            <div class="col-12 col-md-4">
-              <div class="text-muted small">Turno</div>
-              <div class="fw-semibold">{{ object.turno|default:"-" }}</div>
+            <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#afastamentoModal">
+              Incluir afastamento
+            </button>
+          </div>
+          <div data-afastamentos-section>
+            {% if afastamento_filters %}
+              <div class="mb-3">
+                {% include "components/_filters.html" with filters=afastamento_filters %}
+              </div>
+            {% endif %}
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Data Inicio Afastamento</th>
+                    <th>Data Fim Afastamento</th>
+                    <th>Qtde. Dias Afastado</th>
+                    <th>Motivo de Afastamento</th>
+                    <th>Nome do Arquivo</th>
+                    <th class="text-end">Acoes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for afastamento in afastamentos %}
+                    {% include "funcionarios/_afastamento_row.html" with afastamento=afastamento %}
+                  {% empty %}
+                    <tr>
+                      <td colspan="6" class="text-muted text-center py-4">Sem registros</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
             </div>
-            <div class="col-12 col-md-4">
-              <div class="text-muted small">Empresa</div>
-              <div class="fw-semibold">{{ object.company }}</div>
+            <div class="mt-3" data-afastamentos-pagination>
+              {% include "components/_pagination.html" with page_obj=afastamentos_page_obj %}
             </div>
-            <div class="col-12 col-md-4">
-              <div class="text-muted small">Setor</div>
-              <div class="fw-semibold">{{ object.setor|default:"-" }}</div>
+          </div>
+        </div>
+        <div class="tab-pane fade" id="pane-riscos" role="tabpanel" aria-labelledby="tab-riscos" tabindex="0">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+              <div class="fw-semibold">Riscos</div>
+              <div class="text-muted small">Riscos vinculados ao funcionario</div>
             </div>
-            <div class="col-12 col-md-4">
-              <div class="text-muted small">Cargo</div>
-              <div class="fw-semibold">{{ object.cargo|default:"-" }}</div>
+            <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#riscoAssignModal">
+              Atribuir risco
+            </button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Nome</th>
+                  <th>Nivel</th>
+                  <th>Status</th>
+                  <th class="text-end">Acoes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% include "funcionarios/_risco_rows.html" with riscos=riscos funcionario=object show_unassign=True %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="tab-pane fade" id="pane-treinamentos" role="tabpanel" aria-labelledby="tab-treinamentos" tabindex="0">
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <div class="flex-grow-1">
+              <label class="form-label mb-1" for="treinamentos-filter-text">Treinamento</label>
+              <input class="form-control" id="treinamentos-filter-text" type="text" placeholder="Buscar por nome">
             </div>
-            <div class="col-12 col-md-4">
-              <div class="text-muted small">Centro de Custo</div>
-              <div class="fw-semibold">{{ object.centro_custo|default:"-" }}</div>
+            <div style="min-width: 180px;">
+              <label class="form-label mb-1" for="treinamentos-filter-status">Status</label>
+              <select class="form-select" id="treinamentos-filter-status">
+                <option value="">Todos</option>
+                <option value="pendente">Pendente</option>
+                <option value="concluido">Concluido</option>
+              </select>
             </div>
-            <div class="col-12 col-md-4">
-              <div class="text-muted small">GHE</div>
-              <div class="fw-semibold">{{ object.ghe|default:"-" }}</div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Treinamento</th>
+                  <th>Status</th>
+                  <th>Atualizado em</th>
+                </tr>
+              </thead>
+              <tbody id="treinamentos-table-body">
+                {% for pendencia in treinamentos_itens %}
+                  {% if pendencia.status == "realizado" or pendencia.status == "aprovado" or pendencia.status == "reprovado" %}
+                    {% with status_label="Concluido" status_class="bg-success-subtle text-success" status_key="concluido" %}
+                      <tr data-status="{{ status_key }}" data-nome="{{ pendencia.treinamento|lower }}">
+                        <td>{{ pendencia.treinamento }}</td>
+                        <td><span class="badge {{ status_class }}">{{ status_label }}</span></td>
+                        <td>{{ pendencia.updated_at|date:"d/m/Y H:i" }}</td>
+                      </tr>
+                    {% endwith %}
+                  {% else %}
+                    {% with status_label="Pendente" status_class="bg-warning-subtle text-warning" status_key="pendente" %}
+                      <tr data-status="{{ status_key }}" data-nome="{{ pendencia.treinamento|lower }}">
+                        <td>{{ pendencia.treinamento }}</td>
+                        <td><span class="badge {{ status_class }}">{{ status_label }}</span></td>
+                        <td>{{ pendencia.updated_at|date:"d/m/Y H:i" }}</td>
+                      </tr>
+                    {% endwith %}
+                  {% endif %}
+                {% empty %}
+                  <tr>
+                    <td colspan="3" class="text-muted text-center py-4">Sem treinamentos.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="tab-pane fade" id="pane-certificados" role="tabpanel" aria-labelledby="tab-certificados" tabindex="0">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+              <div class="fw-semibold">Certificados</div>
+              <div class="text-muted small">Certificados emitidos para este funcionario.</div>
             </div>
-            <div class="col-12 col-md-4">
-              <div class="text-muted small">Lider</div>
-              <div class="fw-semibold">{{ object.lider|default:"-" }}</div>
-            </div>
-            <div class="col-12 col-md-4">
-              <div class="text-muted small">Gestor</div>
-              <div class="fw-semibold">{{ object.gestor|default:"-" }}</div>
-            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Treinamento</th>
+                  <th>Turma</th>
+                  <th>Emissao</th>
+                  <th>Validade</th>
+                  <th>Imprimir</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for cert in treinamentos_certificados %}
+                  <tr>
+                    <td>{{ cert.treinamento }}</td>
+                    <td>{{ cert.turma|default:"-" }}</td>
+                    <td>{{ cert.data_emissao|date:"d/m/Y" }}</td>
+                    <td>{{ cert.validade_ate|date:"d/m/Y"|default:"-" }}</td>
+                    <td>
+                      <a class="btn btn-sm btn-outline-secondary" href="{% url 'treinamentos:certificados_print' cert.pk %}" target="_blank" rel="noopener">Imprimir</a>
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="5" class="text-muted text-center py-4">Sem certificados.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="card border-0 shadow-sm mt-4">
-    <div class="card-header bg-white d-flex align-items-center justify-content-between">
-      <div>
-        <div class="fw-semibold">Afastamentos</div>
-        <div class="text-muted small">Historico de afastamentos do funcionario</div>
-      </div>
-      <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#afastamentoModal">
-        Incluir afastamento
-      </button>
-    </div>
-    <div class="card-body p-0">
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light">
-            <tr>
-              <th>Data Inicio Afastamento</th>
-              <th>Data Fim Afastamento</th>
-              <th>Qtde. Dias Afastado</th>
-              <th>Motivo de Afastamento</th>
-              <th>Nome do Arquivo</th>
-              <th class="text-end">Acoes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for afastamento in object.afastamentos.all %}
-              {% include "funcionarios/_afastamento_row.html" with afastamento=afastamento %}
-            {% empty %}
-              <tr>
-                <td colspan="6" class="text-muted text-center py-4">Sem registros</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+  <div class="modal fade" id="riscoAssignModal" tabindex="-1" aria-labelledby="riscoAssignModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="riscoAssignModalLabel">Atribuir riscos</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body" data-risco-assign-body>
+          {% include "components/_form.html" with form=riscos_assign_form form_action=riscos_assign_url %}
+        </div>
       </div>
     </div>
   </div>
 
-  {% for row in afastamento_edit_rows %}
-    <div class="modal fade" id="afastamentoEditModal-{{ row.object.pk }}" tabindex="-1" aria-labelledby="afastamentoEditModalLabel-{{ row.object.pk }}" aria-hidden="true">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="afastamentoEditModalLabel-{{ row.object.pk }}">Editar afastamento</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-          </div>
-          <div class="modal-body">
-            {% include "components/_form.html" with form=row.form form_action=row.update_url %}
+  <div data-risco-modals>
+    {% for row in risco_edit_rows %}
+      {% include "funcionarios/_risco_edit_modal.html" with risco=row.object form=row.form update_url=row.update_url funcionario=object %}
+    {% endfor %}
+  </div>
+
+  {% include "components/_confirm_modal.html" with id="riscoUnassignModal" title_id="riscoUnassignModalLabel" title="Remover risco" body="Deseja remover este risco do funcionario?" confirm_text="Excluir" confirm_class="btn-danger" confirm_button_id="risco-unassign-confirm" %}
+
+  <script>
+    (function () {
+      function bindRiscoForm(form) {
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          var modalBody = form.closest("[data-risco-modal-body]");
+          var rowId = modalBody ? modalBody.getAttribute("data-risco-row-id") : null;
+          var formData = new FormData(form);
+          if (modalBody && modalBody.dataset && modalBody.dataset.funcionarioId) {
+            formData.append("funcionario", modalBody.dataset.funcionarioId);
+          }
+          fetch(form.action, {
+            method: "POST",
+            body: formData,
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          })
+            .then(function (response) {
+              return response
+                .json()
+                .then(function (data) {
+                  return { ok: response.ok, data: data };
+                })
+                .catch(function () {
+                  return { ok: response.ok, data: null };
+                });
+            })
+            .then(function (result) {
+              if (!result.ok || !result.data || !result.data.ok) {
+                if (modalBody && result.data && result.data.form_html) {
+                  modalBody.innerHTML = result.data.form_html;
+                  var newForm = modalBody.querySelector("form");
+                  if (newForm) {
+                    bindRiscoForm(newForm);
+                  }
+                }
+                return;
+              }
+
+              if (result.data.action === "update" && result.data.row_id) {
+                var row = document.getElementById("risco-row-" + result.data.row_id);
+                if (row) {
+                  row.outerHTML = result.data.row_html;
+                }
+                if (rowId) {
+                  var editModalEl = document.getElementById("riscoEditModal-" + rowId);
+                  if (editModalEl && window.bootstrap) {
+                    bootstrap.Modal.getInstance(editModalEl).hide();
+                  }
+                }
+                bindRiscoUnassignForms();
+                bindRiscoUnassignTriggers();
+              }
+            })
+            .catch(function () {
+              if (form.isConnected) {
+                form.submit();
+              }
+            });
+        });
+      }
+
+      function bindRiscoAssignForm(form) {
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          var modalBody = form.closest("[data-risco-assign-body]");
+          var formData = new FormData(form);
+          fetch(form.action, {
+            method: "POST",
+            body: formData,
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          })
+            .then(function (response) {
+              return response
+                .json()
+                .then(function (data) {
+                  return { ok: response.ok, data: data };
+                })
+                .catch(function () {
+                  return { ok: response.ok, data: null };
+                });
+            })
+            .then(function (result) {
+              if (!result.ok || !result.data || !result.data.ok) {
+                if (modalBody && result.data && result.data.form_html) {
+                  modalBody.innerHTML = result.data.form_html;
+                  var newForm = modalBody.querySelector("form");
+                  if (newForm) {
+                    bindRiscoAssignForm(newForm);
+                  }
+                }
+                return;
+              }
+              var tbody = document.querySelector("#pane-riscos tbody");
+              if (tbody) {
+                tbody.innerHTML = result.data.rows_html;
+              }
+              var modalsContainer = document.querySelector("[data-risco-modals]");
+              if (modalsContainer) {
+                modalsContainer.innerHTML = result.data.modals_html || "";
+              }
+              bindRiscoEditForms();
+              var modalEl = document.getElementById("riscoAssignModal");
+              if (modalEl && window.bootstrap) {
+                bootstrap.Modal.getInstance(modalEl).hide();
+              }
+            })
+            .catch(function () {
+              form.submit();
+            });
+        });
+      }
+
+      function bindRiscoUnassignForms() {
+        var forms = document.querySelectorAll(".js-risco-unassign");
+        forms.forEach(function (form) {
+          form.addEventListener("submit", function (event) {
+            event.preventDefault();
+            var formData = new FormData(form);
+            fetch(form.action, {
+              method: "POST",
+              body: formData,
+              headers: { "X-Requested-With": "XMLHttpRequest" },
+            })
+              .then(function (response) {
+                return response
+                  .json()
+                  .then(function (data) {
+                    return { ok: response.ok, data: data };
+                  })
+                  .catch(function () {
+                    return { ok: response.ok, data: null };
+                  });
+              })
+              .then(function (result) {
+                if (!result.ok || !result.data || !result.data.ok) {
+                  form.submit();
+                  return;
+                }
+                var tbody = document.querySelector("#pane-riscos tbody");
+                if (tbody) {
+                  tbody.innerHTML = result.data.rows_html;
+                }
+                var modalsContainer = document.querySelector("[data-risco-modals]");
+                if (modalsContainer) {
+                  modalsContainer.innerHTML = result.data.modals_html || "";
+                }
+                bindRiscoEditForms();
+                bindRiscoUnassignForms();
+                bindRiscoUnassignTriggers();
+              })
+              .catch(function () {
+                form.submit();
+              });
+          });
+        });
+      }
+
+      function bindRiscoUnassignTriggers() {
+        var triggers = document.querySelectorAll(".js-risco-unassign-trigger");
+        triggers.forEach(function (trigger) {
+          trigger.addEventListener("click", function () {
+            var formId = trigger.getAttribute("data-form-id");
+            var confirmBtn = document.getElementById("risco-unassign-confirm");
+            if (!confirmBtn) {
+              return;
+            }
+            confirmBtn.setAttribute("data-form-id", formId || "");
+          });
+        });
+
+        var confirmBtn = document.getElementById("risco-unassign-confirm");
+        if (confirmBtn && !confirmBtn.dataset.bound) {
+          confirmBtn.dataset.bound = "1";
+          confirmBtn.addEventListener("click", function () {
+            var formId = confirmBtn.getAttribute("data-form-id");
+            if (!formId) {
+              return;
+            }
+            var form = document.getElementById(formId);
+            if (!form) {
+              return;
+            }
+            var modalEl = document.getElementById("riscoUnassignModal");
+            if (modalEl && window.bootstrap) {
+              bootstrap.Modal.getInstance(modalEl).hide();
+            }
+            if (form.requestSubmit) {
+              form.requestSubmit();
+            } else {
+              form.submit();
+            }
+          });
+        }
+      }
+
+      function bindRiscoEditForms() {
+        var forms = document.querySelectorAll("[id^='riscoEditModal-'] form");
+        forms.forEach(function (form) {
+          bindRiscoForm(form);
+        });
+      }
+
+      function initRiscoForm() {
+        bindRiscoEditForms();
+        bindRiscoUnassignForms();
+        bindRiscoUnassignTriggers();
+        var assignForm = document.querySelector("#riscoAssignModal form");
+        if (assignForm) {
+          bindRiscoAssignForm(assignForm);
+        }
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initRiscoForm);
+      } else {
+        initRiscoForm();
+      }
+    })();
+  </script>
+
+  <div data-afastamentos-modals>
+    {% for row in afastamento_edit_rows %}
+      <div class="modal fade" id="afastamentoEditModal-{{ row.object.pk }}" tabindex="-1" aria-labelledby="afastamentoEditModalLabel-{{ row.object.pk }}" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="afastamentoEditModalLabel-{{ row.object.pk }}">Editar afastamento</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+              {% include "components/_form.html" with form=row.form form_action=row.update_url %}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  {% endfor %}
+    {% endfor %}
+  </div>
 
   <div class="modal fade" id="afastamentoModal" tabindex="-1" aria-labelledby="afastamentoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -130,7 +530,112 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
         </div>
         <div class="modal-body" data-afastamento-modal-body="create">
-          {% include "components/_form.html" with form=afastamento_form form_action=afastamentos_create_url %}
+          <form method="post" id="afastamento-form" action="{{ afastamentos_create_url }}" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            {% if afastamento_form.non_field_errors %}
+              <div class="alert alert-danger py-2">
+                {% for error in afastamento_form.non_field_errors %}
+                  <div>{{ error }}</div>
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <div class="row g-3">
+              <div class="col-12">
+                <div class="mb-3">
+                  <label class="form-label" for="{{ afastamento_form.funcionario.id_for_label }}">Funcionario</label>
+                  {{ afastamento_form.funcionario }}
+
+                  {% if afastamento_form.funcionario.help_text %}
+                    <div class="form-text">{{ afastamento_form.funcionario.help_text }}</div>
+                  {% endif %}
+
+                  {% if afastamento_form.funcionario.errors %}
+                    {% for error in afastamento_form.funcionario.errors %}
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <div class="mb-3">
+                  <label class="form-label" for="{{ afastamento_form.data_inicio.id_for_label }}">Data inicio</label>
+                  {{ afastamento_form.data_inicio }}
+
+                  {% if afastamento_form.data_inicio.help_text %}
+                    <div class="form-text">{{ afastamento_form.data_inicio.help_text }}</div>
+                  {% endif %}
+
+                  {% if afastamento_form.data_inicio.errors %}
+                    {% for error in afastamento_form.data_inicio.errors %}
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <div class="mb-3">
+                  <label class="form-label" for="{{ afastamento_form.data_fim.id_for_label }}">Data fim</label>
+                  {{ afastamento_form.data_fim }}
+
+                  {% if afastamento_form.data_fim.help_text %}
+                    <div class="form-text">{{ afastamento_form.data_fim.help_text }}</div>
+                  {% endif %}
+
+                  {% if afastamento_form.data_fim.errors %}
+                    {% for error in afastamento_form.data_fim.errors %}
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="col-12">
+                <div class="mb-3">
+                  <label class="form-label" for="{{ afastamento_form.motivo.id_for_label }}">Motivo</label>
+                  {{ afastamento_form.motivo }}
+
+                  {% if afastamento_form.motivo.help_text %}
+                    <div class="form-text">{{ afastamento_form.motivo.help_text }}</div>
+                  {% endif %}
+
+                  {% if afastamento_form.motivo.errors %}
+                    {% for error in afastamento_form.motivo.errors %}
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="col-12">
+                <div class="mb-3 clarus-file-input">
+                  <label class="form-label" for="{{ afastamento_form.arquivo.id_for_label }}">Arquivo</label>
+                  <div class="clarus-file-input-box">
+                    <div class="small text-muted">Envie o atestado ou documento relacionado.</div>
+                    {{ afastamento_form.arquivo }}
+                  </div>
+
+                  {% if afastamento_form.arquivo.help_text %}
+                    <div class="form-text">{{ afastamento_form.arquivo.help_text }}</div>
+                  {% endif %}
+
+                  {% if afastamento_form.arquivo.errors %}
+                    {% for error in afastamento_form.arquivo.errors %}
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex gap-2 justify-content-end mt-3">
+              <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+              <button class="btn btn-primary" type="submit">Salvar</button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
@@ -150,7 +655,96 @@
 
   <script>
     (function () {
+      function setFieldError(field, message) {
+        if (!field) {
+          return;
+        }
+        field.setCustomValidity(message || "");
+        field.classList.toggle("is-invalid", Boolean(message));
+        var container = field.closest(".mb-3");
+        if (!container) {
+          return;
+        }
+        var existing = container.querySelector(".js-date-error");
+        if (message) {
+          if (!existing) {
+            existing = document.createElement("div");
+            existing.className = "invalid-feedback d-block js-date-error";
+            container.appendChild(existing);
+          }
+          existing.textContent = message;
+        } else if (existing) {
+          existing.remove();
+        }
+      }
+
+      function validateDates(form) {
+        var dataInicio = form.querySelector("[name='data_inicio']");
+        var dataFim = form.querySelector("[name='data_fim']");
+        if (!dataInicio || !dataFim) {
+          return true;
+        }
+        var inicio = dataInicio.value;
+        var fim = dataFim.value;
+        if (inicio && fim && inicio > fim) {
+          setFieldError(dataFim, "Data fim deve ser maior ou igual a data inicio.");
+          return false;
+        }
+        setFieldError(dataFim, "");
+        return true;
+      }
+
+      function bindAfastamentoDateValidation(form) {
+        if (form.dataset.dateValidationBound) {
+          return;
+        }
+        form.dataset.dateValidationBound = "1";
+        var dataInicio = form.querySelector("[name='data_inicio']");
+        var dataFim = form.querySelector("[name='data_fim']");
+        if (dataInicio) {
+          dataInicio.addEventListener("change", function () {
+            validateDates(form);
+          });
+        }
+        if (dataFim) {
+          dataFim.addEventListener("change", function () {
+            validateDates(form);
+          });
+        }
+        form.addEventListener("submit", function (event) {
+          if (!validateDates(form)) {
+            event.preventDefault();
+            dataFim.reportValidity();
+          }
+        });
+      }
+
+      function initAfastamentoDateValidation() {
+        var forms = document.querySelectorAll(
+          "#afastamentoModal form, [id^='afastamentoEditModal-'] form"
+        );
+        forms.forEach(function (form) {
+          bindAfastamentoDateValidation(form);
+        });
+      }
+
+      window.initAfastamentoDateValidation = initAfastamentoDateValidation;
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initAfastamentoDateValidation);
+      } else {
+        initAfastamentoDateValidation();
+      }
+    })();
+  </script>
+
+  <script>
+    (function () {
       function bindAfastamentoForm(form) {
+        if (form.dataset.afastamentoBound) {
+          return;
+        }
+        form.dataset.afastamentoBound = "1";
         form.addEventListener("submit", function (event) {
           event.preventDefault();
           var modalBody = form.closest(".modal-body");
@@ -161,27 +755,39 @@
             headers: { "X-Requested-With": "XMLHttpRequest" },
           })
             .then(function (response) {
-              return response.json().then(function (data) {
-                return { ok: response.ok, data: data };
-              });
+              return response
+                .json()
+                .then(function (data) {
+                  return { ok: response.ok, data: data };
+                })
+                .catch(function () {
+                  return { ok: response.ok, data: null };
+                });
             })
             .then(function (result) {
-              if (!result.ok || !result.data.ok) {
-                if (modalBody && result.data.form_html) {
+              if (!result.ok || !result.data || !result.data.ok) {
+                if (modalBody && result.data && result.data.form_html) {
                   modalBody.innerHTML = result.data.form_html;
                   var newForm = modalBody.querySelector("form");
                   if (newForm) {
                     bindAfastamentoForm(newForm);
-                  }
-                  if (window.initToasts) {
-                    window.initToasts();
+                    bindAfastamentoDateValidation(newForm);
                   }
                 }
                 return;
               }
 
+              function hideModalById(modalId) {
+                var modalEl = document.getElementById(modalId);
+                if (modalEl && window.bootstrap) {
+                  var instance =
+                    bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
+                  instance.hide();
+                }
+              }
+
               if (result.data.action === "create") {
-                var tbody = document.querySelector(".table tbody");
+                var tbody = document.querySelector("#pane-afastamentos tbody");
                 if (tbody) {
                   var emptyRow = tbody.querySelector("tr td.text-muted");
                   if (emptyRow) {
@@ -189,19 +795,14 @@
                   }
                   tbody.insertAdjacentHTML("afterbegin", result.data.row_html);
                 }
+                hideModalById("afastamentoModal");
                 if (modalBody && result.data.form_html) {
                   modalBody.innerHTML = result.data.form_html;
                   var refreshedForm = modalBody.querySelector("form");
                   if (refreshedForm) {
                     bindAfastamentoForm(refreshedForm);
+                    bindAfastamentoDateValidation(refreshedForm);
                   }
-                  if (window.initToasts) {
-                    window.initToasts();
-                  }
-                }
-                var createModalEl = document.getElementById("afastamentoModal");
-                if (createModalEl && window.bootstrap) {
-                  bootstrap.Modal.getInstance(createModalEl).hide();
                 }
                 return;
               }
@@ -211,10 +812,7 @@
                 if (row) {
                   row.outerHTML = result.data.row_html;
                 }
-                var modalEl = document.getElementById("afastamentoEditModal-" + result.data.row_id);
-                if (modalEl && window.bootstrap) {
-                  bootstrap.Modal.getInstance(modalEl).hide();
-                }
+                hideModalById("afastamentoEditModal-" + result.data.row_id);
               }
             })
             .catch(function () {
@@ -232,6 +830,8 @@
         });
       }
 
+      window.initAfastamentoForms = initAfastamentoForms;
+
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", initAfastamentoForms);
       } else {
@@ -239,4 +839,141 @@
       }
     })();
   </script>
+
+  <script>
+    (function () {
+      function updateAfastamentosSection(url, section, fallbackForm) {
+        fetch(url.toString(), { headers: { "X-Requested-With": "XMLHttpRequest" } })
+          .then(function (response) {
+            return response.text().then(function (html) {
+              return { ok: response.ok, html: html };
+            });
+          })
+          .then(function (result) {
+            if (!result.ok) {
+              if (fallbackForm) {
+                fallbackForm.submit();
+              } else {
+                window.location.href = url.toString();
+              }
+              return;
+            }
+            var parser = new DOMParser();
+            var doc = parser.parseFromString(result.html, "text/html");
+            var nextSection = doc.querySelector("[data-afastamentos-section]");
+            if (!nextSection) {
+              if (fallbackForm) {
+                fallbackForm.submit();
+              } else {
+                window.location.href = url.toString();
+              }
+              return;
+            }
+            section.innerHTML = nextSection.innerHTML;
+            bindAfastamentosFilters();
+            var nextModals = doc.querySelector("[data-afastamentos-modals]");
+            var modals = document.querySelector("[data-afastamentos-modals]");
+            if (nextModals && modals) {
+              modals.innerHTML = nextModals.innerHTML;
+            }
+            if (window.initAfastamentoForms) {
+              window.initAfastamentoForms();
+            }
+            if (window.initAfastamentoDateValidation) {
+              window.initAfastamentoDateValidation();
+            }
+            if (window.history && window.history.pushState) {
+              window.history.pushState({}, "", url.toString());
+            }
+          })
+          .catch(function () {
+            if (fallbackForm) {
+              fallbackForm.submit();
+            } else {
+              window.location.href = url.toString();
+            }
+          });
+      }
+
+      function bindAfastamentosFilters() {
+        var section = document.querySelector("[data-afastamentos-section]");
+        if (!section) {
+          return;
+        }
+        var form = section.querySelector("form");
+        if (!form) {
+          return;
+        }
+
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          var url = new URL(form.action || window.location.href);
+          var formData = new FormData(form);
+          url.search = new URLSearchParams(formData).toString();
+
+          updateAfastamentosSection(url, section, form);
+        });
+
+        section.addEventListener("click", function (event) {
+          var paginationLink = event.target.closest("[data-afastamentos-pagination] a.page-link");
+          if (paginationLink) {
+            event.preventDefault();
+            var pageUrl = new URL(window.location.href);
+            var targetUrl = new URL(paginationLink.getAttribute("href"), window.location.href);
+            var page = targetUrl.searchParams.get("page");
+            if (page) {
+              pageUrl.searchParams.set("page", page);
+            } else {
+              pageUrl.searchParams.delete("page");
+            }
+            updateAfastamentosSection(pageUrl, section, null);
+            return;
+          }
+          var link = event.target.closest("a");
+          if (!link) {
+            return;
+          }
+          if (link.getAttribute("href") !== "?") {
+            return;
+          }
+          event.preventDefault();
+          var url = new URL(window.location.href);
+          url.search = "";
+          updateAfastamentosSection(url, section, null);
+        });
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", bindAfastamentosFilters);
+      } else {
+        bindAfastamentosFilters();
+      }
+    })();
+  </script>
+
+  <script>
+    (function () {
+      var filterText = document.getElementById("treinamentos-filter-text");
+      var filterStatus = document.getElementById("treinamentos-filter-status");
+      var tableBody = document.getElementById("treinamentos-table-body");
+      if (!filterText || !filterStatus || !tableBody) {
+        return;
+      }
+      function applyFilters() {
+        var textValue = (filterText.value || "").trim().toLowerCase();
+        var statusValue = (filterStatus.value || "").trim().toLowerCase();
+        var rows = tableBody.querySelectorAll("tr[data-nome]");
+        rows.forEach(function (row) {
+          var nome = row.getAttribute("data-nome") || "";
+          var status = row.getAttribute("data-status") || "";
+          var matchesText = !textValue || nome.indexOf(textValue) !== -1;
+          var matchesStatus = !statusValue || status === statusValue;
+          row.style.display = matchesText && matchesStatus ? "" : "none";
+        });
+      }
+      filterText.addEventListener("input", applyFilters);
+      filterStatus.addEventListener("change", applyFilters);
+    })();
+  </script>
+
 {% endblock %}

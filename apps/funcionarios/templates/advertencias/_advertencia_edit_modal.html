@@ -1,0 +1,13 @@
+<div class="modal fade" id="editModal-{{ advertencia.pk }}" tabindex="-1" aria-labelledby="editModalLabel-{{ advertencia.pk }}" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editModalLabel-{{ advertencia.pk }}">Editar advertencia</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body" data-advertencia-modal-body data-row-id="{{ advertencia.pk }}">
+        {% include "components/_form.html" with form=form form_action=update_url %}
+      </div>
+    </div>
+  </div>
+</div>

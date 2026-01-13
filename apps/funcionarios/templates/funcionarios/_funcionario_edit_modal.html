@@ -1,0 +1,13 @@
+<div class="modal fade" id="editModal-{{ funcionario.pk }}" tabindex="-1" aria-labelledby="editModalLabel-{{ funcionario.pk }}" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editModalLabel-{{ funcionario.pk }}">Editar</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body" data-funcionario-modal-body data-row-id="{{ funcionario.pk }}">
+        {% include "funcionarios/_funcionario_form.html" with form=form form_action=update_url accordion_id="funcionarioFormEdit-"|add:funcionario.pk form_id="funcionarioFormEdit-"|add:funcionario.pk|add:"-form" %}
+      </div>
+    </div>
+  </div>
+</div>

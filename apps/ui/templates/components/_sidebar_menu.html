@@ -1,0 +1,36 @@
+<div id="sidebarAccordion">
+{% for section in sections %}
+  {% if section.type == "link" %}
+    <a class="nav-link {% if section.active %}active{% endif %}" href="{{ section.url }}">
+      <i class="bi {{ section.icon }}"></i><span class="sidebar-label">{{ section.label }}</span>
+    </a>
+  {% elif section.type == "group" %}
+    <div class="sidebar-group">
+      <a
+        class="nav-link text-start d-flex align-items-center gap-2"
+        href="#{{ section.id }}"
+        role="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#{{ section.id }}"
+        aria-expanded="{% if section.expanded %}true{% else %}false{% endif %}"
+      >
+        <i class="bi {{ section.icon }}"></i><span class="sidebar-label">{{ section.label }}</span>
+        <i class="bi bi-chevron-down ms-auto sidebar-label sidebar-chevron"></i>
+      </a>
+      <div class="collapse{% if section.expanded %} show{% endif %}" id="{{ section.id }}" data-bs-parent="#sidebarAccordion">
+        {% for item in section.items %}
+          <a class="nav-link ms-3 {% if item.active %}active{% endif %}" href="{{ item.url }}">
+            <i class="bi {{ item.icon }}"></i><span class="sidebar-label">{{ item.label }}</span>
+          </a>
+        {% endfor %}
+      </div>
+      <div class="sidebar-flyout" aria-hidden="true">
+        <div class="sidebar-flyout-title">{{ section.label }}</div>
+        {% for item in section.items %}
+          <a class="sidebar-flyout-link" href="{{ item.url }}">{{ item.label }}</a>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+{% endfor %}
+</div>

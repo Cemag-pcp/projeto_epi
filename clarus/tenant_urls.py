@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
 
@@ -14,4 +16,12 @@ urlpatterns = [
     path("", include(("apps.produtos.urls", "produtos"), namespace="produtos")),
     path("", include(("apps.depositos.urls", "depositos"), namespace="depositos")),
     path("", include(("apps.estoque.urls", "estoque"), namespace="estoque")),
+    path("", include(("apps.entregas.urls", "entregas"), namespace="entregas")),
+    path("", include(("apps.treinamentos.urls", "treinamentos"), namespace="treinamentos")),
+    path("", include(("apps.acessos.urls", "acessos"), namespace="acessos")),
+    path("", include(("apps.accounts.urls", "accounts"), namespace="accounts")),
+    path("", include(("apps.relatorios.urls", "relatorios"), namespace="relatorios")),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

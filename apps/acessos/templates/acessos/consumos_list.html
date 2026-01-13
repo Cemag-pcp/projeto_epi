@@ -1,0 +1,304 @@
+{% extends "layout/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+  {% include "components/_alerts.html" %}
+  {% include "components/_page_header.html" with title=title subtitle=subtitle create_url=create_url %}
+  {% if filters %}
+    <div data-consumo-filters>
+      {% include "components/_filters.html" with filters=filters %}
+    </div>
+  {% endif %}
+  <div data-consumo-table>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            {% for header in headers %}
+              <th scope="col">{{ header }}</th>
+            {% endfor %}
+            <th scope="col" class="text-end">Acoes</th>
+          </tr>
+        </thead>
+        <tbody data-consumo-rows>
+          {% for object in object_list %}
+            {% include "acessos/_consumo_row.html" with consumo=object row_fields=row_fields %}
+          {% empty %}
+            <tr>
+              <td colspan="{{ headers|length|add:1 }}" class="text-muted text-center py-4">Sem registros</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div data-consumo-pagination>
+    {% include "components/_pagination.html" with page_obj=page_obj %}
+  </div>
+
+  {% if create_form %}
+    <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="createModalLabel">Novo</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body" data-consumo-modal-body data-row-id="">
+            {% include "components/_form.html" with form=create_form form_action=create_url %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <div data-consumo-modals>
+    {% for row in edit_rows %}
+      {% include "acessos/_consumo_edit_modal.html" with consumo=row.object form=row.form update_url=row.update_url %}
+    {% endfor %}
+  </div>
+
+  <script>
+    (function () {
+      var endpoint = "{% url 'acessos:terceiros_por_empresa' %}";
+
+      function loadTerceiros(selectEmpresa, selectTerceiro) {
+        if (!selectEmpresa || !selectTerceiro) {
+          return;
+        }
+        var empresaId = selectEmpresa.value;
+        var current = selectTerceiro.value;
+        var url = endpoint + "?empresa_id=" + encodeURIComponent(empresaId || "");
+        fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+          .then(function (response) { return response.json(); })
+          .then(function (data) {
+            selectTerceiro.innerHTML = "";
+            var emptyOption = document.createElement("option");
+            emptyOption.value = "";
+            emptyOption.textContent = "---------";
+            selectTerceiro.appendChild(emptyOption);
+            if (data && data.items) {
+              data.items.forEach(function (item) {
+                var option = document.createElement("option");
+                option.value = item.id;
+                option.textContent = item.label;
+                selectTerceiro.appendChild(option);
+              });
+            }
+            if (current) {
+              selectTerceiro.value = current;
+            }
+          })
+          .catch(function () {});
+      }
+
+      function bindEmpresaSelect(form) {
+        var empresaSelect = form.querySelector("select[name$='empresa_parceira']");
+        var terceiroSelect = form.querySelector("select[name$='terceiro']");
+        if (!empresaSelect || !terceiroSelect) {
+          return;
+        }
+        empresaSelect.addEventListener("change", function () {
+          loadTerceiros(empresaSelect, terceiroSelect);
+        });
+        if (!terceiroSelect.value && empresaSelect.value) {
+          loadTerceiros(empresaSelect, terceiroSelect);
+        }
+      }
+
+      function refreshList(url) {
+        fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+          .then(function (response) { return response.text(); })
+          .then(function (html) {
+            var parser = new DOMParser();
+            var doc = parser.parseFromString(html, "text/html");
+            var newFilters = doc.querySelector("[data-consumo-filters]");
+            var newTable = doc.querySelector("[data-consumo-table]");
+            var newPagination = doc.querySelector("[data-consumo-pagination]");
+            var newModals = doc.querySelector("[data-consumo-modals]");
+            var filtersContainer = document.querySelector("[data-consumo-filters]");
+            var tableContainer = document.querySelector("[data-consumo-table]");
+            var paginationContainer = document.querySelector("[data-consumo-pagination]");
+            var modalsContainer = document.querySelector("[data-consumo-modals]");
+            if (newFilters && filtersContainer) {
+              filtersContainer.innerHTML = newFilters.innerHTML;
+            }
+            if (newTable && tableContainer) {
+              tableContainer.innerHTML = newTable.innerHTML;
+            }
+            if (newPagination && paginationContainer) {
+              paginationContainer.innerHTML = newPagination.innerHTML;
+            }
+            if (newModals && modalsContainer) {
+              modalsContainer.innerHTML = newModals.innerHTML;
+            }
+            bindPagination(document);
+            bindFilters(document);
+            initForms();
+            bindEmpresaSelects();
+          })
+          .catch(function () {
+            window.location.href = url;
+          });
+      }
+
+      function bindPagination(root) {
+        var links = (root || document).querySelectorAll("[data-consumo-pagination] a.page-link");
+        links.forEach(function (link) {
+          link.addEventListener("click", function (event) {
+            event.preventDefault();
+            var url = link.getAttribute("href");
+            if (!url) {
+              return;
+            }
+            refreshList(url);
+          });
+        });
+      }
+
+      function bindFilters(root) {
+        var container = (root || document).querySelector("[data-consumo-filters]");
+        if (!container) {
+          return;
+        }
+        var form = container.querySelector("form");
+        if (form) {
+          form.addEventListener("submit", function (event) {
+            event.preventDefault();
+            var url = form.action || window.location.href;
+            var params = new URLSearchParams(new FormData(form));
+            var targetUrl = url.split("?")[0] + "?" + params.toString();
+            refreshList(targetUrl);
+          });
+        }
+        var clearLink = container.querySelector("a.btn.btn-link");
+        if (clearLink) {
+          clearLink.addEventListener("click", function (event) {
+            event.preventDefault();
+            var url = clearLink.getAttribute("href") || "?";
+            refreshList(url);
+          });
+        }
+      }
+
+      function bindConsumoForm(form) {
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          var modalBody = form.closest("[data-consumo-modal-body]");
+          var rowId = modalBody ? modalBody.getAttribute("data-row-id") : null;
+          var formData = new FormData(form);
+          fetch(form.action, {
+            method: "POST",
+            body: formData,
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          })
+            .then(function (response) {
+              return response
+                .json()
+                .then(function (data) {
+                  return { ok: response.ok, data: data };
+                })
+                .catch(function () {
+                  return { ok: response.ok, data: null };
+                });
+            })
+            .then(function (result) {
+              if (!result.ok || !result.data || !result.data.ok) {
+                if (modalBody && result.data && result.data.form_html) {
+                  modalBody.innerHTML = result.data.form_html;
+                  var newForm = modalBody.querySelector("form");
+                  if (newForm) {
+                    bindConsumoForm(newForm);
+                    bindEmpresaSelect(newForm);
+                  }
+                }
+                return;
+              }
+
+              if (result.data.action === "create") {
+                var tbody = document.querySelector("[data-consumo-rows]");
+                if (tbody) {
+                  var emptyRow = tbody.querySelector("td.text-muted");
+                  if (emptyRow) {
+                    emptyRow.parentElement.remove();
+                  }
+                  tbody.insertAdjacentHTML("afterbegin", result.data.row_html);
+                }
+                if (result.data.edit_modal_html) {
+                  var modalsContainer = document.querySelector("[data-consumo-modals]");
+                  if (modalsContainer) {
+                    modalsContainer.insertAdjacentHTML("beforeend", result.data.edit_modal_html);
+                    var editForm = modalsContainer.querySelector(
+                      "#editModal-" + result.data.row_id + " form"
+                    );
+                    if (editForm) {
+                      bindConsumoForm(editForm);
+                      bindEmpresaSelect(editForm);
+                    }
+                  }
+                }
+                if (modalBody && result.data.form_html) {
+                  modalBody.innerHTML = result.data.form_html;
+                  var refreshedForm = modalBody.querySelector("form");
+                  if (refreshedForm) {
+                    bindConsumoForm(refreshedForm);
+                    bindEmpresaSelect(refreshedForm);
+                  }
+                }
+                var modalEl = document.getElementById("createModal");
+                if (modalEl && window.bootstrap) {
+                  bootstrap.Modal.getInstance(modalEl).hide();
+                }
+                return;
+              }
+
+              if (result.data.action === "update" && result.data.row_id) {
+                var row = document.getElementById("consumo-row-" + result.data.row_id);
+                if (row) {
+                  row.outerHTML = result.data.row_html;
+                }
+                if (rowId) {
+                  var editModalEl = document.getElementById("editModal-" + rowId);
+                  if (editModalEl && window.bootstrap) {
+                    bootstrap.Modal.getInstance(editModalEl).hide();
+                  }
+                }
+              }
+            })
+            .catch(function () {
+              form.submit();
+            });
+        });
+      }
+
+      function initForms() {
+        var forms = document.querySelectorAll("#createModal form, [id^='editModal-'] form");
+        forms.forEach(function (form) {
+          bindConsumoForm(form);
+        });
+      }
+
+      function bindEmpresaSelects() {
+        var forms = document.querySelectorAll("#createModal form, [id^='editModal-'] form");
+        forms.forEach(function (form) {
+          bindEmpresaSelect(form);
+        });
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", function () {
+          initForms();
+          bindEmpresaSelects();
+          bindPagination(document);
+          bindFilters(document);
+        });
+      } else {
+        initForms();
+        bindEmpresaSelects();
+        bindPagination(document);
+        bindFilters(document);
+      }
+    })();
+  </script>
+{% endblock %}

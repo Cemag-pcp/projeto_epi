@@ -1,0 +1,7 @@
+{% for object in object_list %}
+  {% include "produtos/_produto_row.html" with produto=object %}
+{% empty %}
+  <tr>
+    <td colspan="{{ headers|length|add:1 }}" class="text-muted text-center py-4">Sem registros</td>
+  </tr>
+{% endfor %}

@@ -1,0 +1,7 @@
+{% for object in object_list %}
+  {% include "funcionarios/_funcionario_row.html" with funcionario=object %}
+{% empty %}
+  <tr>
+    <td colspan="6" class="text-muted text-center py-4">Sem registros</td>
+  </tr>
+{% endfor %}

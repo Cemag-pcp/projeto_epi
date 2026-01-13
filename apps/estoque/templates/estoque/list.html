@@ -27,21 +27,32 @@
             <td>{{ item.produto }}</td>
             <td>{{ item.deposito }}</td>
             <td>{{ item.quantidade }}</td>
-            <td>
-              {% if item.quantidade|floatformat:2 == "0.00" or item.quantidade <= 0 %}
-                <span class="text-danger" title="Estoque zerado"><i class="bi bi-exclamation-octagon-fill"></i></span>
-              {% elif item.quantidade <= 5 %}
-                <span class="text-warning" title="Estoque baixo"><i class="bi bi-exclamation-triangle-fill"></i></span>
-              {% else %}
-                <span class="text-success" title="Estoque ok"><i class="bi bi-check-circle-fill"></i></span>
-              {% endif %}
-            </td>
-            <td class="text-end">
-              <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#movModal-{{ item.pk }}">
-                Movimentar
+          <td>
+            {% if item.quantidade|floatformat:2 == "0.00" or item.quantidade <= 0 %}
+              <span class="text-danger" title="Estoque zerado"><i class="bi bi-exclamation-octagon-fill"></i></span>
+            {% elif item.quantidade <= 5 %}
+              <span class="text-warning" title="Estoque baixo"><i class="bi bi-exclamation-triangle-fill"></i></span>
+            {% else %}
+              <span class="text-success" title="Estoque ok"><i class="bi bi-check-circle-fill"></i></span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            {% if perms.estoque.add_movimentacaoestoque %}
+              <button
+                class="btn btn-outline-primary btn-icon"
+                type="button"
+                data-bs-toggle="modal"
+                data-bs-target="#movModal-{{ item.pk }}"
+                title="Movimentar"
+                aria-label="Movimentar"
+              >
+                <i class="bi bi-arrow-left-right"></i>
               </button>
-            </td>
-          </tr>
+            {% else %}
+              <span class="text-muted">-</span>
+            {% endif %}
+          </td>
+        </tr>
         {% empty %}
           <tr>
             <td colspan="5" class="text-muted text-center py-4">Sem registros</td>

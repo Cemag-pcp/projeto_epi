@@ -1,0 +1,13 @@
+<div class="modal fade" id="riscoEditModal-{{ risco.pk }}" tabindex="-1" aria-labelledby="riscoEditModalLabel-{{ risco.pk }}" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="riscoEditModalLabel-{{ risco.pk }}">Editar risco</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body" data-risco-modal-body="edit" data-risco-row-id="{{ risco.pk }}"{% if funcionario %} data-funcionario-id="{{ funcionario.pk }}"{% endif %}{% if show_delete %} data-show-delete="1"{% endif %}>
+        {% include "components/_form.html" with form=form form_action=update_url %}
+      </div>
+    </div>
+  </div>
+</div>

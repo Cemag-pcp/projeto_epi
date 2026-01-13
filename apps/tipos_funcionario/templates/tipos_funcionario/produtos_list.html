@@ -1,0 +1,501 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Produtos por tipo de funcionario{% endblock %}
+
+{% block content %}
+  {% include "components/_alerts.html" %}
+  {% include "components/_page_header.html" with title=title subtitle=subtitle create_url=create_url %}
+  {% if filters %}
+    <div data-tipo-produto-filters>
+      {% include "components/_filters.html" with filters=filters %}
+    </div>
+  {% endif %}
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          {% for header in headers %}
+            <th scope="col">{{ header }}</th>
+          {% endfor %}
+          <th scope="col" class="text-end">Acoes</th>
+        </tr>
+      </thead>
+      <tbody data-tipo-produto-rows>
+        {% for object in object_list %}
+          {% include "tipos_funcionario/_tipo_funcionario_produto_row.html" with vinculo=object %}
+        {% empty %}
+          <tr>
+            <td colspan="{{ headers|length|add:1 }}" class="text-muted text-center py-4">Sem registros</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div data-tipo-produto-pagination>
+    {% include "components/_pagination.html" with page_obj=page_obj %}
+  </div>
+
+  {% if create_form %}
+    <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="createModalLabel">Novo vinculo</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body" data-tipo-produto-modal-body data-row-id="">
+            <div data-tipo-produto-form>
+              {% include "components/_form.html" with form=create_form form_action=create_url form_id="tipo-produto-form" form_hide_actions=True %}
+            </div>
+            <div class="mt-4">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <h6 class="mb-0">Itens adicionados</h6>
+                <button
+                  class="btn btn-outline-primary btn-icon"
+                  type="button"
+                  data-tipo-produto-add-item
+                  title="Adicionar item"
+                  aria-label="Adicionar item"
+                >
+                  <i class="bi bi-plus"></i>
+                </button>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Tipo</th>
+                      <th>Produto / CA</th>
+                      <th class="text-end">Acoes</th>
+                    </tr>
+                  </thead>
+                  <tbody data-tipo-produto-items>
+                    <tr>
+                      <td colspan="3" class="text-muted text-center py-3">Nenhum item adicionado</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="d-flex gap-2 justify-content-end mt-3">
+              <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+              <button class="btn btn-primary" type="submit" form="tipo-produto-form">Salvar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <div data-tipo-produto-modals>
+    {% for row in edit_rows %}
+      {% include "tipos_funcionario/_tipo_funcionario_produto_edit_modal.html" with vinculo=row.object form=row.form update_url=row.update_url %}
+    {% endfor %}
+  </div>
+
+  {% include "components/_confirm_modal.html" with id="tipoProdutoDeleteModal" title_id="tipoProdutoDeleteModalLabel" title="Excluir vinculo" body="Deseja excluir este vinculo?" confirm_text="Excluir" confirm_class="btn-danger" confirm_button_id="tipo-produto-delete-confirm" %}
+
+  <script>
+    (function () {
+      function bindTipoProdutoForm(form) {
+        var modalBody = form.closest("[data-tipo-produto-modal-body]");
+        var items = [];
+        if (modalBody && modalBody.dataset.items) {
+          try {
+            items = JSON.parse(modalBody.dataset.items) || [];
+          } catch (error) {
+            items = [];
+          }
+        }
+
+        function ensurePayloadInput() {
+          var input = form.querySelector("input[name='itens_payload']");
+          if (!input) {
+            input = document.createElement("input");
+            input.type = "hidden";
+            input.name = "itens_payload";
+            form.appendChild(input);
+          }
+          return input;
+        }
+
+        function renderItems() {
+          var tbody = modalBody ? modalBody.querySelector("[data-tipo-produto-items]") : null;
+          if (!tbody) {
+            return;
+          }
+          if (modalBody) {
+            modalBody.dataset.items = JSON.stringify(items);
+          }
+          if (!items.length) {
+            tbody.innerHTML =
+              '<tr><td colspan="3" class="text-muted text-center py-3">Nenhum item adicionado</td></tr>';
+            return;
+          }
+          tbody.innerHTML = items
+            .map(function (item, index) {
+              return (
+                "<tr>" +
+                "<td>" +
+                item.tipo_label +
+                "</td>" +
+                "<td>" +
+                item.produto_label +
+                "</td>" +
+                '<td class="text-end">' +
+                '<button class="btn btn-outline-danger btn-icon" type="button" data-tipo-produto-remove="' +
+                index +
+                '" title="Remover" aria-label="Remover"><i class="bi bi-trash"></i></button>' +
+                "</td>" +
+                "</tr>"
+              );
+            })
+            .join("");
+        }
+
+        function bindRemoveButtons() {
+          var tbody = modalBody ? modalBody.querySelector("[data-tipo-produto-items]") : null;
+          if (!tbody) {
+            return;
+          }
+          var token = String(Date.now()) + Math.random().toString(16).slice(2);
+          tbody.dataset.boundToken = token;
+          tbody.addEventListener("click", function (event) {
+            if (tbody.dataset.boundToken !== token) {
+              return;
+            }
+            var target = event.target;
+            if (!target || !target.hasAttribute("data-tipo-produto-remove")) {
+              return;
+            }
+            var index = parseInt(target.getAttribute("data-tipo-produto-remove"), 10);
+            if (isNaN(index)) {
+              return;
+            }
+            items.splice(index, 1);
+            renderItems();
+          });
+        }
+
+        function bindAddButton() {
+          var addButton = modalBody ? modalBody.querySelector("[data-tipo-produto-add-item]") : null;
+          if (!addButton) {
+            return;
+          }
+          var token = String(Date.now()) + Math.random().toString(16).slice(2);
+          addButton.dataset.boundToken = token;
+          addButton.addEventListener("click", function () {
+            if (addButton.dataset.boundToken !== token) {
+              return;
+            }
+            var tipoField = form.querySelector("[name='tipo_funcionario']");
+            var produtoField = form.querySelector("[name='produto_fornecedor']");
+            if (!tipoField || !produtoField) {
+              return;
+            }
+            if (!tipoField.value || !produtoField.value) {
+              window.alert("Selecione o tipo e o produto.");
+              return;
+            }
+            var exists = items.some(function (item) {
+              return (
+                String(item.tipo_funcionario_id) === String(tipoField.value) &&
+                String(item.produto_fornecedor_id) === String(produtoField.value)
+              );
+            });
+            if (exists) {
+              window.alert("Item ja adicionado na lista.");
+              return;
+            }
+            items.push({
+              tipo_funcionario_id: tipoField.value,
+              tipo_label: tipoField.options[tipoField.selectedIndex].text,
+              produto_fornecedor_id: produtoField.value,
+              produto_label: produtoField.options[produtoField.selectedIndex].text,
+            });
+            renderItems();
+          });
+        }
+
+        bindAddButton();
+        bindRemoveButtons();
+        renderItems();
+
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          var rowId = modalBody ? modalBody.getAttribute("data-row-id") : null;
+          var formData = new FormData(form);
+          if (items.length) {
+            ensurePayloadInput().value = JSON.stringify(items);
+            formData.set("itens_payload", JSON.stringify(items));
+          } else {
+            var payloadInput = form.querySelector("input[name='itens_payload']");
+            if (payloadInput) {
+              payloadInput.value = "";
+            }
+            formData.delete("itens_payload");
+          }
+          fetch(form.action, {
+            method: "POST",
+            body: formData,
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          })
+            .then(function (response) {
+              return response
+                .json()
+                .then(function (data) {
+                  return { ok: response.ok, data: data };
+                })
+                .catch(function () {
+                  return { ok: response.ok, data: null };
+                });
+            })
+            .then(function (result) {
+              if (!result.ok || !result.data || !result.data.ok) {
+                if (modalBody && result.data && result.data.form_html) {
+                  if (modalBody) {
+                    modalBody.dataset.items = JSON.stringify(items);
+                  }
+                  var formContainer = modalBody.querySelector("[data-tipo-produto-form]");
+                  if (formContainer) {
+                    formContainer.innerHTML = result.data.form_html;
+                    var newForm = formContainer.querySelector("form");
+                    if (newForm) {
+                      bindTipoProdutoForm(newForm);
+                    }
+                  }
+                }
+                return;
+              }
+
+              if (result.data.action === "create") {
+                var tbody = document.querySelector("[data-tipo-produto-rows]");
+                if (tbody) {
+                  var emptyRow = tbody.querySelector("td.text-muted");
+                  if (emptyRow) {
+                    emptyRow.parentElement.remove();
+                  }
+                  tbody.insertAdjacentHTML("afterbegin", result.data.row_html);
+                }
+                if (result.data.edit_modal_html) {
+                  var modalsContainer = document.querySelector("[data-tipo-produto-modals]");
+                  if (modalsContainer) {
+                    modalsContainer.insertAdjacentHTML("beforeend", result.data.edit_modal_html);
+                    var editForm = modalsContainer.querySelector("#editModal-" + result.data.row_id + " form");
+                    if (editForm) {
+                      bindTipoProdutoForm(editForm);
+                    }
+                  }
+                }
+                if (modalBody && result.data.form_html) {
+                  if (modalBody) {
+                    modalBody.dataset.items = "";
+                  }
+                  var formContainer = modalBody.querySelector("[data-tipo-produto-form]");
+                  if (formContainer) {
+                    formContainer.innerHTML = result.data.form_html;
+                    var refreshedForm = formContainer.querySelector("form");
+                    if (refreshedForm) {
+                      bindTipoProdutoForm(refreshedForm);
+                    }
+                  }
+                }
+                var modalEl = document.getElementById("createModal");
+                if (modalEl && window.bootstrap) {
+                  bootstrap.Modal.getInstance(modalEl).hide();
+                }
+                bindTipoProdutoDelete();
+                return;
+              }
+
+              if (result.data.action === "update" && result.data.row_id) {
+                var row = document.getElementById("tipo-produto-row-" + result.data.row_id);
+                if (row) {
+                  row.outerHTML = result.data.row_html;
+                }
+                if (rowId) {
+                  var editModalEl = document.getElementById("editModal-" + rowId);
+                  if (editModalEl && window.bootstrap) {
+                    bootstrap.Modal.getInstance(editModalEl).hide();
+                  }
+                }
+                bindTipoProdutoDelete();
+              }
+            })
+            .catch(function () {
+              form.submit();
+            });
+        });
+      }
+
+      function initTipoProdutoForms() {
+        var forms = document.querySelectorAll("#createModal form, [id^='editModal-'] form");
+        forms.forEach(function (form) {
+          bindTipoProdutoForm(form);
+        });
+      }
+
+      function updateTipoProdutoTable(html) {
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(html, "text/html");
+        var newRows = doc.querySelector("[data-tipo-produto-rows]");
+        var newPagination = doc.querySelector("[data-tipo-produto-pagination]");
+        var newModals = doc.querySelector("[data-tipo-produto-modals]");
+        var currentRows = document.querySelector("[data-tipo-produto-rows]");
+        var currentPagination = document.querySelector("[data-tipo-produto-pagination]");
+        var currentModals = document.querySelector("[data-tipo-produto-modals]");
+        if (newRows && currentRows) {
+          currentRows.innerHTML = newRows.innerHTML;
+        }
+        if (newPagination && currentPagination) {
+          currentPagination.innerHTML = newPagination.innerHTML;
+        }
+        if (newModals && currentModals) {
+          currentModals.innerHTML = newModals.innerHTML;
+          initTipoProdutoForms();
+        }
+        bindTipoProdutoDelete();
+      }
+
+      function bindTipoProdutoFilters() {
+        var filtersContainer = document.querySelector("[data-tipo-produto-filters]");
+        if (!filtersContainer) {
+          return;
+        }
+        var form = filtersContainer.querySelector("form");
+        var clearLink = filtersContainer.querySelector("a.btn-link");
+        if (!form) {
+          return;
+        }
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          var formData = new FormData(form);
+          var params = new URLSearchParams(formData);
+          var url = "?" + params.toString();
+          fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+            .then(function (response) {
+              return response.text();
+            })
+            .then(function (html) {
+              updateTipoProdutoTable(html);
+            })
+            .catch(function () {
+              form.submit();
+            });
+        });
+
+        if (clearLink) {
+          clearLink.addEventListener("click", function (event) {
+            event.preventDefault();
+            if (form.reset) {
+              form.reset();
+            }
+            fetch(clearLink.getAttribute("href") || "?", {
+              headers: { "X-Requested-With": "XMLHttpRequest" },
+            })
+              .then(function (response) {
+                return response.text();
+              })
+              .then(function (html) {
+                updateTipoProdutoTable(html);
+              })
+              .catch(function () {
+                window.location.href = clearLink.getAttribute("href") || "?";
+              });
+          });
+        }
+      }
+
+      function bindTipoProdutoDelete() {
+        var triggers = document.querySelectorAll(".js-tipo-produto-delete-trigger");
+        triggers.forEach(function (trigger) {
+          trigger.addEventListener("click", function () {
+            var formId = trigger.getAttribute("data-form-id");
+            var confirmBtn = document.getElementById("tipo-produto-delete-confirm");
+            if (!confirmBtn) {
+              return;
+            }
+            confirmBtn.setAttribute("data-form-id", formId || "");
+            var modalEl = document.getElementById("tipoProdutoDeleteModal");
+            if (!modalEl) {
+              return;
+            }
+            var bodyEl = modalEl.querySelector(".modal-body");
+            if (!bodyEl) {
+              return;
+            }
+            var nome = trigger.getAttribute("data-nome") || "vinculo";
+            bodyEl.textContent = "Deseja excluir o vinculo " + nome + "?";
+          });
+        });
+
+        var confirmBtn = document.getElementById("tipo-produto-delete-confirm");
+        if (confirmBtn && !confirmBtn.dataset.bound) {
+          confirmBtn.dataset.bound = "1";
+          confirmBtn.addEventListener("click", function () {
+            var formId = confirmBtn.getAttribute("data-form-id");
+            if (!formId) {
+              return;
+            }
+            var form = document.getElementById(formId);
+            if (!form) {
+              return;
+            }
+            var modalEl = document.getElementById("tipoProdutoDeleteModal");
+            if (modalEl && window.bootstrap) {
+              bootstrap.Modal.getInstance(modalEl).hide();
+            }
+            var formData = new FormData(form);
+            fetch(form.action, {
+              method: "POST",
+              body: formData,
+              headers: { "X-Requested-With": "XMLHttpRequest" },
+            })
+              .then(function (response) {
+                return response
+                  .json()
+                  .then(function (data) {
+                    return { ok: response.ok, data: data };
+                  })
+                  .catch(function () {
+                    return { ok: response.ok, data: null };
+                  });
+              })
+              .then(function (result) {
+                if (!result.ok || !result.data || !result.data.ok) {
+                  form.submit();
+                  return;
+                }
+                var row = document.getElementById("tipo-produto-row-" + result.data.row_id);
+                if (row) {
+                  row.remove();
+                }
+                var tbody = document.querySelector("[data-tipo-produto-rows]");
+                if (tbody && !tbody.querySelector("tr")) {
+                  tbody.innerHTML =
+                    '<tr><td colspan="4" class="text-muted text-center py-4">Sem registros</td></tr>';
+                }
+              })
+              .catch(function () {
+                form.submit();
+              });
+          });
+        }
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", function () {
+          initTipoProdutoForms();
+          bindTipoProdutoFilters();
+          bindTipoProdutoDelete();
+        });
+      } else {
+        initTipoProdutoForms();
+        bindTipoProdutoFilters();
+        bindTipoProdutoDelete();
+      }
+    })();
+  </script>
+{% endblock %}

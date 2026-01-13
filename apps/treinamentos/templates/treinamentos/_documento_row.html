@@ -1,0 +1,52 @@
+<tr>
+  <td>{{ documento.titulo|default:"-" }}</td>
+  <td>{{ documento.get_tipo_display|default:"-" }}</td>
+  <td>
+    {% if documento.ativo %}
+      <span class="badge bg-success-subtle text-success">Ativo</span>
+    {% else %}
+      <span class="badge bg-secondary-subtle text-secondary">Inativo</span>
+    {% endif %}
+  </td>
+  <td>{{ documento.updated_at|date:"d/m/Y H:i" }}</td>
+  <td class="text-end">
+    {% if perms.treinamentos.change_documentotemplate or perms.treinamentos.delete_documentotemplate %}
+      {% if perms.treinamentos.change_documentotemplate %}
+      <button
+        class="btn btn-outline-primary btn-icon"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#editModal-{{ documento.pk }}"
+        title="Editar"
+        aria-label="Editar"
+      >
+        <i class="bi bi-pencil"></i>
+      </button>
+      {% endif %}
+      {% if perms.treinamentos.delete_documentotemplate %}
+        <form
+          class="d-inline"
+          id="documento-delete-{{ documento.pk }}"
+          method="post"
+          action="{% url 'treinamentos:documentos_delete' documento.pk %}"
+        >
+          {% csrf_token %}
+        </form>
+        <button
+          class="btn btn-outline-danger btn-icon js-documento-delete-trigger"
+          type="button"
+          data-bs-toggle="modal"
+          data-bs-target="#documentoDeleteModal"
+          data-form-id="documento-delete-{{ documento.pk }}"
+          data-nome="{{ documento.titulo|escapejs }}"
+          title="Excluir"
+          aria-label="Excluir"
+        >
+          <i class="bi bi-trash"></i>
+        </button>
+      {% endif %}
+    {% else %}
+      <span class="text-muted">-</span>
+    {% endif %}
+  </td>
+</tr>

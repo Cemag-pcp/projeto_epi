@@ -1,3 +1,5 @@
 venv
 /venv
 .venv
+tgg_export_caepi.csv
+tgg_export_caepi.txt

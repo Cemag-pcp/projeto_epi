@@ -1,0 +1,73 @@
+<tr id="risco-row-{{ risco.pk }}">
+  <td>{{ risco.nome }}</td>
+  <td>{{ risco.get_nivel_display }}</td>
+  <td>
+    <span class="badge {% if risco.ativo %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+      {{ risco.ativo|yesno:"Ativo,Inativo" }}
+    </span>
+  </td>
+  <td class="text-end">
+    {% if perms.funcionarios.change_risco or perms.funcionarios.delete_risco or show_unassign and funcionario and perms.funcionarios.change_funcionario %}
+      <div class="d-inline-flex gap-2">
+        {% if perms.funcionarios.change_risco %}
+          <button
+            class="btn btn-outline-primary btn-icon"
+            type="button"
+            data-bs-toggle="modal"
+            data-bs-target="#riscoEditModal-{{ risco.pk }}"
+            title="Editar"
+            aria-label="Editar"
+          >
+            <i class="bi bi-pencil"></i>
+          </button>
+        {% endif %}
+        {% if show_unassign and funcionario and perms.funcionarios.change_funcionario %}
+          <form
+            class="js-risco-unassign"
+            id="risco-unassign-{{ funcionario.pk }}-{{ risco.pk }}"
+            method="post"
+            action="{% url 'funcionarios:riscos_unassign' funcionario.pk risco.pk %}"
+          >
+            {% csrf_token %}
+          </form>
+          <button
+            class="btn btn-outline-danger btn-icon js-risco-unassign-trigger"
+            type="button"
+            data-bs-toggle="modal"
+            data-bs-target="#riscoUnassignModal"
+            data-form-id="risco-unassign-{{ funcionario.pk }}-{{ risco.pk }}"
+            title="Excluir"
+            aria-label="Excluir"
+          >
+            <i class="bi bi-trash"></i>
+          </button>
+        {% endif %}
+        {% if show_delete and perms.funcionarios.delete_risco %}
+          <form
+            class="js-risco-delete"
+            id="risco-delete-{{ risco.pk }}"
+            method="post"
+            action="{% url 'funcionarios:riscos_delete' risco.pk %}"
+          >
+            {% csrf_token %}
+          </form>
+          <button
+            class="btn btn-outline-danger btn-icon js-risco-delete-trigger"
+            type="button"
+            data-bs-toggle="modal"
+            data-bs-target="#riscoDeleteModal"
+            data-form-id="risco-delete-{{ risco.pk }}"
+            data-func-count="{{ risco.funcionarios.count }}"
+            data-func-names='[{% for funcionario in risco.funcionarios.all %}"{{ funcionario.nome|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}]'
+            title="Excluir"
+            aria-label="Excluir"
+          >
+            <i class="bi bi-trash"></i>
+          </button>
+        {% endif %}
+      </div>
+    {% else %}
+      <span class="text-muted">-</span>
+    {% endif %}
+  </td>
+</tr>

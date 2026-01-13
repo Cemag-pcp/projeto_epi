@@ -1,0 +1,42 @@
+- forma de recebimento (assinatura na tela (tablet ou celular)) 
+para terceiros isso fica muito bom, pois não precisa cadastrar digital e etc.
+
+- alguma ia com nome de clara fazendo sentido com "clarus"
+quais tarefas a ia deverá fazer?
+
+- deve ter um modulo de auditoria
+o que deve ser mostrado?
+
+Carteira digital (Com sistema de QR CODE você pode
+ consultar se o colaborador está com o EPI e treinamentos em dia, apenas usando um celular.)
+
+- Os colaboradores podem solicitar seus EPIs através do celular de maneira rápida e eficaz.
+
+- gera a necessidade de compra para os responsáveis pelas compras, com base no estoque e pela necessidade de troca de EPIs.
+
+- Conformidade com as normas e auditorias
+permite que as empresas fiquem de acordo com as normativas regulamentadoras e auditorias além do sistema estar sempre atualizado de acordo com as leis vigentes.
+
+- possui todos os registros e informações que o RH precisa para informar ao eSocial.
+
+- Receba alertas sobre a periodicidade de troca dos EPIs dos seus funcionários,
+ controlando a validade dos equipamentos, data de entrega, troca e prazo.
+
+- Controle sobre os EPIs e acessos de funcionários ou terceiros na sua empresa.
+ Faça, também, a gestão de consumo de empresas parceiras.
+
+- Separe o estoque de produtos para empréstimo ou de uso de visitantes, tendo perfeito controle sobre devoluções.
+
+- Módulo de cipa (eleição e histórico de cipeiros) ? (onsafety)
+
+- modulo de acidente do trabalho (onsafety)
+
+- Controle de desvios ? (onsafety)
+
+- Inspeções via checklists ? (onsafety)
+
+- Módulo de esocial ? (onsafety)
+
+- Módulo de saude (PCMSO, Atestados, configuração de exames) ? (onsafety)
+
+- Módulo de PGR? (onsafety)
