@@ -1,0 +1,51 @@
+{% load ui_extras %}
+
+<div class="mb-3" data-multiselect-wrapper>
+  <label class="form-label" for="{{ field.id_for_label }}">{{ title|default:field.label }}</label>
+
+  <input
+    type="text"
+    class="form-control form-control-sm mb-2"
+    placeholder="{{ search_placeholder|default:'Buscar...' }}"
+    autocomplete="off"
+    data-multiselect-search
+  >
+
+  <div
+    class="border rounded p-2 bg-white"
+    style="max-height: {{ height|default:220 }}px; overflow: auto;"
+    data-multiselect-options
+  >
+    {% with selected_values=field.value %}
+      {% for option in field.field.queryset %}
+        <div
+          class="form-check"
+          data-multiselect-option
+          data-label="{{ option|stringformat:'s'|lower }}"
+        >
+          <input
+            class="form-check-input"
+            type="checkbox"
+            name="{{ field.html_name }}"
+            id="{{ field.id_for_label }}_{{ option.pk }}"
+            value="{{ option.pk }}"
+            {% if selected_values and option.pk|stringformat:"s" in selected_values %}checked{% endif %}
+          >
+          <label class="form-check-label" for="{{ field.id_for_label }}_{{ option.pk }}">{{ option }}</label>
+        </div>
+      {% empty %}
+        <div class="text-muted small py-1">Sem opcoes</div>
+      {% endfor %}
+    {% endwith %}
+  </div>
+
+  {% if field.help_text %}
+    <div class="form-text">{{ field.help_text }}</div>
+  {% endif %}
+
+  {% if field.errors %}
+    {% for error in field.errors %}
+      <div class="invalid-feedback d-block">{{ error }}</div>
+    {% endfor %}
+  {% endif %}
+</div>

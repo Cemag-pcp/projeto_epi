@@ -57,6 +57,7 @@ class Funcionario(TenantModel):
     VALIDACAO_RECEBIMENTO_CHOICES = [
         ("nenhum", "Nenhum"),
         ("senha", "Senha"),
+        ("assinatura", "Assinatura"),
     ]
     foto = models.ImageField(upload_to="funcionarios/fotos/", null=True, blank=True)
     identificador = models.CharField(max_length=80, blank=True)

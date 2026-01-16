@@ -102,18 +102,18 @@ def sidebar_menu(context):
             "icon": "bi-journal-bookmark",
             "items": [
                 {
+                    "label": "Gerenciar agenda",
+                    "icon": "bi-clipboard-check",
+                    "url_name": "treinamentos:list",
+                    "prefixes": ["/treinamentos/"],
+                    "perm": "treinamentos.view_treinamento",
+                },
+                {
                     "label": "Agenda",
                     "icon": "bi-calendar-event",
                     "url_name": "treinamentos:agenda",
                     "prefixes": ["/treinamentos/agenda/"],
                     "perm": "treinamentos.view_turma",
-                },
-                {
-                    "label": "Gerenciar",
-                    "icon": "bi-clipboard-check",
-                    "url_name": "treinamentos:list",
-                    "prefixes": ["/treinamentos/"],
-                    "perm": "treinamentos.view_treinamento",
                 },
             ],
         },
@@ -125,7 +125,7 @@ def sidebar_menu(context):
             "icon": "bi-people",
             "items": [
                 {
-                    "label": "Cadastro de funcionario",
+                    "label": "Gerenciar funcionarios",
                     "icon": "bi-person",
                     "url_name": "funcionarios:list",
                     "prefixes": ["/funcionarios/"],
@@ -276,6 +276,13 @@ def sidebar_menu(context):
                     "perm": "funcionarios.view_ghe",
                 },
                 {
+                    "label": "Riscos",
+                    "icon": "bi-exclamation-triangle",
+                    "url_name": "funcionarios:riscos_list",
+                    "prefixes": ["/funcionarios/riscos/"],
+                    "perm": "funcionarios.view_risco",
+                },
+                {
                     "label": "Turnos",
                     "icon": "bi-clock",
                     "url_name": "funcionarios:turnos_list",
@@ -301,7 +308,7 @@ def sidebar_menu(context):
             "items": [
                 {
                     "label": "Movimentar produto",
-                    "icon": "",
+                    "icon": "bi-arrow-left-right",
                     "url_name": "estoque:list",
                     "prefixes": ["/estoque/"],
                     "perm": "estoque.view_estoque",
@@ -359,6 +366,51 @@ def sidebar_menu(context):
                     "prefixes": ["/entregas/"],
                     "perm": "entregas.view_entrega",
                 }
+            ],
+        },
+        # Checklist
+        {
+            "type": "group",
+            "id": "checklistMenu",
+            "label": "Checklist",
+            "icon": "bi-list-check",
+            "items": [
+                {
+                    "label": "Checklists",
+                    "icon": "bi-ui-checks",
+                    "url_name": "checklist:list",
+                    "prefixes": ["/checklists/"],
+                },
+            ],
+        },
+        # CIPA
+        {
+            "type": "group",
+            "id": "cipaMenu",
+            "label": "CIPA",
+            "icon": "bi-people",
+            "items": [
+                {
+                    "label": "Gerenciar",
+                    "icon": "bi-clipboard-check",
+                    "url_name": "cipa:list",
+                    "prefixes": ["/cipa/"],
+                },
+            ],
+        },
+        # Acidente do trabalho
+        {
+            "type": "group",
+            "id": "acidenteTrabalhoMenu",
+            "label": "Acidente do trabalho",
+            "icon": "bi-bandaid",
+            "items": [
+                {
+                    "label": "Registros",
+                    "icon": "bi-clipboard2-pulse",
+                    "url_name": "acidentes:list",
+                    "prefixes": ["/acidentes/"],
+                },
             ],
         },
         {

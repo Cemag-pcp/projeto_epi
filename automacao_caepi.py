@@ -17,8 +17,7 @@ class BaseDadosCaEPI:
     urlBase = 'ftp.mtps.gov.br'
     caminho = 'portal/fiscalizacao/seguranca-e-saude-no-trabalho/caepi/'
     nColunas = 19
-
-
+    
     nomeColunas = [
         "RegistroCA",
         "DataValidade",

@@ -12,6 +12,11 @@ urlpatterns = [
     path("acessos/terceiros/novo/", views.TerceiroCreateView.as_view(), name="terceiros_create"),
     path("acessos/terceiros/<int:pk>/editar/", views.TerceiroUpdateView.as_view(), name="terceiros_update"),
     path("acessos/terceiros/por-empresa/", views.terceiros_por_empresa, name="terceiros_por_empresa"),
+    path(
+        "acessos/consumos/depositos/",
+        views.depositos_por_produto,
+        name="depositos_por_produto",
+    ),
     path("acessos/registros/", views.AcessoEPIListView.as_view(), name="acessos_list"),
     path("acessos/registros/novo/", views.AcessoEPICreateView.as_view(), name="acessos_create"),
     path("acessos/registros/<int:pk>/editar/", views.AcessoEPIUpdateView.as_view(), name="acessos_update"),

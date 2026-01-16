@@ -1,6 +1,10 @@
+import base64
 import json
+import uuid
+import binascii
 from decimal import Decimal, InvalidOperation
 
+from django.core.files.base import ContentFile
 from django.contrib.auth.hashers import check_password
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db import transaction
@@ -9,6 +13,8 @@ from django.http import JsonResponse, HttpResponseRedirect
 from django.views import View
 from django.template.loader import render_to_string
 from django.urls import reverse
+
+MAX_ASSINATURA_SIZE = 3 * 1024 * 1024  # 3MB
 
 from apps.core.views import BaseTenantCreateView, BaseTenantListView
 from apps.estoque.models import Estoque, MovimentacaoEstoque
@@ -85,7 +91,43 @@ class EntregaCreateView(BaseTenantCreateView):
             return {}
         return {str(key): value for key, value in data.items() if value}
 
+    def _decode_assinatura(self, raw_value):
+        """
+        Converte o payload base64 de assinatura em um ContentFile validando tipo e tamanho.
+        """
+        if not raw_value or not isinstance(raw_value, str):
+            return None, "Assinatura obrigatoria."
+        base64_data = raw_value
+        extension = "png"
+        if raw_value.startswith("data:"):
+            try:
+                header, base64_data = raw_value.split(",", 1)
+            except ValueError:
+                return None, "Assinatura invalida."
+            if "jpeg" in header or "jpg" in header:
+                extension = "jpg"
+            elif "webp" in header:
+                extension = "webp"
+        try:
+            decoded = base64.b64decode(base64_data)
+        except (binascii.Error, ValueError):
+            return None, "Assinatura invalida."
+        if len(decoded) > MAX_ASSINATURA_SIZE:
+            return None, "Assinatura excede o limite de 3MB."
+        filename = f"assinatura-{uuid.uuid4().hex[:12]}.{extension}"
+        return ContentFile(decoded, name=filename), None
+
+    def _build_validacao_message(self, funcionarios, status):
+        if any(func.validacao_recebimento == "assinatura" for func in funcionarios):
+            if status == "invalid":
+                return "Assinatura invalida para o funcionario informado."
+            return "Assinatura do funcionario obrigatoria para concluir a entrega."
+        if status == "invalid":
+            return "Senha invalida para o funcionario informado."
+        return "Informe a senha do funcionario para continuar."
+
     def _validate_recebimento(self, funcionario_ids, payload_map):
+        self._assinatura_files = {}
         funcionarios = list(
             Funcionario.objects.filter(company=self.request.tenant, pk__in=funcionario_ids).only(
                 "id",
@@ -94,23 +136,56 @@ class EntregaCreateView(BaseTenantCreateView):
                 "senha_recebimento",
             )
         )
+        assinaturas = {}
         required = []
         invalid = []
         for funcionario in funcionarios:
-            if funcionario.validacao_recebimento != "senha":
+            tipo = funcionario.validacao_recebimento
+            if tipo == "nenhum":
                 continue
             required.append(funcionario)
-            senha = payload_map.get(str(funcionario.id))
-            if not senha:
-                continue
-            if not check_password(senha, funcionario.senha_recebimento or ""):
-                invalid.append(funcionario)
-        missing = [func for func in required if str(func.id) not in payload_map]
+            valor = (payload_map.get(str(funcionario.id)) or "").strip()
+            if tipo == "senha":
+                if not valor:
+                    continue
+                if not check_password(valor, funcionario.senha_recebimento or ""):
+                    invalid.append(funcionario)
+            if tipo == "assinatura":
+                if not valor:
+                    continue
+                file_obj, error = self._decode_assinatura(valor)
+                if error or not file_obj:
+                    invalid.append(funcionario)
+                else:
+                    assinaturas[funcionario.id] = file_obj
+        missing = [func for func in required if not (payload_map.get(str(func.id)) or "").strip()]
         if missing:
+            self._assinatura_files = {}
             return False, "required", missing
         if invalid:
+            self._assinatura_files = {}
             return False, "invalid", invalid
+        self._assinatura_files = assinaturas
         return True, None, []
+
+    def _apply_assinatura(self, entrega):
+        assinatura_file = getattr(self, "_assinatura_files", {}).get(entrega.funcionario_id)
+        if not assinatura_file:
+            return
+        if entrega.assinatura:
+            entrega.assinatura.delete(save=False)
+        assinatura_file.seek(0)
+        entrega.assinatura.save(assinatura_file.name, assinatura_file, save=True)
+
+    def _get_validacao_funcionario(self, funcionario_id):
+        funcionario = (
+            Funcionario.objects.filter(company=self.request.tenant, pk=funcionario_id)
+            .only("validacao_recebimento")
+            .first()
+        )
+        if not funcionario:
+            return "nenhum"
+        return funcionario.validacao_recebimento or "nenhum"
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -164,6 +239,7 @@ class EntregaCreateView(BaseTenantCreateView):
         created, required_map = result
 
         primeiro = created[0]
+        validacao_entrega = self._get_validacao_funcionario(primeiro["funcionario_id"])
         entrega = Entrega.objects.create(
             company=self.request.tenant,
             funcionario_id=primeiro["funcionario_id"],
@@ -176,7 +252,9 @@ class EntregaCreateView(BaseTenantCreateView):
             created_by=self.request.user,
             updated_by=self.request.user,
             status="entregue",
+            validacao_recebimento=validacao_entrega,
         )
+        self._apply_assinatura(entrega)
         itens = []
         for item in created:
             itens.append(
@@ -340,9 +418,7 @@ class EntregaCreateView(BaseTenantCreateView):
             if funcionario_ids:
                 ok, status, funcionarios = self._validate_recebimento(funcionario_ids, validacao_payload)
                 if not ok:
-                    message = "Informe a senha do funcionario para continuar."
-                    if status == "invalid":
-                        message = "Senha invalida para o funcionario informado."
+                    message = self._build_validacao_message(funcionarios, status)
                     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                         return JsonResponse(
                             {
@@ -350,7 +426,12 @@ class EntregaCreateView(BaseTenantCreateView):
                                 "validate": True,
                                 "message": message,
                                 "funcionarios": [
-                                    {"id": func.id, "nome": func.nome} for func in funcionarios
+                                    {
+                                        "id": func.id,
+                                        "nome": func.nome,
+                                        "validacao": func.validacao_recebimento,
+                                    }
+                                    for func in funcionarios
                                 ],
                                 "invalid": status == "invalid",
                             },
@@ -382,7 +463,7 @@ class EntregaCreateView(BaseTenantCreateView):
                     request=request,
                 )
                 form_html = render_to_string(
-                    "components/_form.html",
+                    "entregas/_entrega_form.html",
                     {
                         "form": self.form_class(tenant=request.tenant, planta_id=request.session.get("planta_id")),
                         "form_action": reverse("entregas:create"),
@@ -419,9 +500,7 @@ class EntregaCreateView(BaseTenantCreateView):
         if entrega.funcionario_id:
             ok, status, funcionarios = self._validate_recebimento([str(entrega.funcionario_id)], validacao_payload)
             if not ok:
-                message = "Informe a senha do funcionario para continuar."
-                if status == "invalid":
-                    message = "Senha invalida para o funcionario informado."
+                message = self._build_validacao_message(funcionarios, status)
                 if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
                     return JsonResponse(
                         {
@@ -429,13 +508,19 @@ class EntregaCreateView(BaseTenantCreateView):
                             "validate": True,
                             "message": message,
                             "funcionarios": [
-                                {"id": func.id, "nome": func.nome} for func in funcionarios
+                                {
+                                    "id": func.id,
+                                    "nome": func.nome,
+                                    "validacao": func.validacao_recebimento,
+                                }
+                                for func in funcionarios
                             ],
                             "invalid": status == "invalid",
                         },
-                    )
+                )
                 form.add_error(None, message)
                 return self.form_invalid(form)
+            entrega.validacao_recebimento = entrega.funcionario.validacao_recebimento or "nenhum"
         permitido, motivo = self._is_produto_permitido(entrega.funcionario_id, produto_fornecedor)
         if not permitido:
             form.add_error(None, motivo)
@@ -478,6 +563,7 @@ class EntregaCreateView(BaseTenantCreateView):
             return self.form_invalid(form)
         with transaction.atomic():
             response = super().form_valid(form)
+            self._apply_assinatura(self.object)
             EntregaItem.objects.create(
                 company=self.request.tenant,
                 entrega=self.object,
@@ -515,7 +601,7 @@ class EntregaCreateView(BaseTenantCreateView):
                 request=self.request,
             )
             form_html = render_to_string(
-                "components/_form.html",
+                "entregas/_entrega_form.html",
                 {
                     "form": self.form_class(tenant=self.request.tenant, planta_id=self.request.session.get("planta_id")),
                     "form_action": reverse("entregas:create"),
@@ -538,7 +624,7 @@ class EntregaCreateView(BaseTenantCreateView):
     def form_invalid(self, form):
         if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
             form_html = render_to_string(
-                "components/_form.html",
+                "entregas/_entrega_form.html",
                 {
                     "form": form,
                     "form_action": reverse("entregas:create"),
@@ -758,7 +844,7 @@ class EntregaSolicitacaoCreateView(EntregaCreateView):
                     request=request,
                 )
                 form_html = render_to_string(
-                    "components/_form.html",
+                    "entregas/_entrega_form.html",
                     {
                         "form": self.form_class(tenant=request.tenant, planta_id=request.session.get("planta_id")),
                         "form_action": reverse("entregas:solicitar"),
@@ -897,7 +983,7 @@ class EntregaSolicitacaoCreateView(EntregaCreateView):
                 request=self.request,
             )
             form_html = render_to_string(
-                "components/_form.html",
+                "entregas/_entrega_form.html",
                 {
                     "form": self.form_class(tenant=self.request.tenant, planta_id=self.request.session.get("planta_id")),
                     "form_action": reverse("entregas:solicitar"),
@@ -984,9 +1070,7 @@ class EntregaAtenderView(EntregaCreateView):
         if funcionario_ids:
             ok, status, funcionarios = self._validate_recebimento(funcionario_ids, validacao_payload)
             if not ok:
-                message = "Informe a senha do funcionario para continuar."
-                if status == "invalid":
-                    message = "Senha invalida para o funcionario informado."
+                message = self._build_validacao_message(funcionarios, status)
                 if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                     return JsonResponse(
                         {
@@ -994,7 +1078,12 @@ class EntregaAtenderView(EntregaCreateView):
                             "validate": True,
                             "message": message,
                             "funcionarios": [
-                                {"id": func.id, "nome": func.nome} for func in funcionarios
+                                {
+                                    "id": func.id,
+                                    "nome": func.nome,
+                                    "validacao": func.validacao_recebimento,
+                                }
+                                for func in funcionarios
                             ],
                             "invalid": status == "invalid",
                         },
@@ -1066,6 +1155,7 @@ class EntregaAtenderView(EntregaCreateView):
             entrega.status = "entregue"
             entrega.entregue_em = timezone.now()
             entrega.updated_by = request.user
+            entrega.validacao_recebimento = self._get_validacao_funcionario(entrega.funcionario_id)
             entrega.save(
                 update_fields=[
                     "produto",
@@ -1075,9 +1165,11 @@ class EntregaAtenderView(EntregaCreateView):
                     "observacao",
                     "status",
                     "entregue_em",
+                    "validacao_recebimento",
                     "updated_by",
                 ]
             )
+            self._apply_assinatura(entrega)
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             row_html = render_to_string(
                 "entregas/_entrega_row.html",

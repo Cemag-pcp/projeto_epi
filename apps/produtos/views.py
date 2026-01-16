@@ -176,12 +176,12 @@ class ProdutoFornecedorAnexoMixin:
                 errors.append(f"Fornecedor obrigatorio na linha {index + 1}.")
                 continue
             valor_raw = cleaned.get("valor")
-            if not valor_raw:
-                errors.append(f"Valor obrigatorio na linha {index + 1}.")
-                continue
-            valor = self._parse_decimal(valor_raw, "Valor", errors, index + 1)
-            if valor is None:
-                continue
+            valor = None
+            if valor_raw and valor_raw.strip():
+                valor = self._parse_decimal(valor_raw, "Valor", errors, index + 1)
+                # Valor invalido ja gera erro em _parse_decimal
+                if valor is None:
+                    continue
             fator_compra = self._parse_decimal(cleaned.get("fator_compra"), "Fator de compra", errors, index + 1)
             fornecedores_to_create.append(
                 ProdutoFornecedor(
@@ -1644,7 +1644,8 @@ def _query_caepi(ca, descricao, fornecedor, somente_validos, offset, limit):
             if fornecedor:
                 queryset = queryset.filter(razao_social__icontains=fornecedor)
 
-        queryset = queryset.order_by("registro_ca")
+        # Evita repeticao de um mesmo CA quando ha registros duplicados na base
+        queryset = queryset.order_by("registro_ca", "-data_validade").distinct("registro_ca")
         if ca:
             items = list(queryset[:limit])
             results = [_caepi_to_dict(item) for item in items]

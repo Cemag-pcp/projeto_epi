@@ -27,9 +27,9 @@ class Produto(TenantModel):
     familia = models.ForeignKey("FamiliaProduto", on_delete=models.SET_NULL, null=True, blank=True)
     subfamilia = models.ForeignKey("SubfamiliaProduto", on_delete=models.SET_NULL, null=True, blank=True)
     localizacao = models.ForeignKey("LocalizacaoProduto", on_delete=models.SET_NULL, null=True, blank=True)
-    imposto_ipi = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-    imposto_st = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-    imposto_outros = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    imposto_ipi = models.DecimalField(max_digits=5, decimal_places=2, default=0, null=True, blank=True)
+    imposto_st = models.DecimalField(max_digits=5, decimal_places=2, default=0, null=True, blank=True)
+    imposto_outros = models.DecimalField(max_digits=5, decimal_places=2, default=0, null=True, blank=True)
     marca = models.ForeignKey("MarcaProduto", on_delete=models.SET_NULL, null=True, blank=True)
     monitora_uso = models.BooleanField(default=False)
     troca_funcionario = models.BooleanField(default=False)
@@ -40,8 +40,8 @@ class Produto(TenantModel):
     fornecedores = models.ManyToManyField(
         "fornecedores.Fornecedor", through="ProdutoFornecedor", related_name="produtos", blank=True
     )
-    estoque_minimo = models.PositiveIntegerField(default=0)
-    estoque_ideal = models.PositiveIntegerField(default=0)
+    estoque_minimo = models.PositiveIntegerField(default=0, null=True, blank=True)
+    estoque_ideal = models.PositiveIntegerField(default=0, null=True, blank=True)
     ativo = models.BooleanField(default=True)
 
     def __str__(self):
@@ -54,18 +54,16 @@ class Produto(TenantModel):
         return f"{quantidade} {self.periodicidade}"
 
 
-
-
 class ProdutoFornecedor(TenantModel):
     produto = models.ForeignKey(Produto, on_delete=models.CASCADE, related_name="fornecedores_rel")
     fornecedor = models.ForeignKey("fornecedores.Fornecedor", on_delete=models.CASCADE)
     ca = models.CharField(max_length=50, blank=True)
-    codigo_barras = models.CharField(max_length=64, blank=True)
-    codigo_fornecedor = models.CharField(max_length=80, blank=True)
-    valor = models.DecimalField(max_digits=12, decimal_places=2)
+    codigo_barras = models.CharField(max_length=64, null=True, blank=True)
+    codigo_fornecedor = models.CharField(max_length=80, null=True, blank=True)
+    valor = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     data_vencimento = models.DateField(null=True, blank=True)
-    fator_compra = models.DecimalField(max_digits=12, decimal_places=4, default=1)
-    observacao = models.TextField(blank=True)
+    fator_compra = models.DecimalField(max_digits=12, decimal_places=4, default=1, null=True, blank=True)
+    observacao = models.TextField(null=True, blank=True)
 
     class Meta:
         unique_together = ("produto", "fornecedor")

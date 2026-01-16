@@ -1,0 +1,22 @@
+{% for item in historico %}
+  {% with entrega=item.entrega %}
+    <tr>
+      <td>
+        {% if entrega.entregue_em %}
+          {{ entrega.entregue_em|date:"d/m/Y H:i" }}
+        {% elif entrega.created_at %}
+          {{ entrega.created_at|date:"d/m/Y H:i" }}
+        {% else %}
+          -
+        {% endif %}
+      </td>
+      <td>{% firstof item.produto.nome "-" %}</td>
+      <td>{% firstof entrega.created_by.get_full_name entrega.created_by.get_username entrega.created_by "-" %}</td>
+      <td>{% firstof entrega.get_validacao_recebimento_display "-" %}</td>
+    </tr>
+  {% endwith %}
+{% empty %}
+  <tr>
+    <td colspan="4" class="text-muted text-center py-3">Sem entregas registradas</td>
+  </tr>
+{% endfor %}

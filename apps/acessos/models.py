@@ -115,6 +115,18 @@ class ConsumoParceiro(TenantModel):
         blank=True,
         related_name="consumos",
     )
+    deposito = models.ForeignKey(
+        "depositos.Deposito",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="consumos_parceiros",
+    )
+    assinatura = models.ImageField(
+        upload_to="acessos/consumos/assinaturas/",
+        null=True,
+        blank=True,
+    )
     produto = models.ForeignKey(
         "produtos.Produto",
         on_delete=models.SET_NULL,

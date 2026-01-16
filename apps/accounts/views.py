@@ -88,7 +88,7 @@ class UserProfileCreateView(BaseTenantCreateView):
                 request=self.request,
             )
             form_html = render_to_string(
-                "components/_form.html",
+                "accounts/_user_form.html",
                 {"form": UserProfileForm(tenant=self.request.tenant), "form_action": reverse("accounts:create")},
                 request=self.request,
             )
@@ -107,7 +107,7 @@ class UserProfileCreateView(BaseTenantCreateView):
     def form_invalid(self, form):
         if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
             form_html = render_to_string(
-                "components/_form.html",
+                "accounts/_user_form.html",
                 {"form": form, "form_action": reverse("accounts:create")},
                 request=self.request,
             )
@@ -152,7 +152,7 @@ class UserProfileUpdateView(BaseTenantUpdateView):
     def form_invalid(self, form):
         if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
             form_html = render_to_string(
-                "components/_form.html",
+                "accounts/_user_form.html",
                 {
                     "form": form,
                     "form_action": reverse("accounts:update", args=[self.get_object().pk]),

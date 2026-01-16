@@ -11,6 +11,11 @@ class Entrega(TenantModel):
         ("cancelada", "Cancelada"),
         ("aguardando", "Aguardando entrega"),
     ]
+    VALIDACAO_RECEBIMENTO_CHOICES = [
+        ("nenhum", "Nenhum"),
+        ("senha", "Senha"),
+        ("assinatura", "Assinatura"),
+    ]
 
     funcionario = models.ForeignKey(
         "funcionarios.Funcionario",
@@ -24,7 +29,13 @@ class Entrega(TenantModel):
     observacao = models.TextField(blank=True)
     entregue_em = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="entregue")
+    validacao_recebimento = models.CharField(
+        max_length=10,
+        choices=VALIDACAO_RECEBIMENTO_CHOICES,
+        default="nenhum",
+    )
     motivo_cancelamento = models.TextField(blank=True)
+    assinatura = models.ImageField(upload_to="entregas/assinaturas/", blank=True, null=True)
 
     class Meta:
         ordering = ["-entregue_em"]

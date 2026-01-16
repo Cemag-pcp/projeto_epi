@@ -75,7 +75,7 @@
               <div class="fw-semibold">{{ row.object.produto }}</div>
               <div class="text-muted small">{{ row.object.deposito }}</div>
             </div>
-            {% include "components/_form.html" with form=row.form form_action=row.action_url %}
+            {% include "estoque/_movimentacao_form.html" with form=row.form form_action=row.action_url %}
           </div>
         </div>
       </div>
@@ -91,10 +91,51 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
           </div>
           <div class="modal-body">
-            {% include "components/_form.html" with form=create_form form_action=create_url %}
+            {% include "estoque/_estoque_form.html" with form=create_form form_action=create_url %}
           </div>
         </div>
       </div>
     </div>
   {% endif %}
+
+  <script>
+    (function () {
+      function toggleDestino(form) {
+        var tipoEl = form.querySelector("[name='tipo']");
+        var destinoEl = form.querySelector("[name='deposito_destino']");
+        var wrapper = form.querySelector("[data-mov-destino-wrapper]");
+        if (!tipoEl || !destinoEl || !wrapper) {
+          return;
+        }
+        var isTransferencia = (tipoEl.value || "") === "transferencia";
+        wrapper.classList.toggle("d-none", !isTransferencia);
+        destinoEl.disabled = !isTransferencia;
+        if (!isTransferencia) {
+          destinoEl.value = "";
+        }
+      }
+
+      function bindMovForms() {
+        document.querySelectorAll("[data-mov-form]").forEach(function (form) {
+          if (form.dataset.bound === "1") {
+            return;
+          }
+          form.dataset.bound = "1";
+          var tipoEl = form.querySelector("[name='tipo']");
+          if (tipoEl) {
+            tipoEl.addEventListener("change", function () {
+              toggleDestino(form);
+            });
+          }
+          toggleDestino(form);
+        });
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", bindMovForms);
+      } else {
+        bindMovForms();
+      }
+    })();
+  </script>
 {% endblock %}

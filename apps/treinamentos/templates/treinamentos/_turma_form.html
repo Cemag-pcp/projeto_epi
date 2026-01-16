@@ -1,0 +1,159 @@
+<form
+  method="post"
+  id="{{ form_id|default:'' }}"
+  {% if form_action %}action="{{ form_action }}"{% endif %}
+  {% if form.is_multipart %}enctype="multipart/form-data"{% endif %}
+>
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger py-2">
+      {% for error in form.non_field_errors %}
+        <div>{{ error }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="vstack gap-3">
+    <div class="card border-0 bg-light-subtle">
+      <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h6 class="mb-0">Informacoes da turma</h6>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.treinamento.id_for_label }}">{{ form.treinamento.label }}</label>
+              {{ form.treinamento }}
+              {% if form.treinamento.errors %}
+                {% for error in form.treinamento.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.local.id_for_label }}">{{ form.local.label }}</label>
+              {{ form.local }}
+              {% if form.local.errors %}
+                {% for error in form.local.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.instrutor.id_for_label }}">{{ form.instrutor.label }}</label>
+              {{ form.instrutor }}
+              {% if form.instrutor.errors %}
+                {% for error in form.instrutor.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="col-12 col-md-3">
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.capacidade.id_for_label }}">{{ form.capacidade.label }}</label>
+              {{ form.capacidade }}
+              {% if form.capacidade.errors %}
+                {% for error in form.capacidade.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="col-12 col-md-3">
+            <div class="form-check pt-4">
+              {{ form.finalizada }}
+              <label class="form-check-label" for="{{ form.finalizada.id_for_label }}">{{ form.finalizada.label }}</label>
+              {% if form.finalizada.errors %}
+                {% for error in form.finalizada.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 bg-light-subtle">
+      <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h6 class="mb-0">Planejamento</h6>
+          <span class="text-muted small">As datas sao geradas automaticamente conforme a quantidade</span>
+        </div>
+
+        <div class="row g-3" data-aulas-row>
+          <div class="col-12 col-md-4" data-aulas-qtd-col>
+            <div class="mb-3" data-field="qtd_aulas">
+              <label class="form-label" for="{{ form.qtd_aulas.id_for_label }}">{{ form.qtd_aulas.label }}</label>
+              {{ form.qtd_aulas }}
+              {% if form.qtd_aulas.errors %}
+                {% for error in form.qtd_aulas.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="col-12 d-none">
+            <div class="mb-3" data-field="aulas_datas">
+              <label class="form-label" for="{{ form.aulas_datas.id_for_label }}">{{ form.aulas_datas.label }}</label>
+              {{ form.aulas_datas }}
+              {% if form.aulas_datas.help_text %}
+                <div class="form-text">{{ form.aulas_datas.help_text }}</div>
+              {% endif %}
+              {% if form.aulas_datas.errors %}
+                {% for error in form.aulas_datas.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 bg-light-subtle">
+      <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h6 class="mb-0">Participantes</h6>
+          <span class="text-muted small">Setores e tipos adicionam automaticamente</span>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            {% include "components/_multiselect_checkboxes_search.html" with field=form.participantes_setores title=form.participantes_setores.label height=190 %}
+          </div>
+          <div class="col-12 col-md-6">
+            {% include "components/_multiselect_checkboxes_search.html" with field=form.participantes_tipos_funcionario title=form.participantes_tipos_funcionario.label height=190 %}
+          </div>
+          <div class="col-12">
+            {% include "components/_multiselect_checkboxes_search.html" with field=form.participantes title=form.participantes.label height=260 %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if not form_hide_actions %}
+      <div class="d-flex gap-2 justify-content-end">
+        {% if form_cancel_url %}
+          <a class="btn btn-outline-secondary" href="{{ form_cancel_url }}">Cancelar</a>
+        {% else %}
+          <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+        {% endif %}
+        <button class="btn btn-primary" type="submit">Salvar</button>
+      </div>
+    {% endif %}
+  </div>
+</form>
+

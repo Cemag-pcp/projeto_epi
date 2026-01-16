@@ -1,0 +1,80 @@
+<form
+  method="post"
+  id="{{ form_id|default:'' }}"
+  {% if form_action %}action="{{ form_action }}"{% endif %}
+  data-mov-form
+>
+  {% csrf_token %}
+  {{ form.estoque }}
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger py-2">
+      {% for error in form.non_field_errors %}
+        <div>{{ error }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="row g-3">
+    <div class="col-12 col-md-4">
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}</label>
+        {{ form.tipo }}
+        {% if form.tipo.errors %}
+          {% for error in form.tipo.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.quantidade.id_for_label }}">{{ form.quantidade.label }}</label>
+        {{ form.quantidade }}
+        {% if form.quantidade.errors %}
+          {% for error in form.quantidade.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-12 col-md-4" data-mov-destino-wrapper>
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.deposito_destino.id_for_label }}">{{ form.deposito_destino.label }}</label>
+        {{ form.deposito_destino }}
+        <div class="form-text">Apenas para transferencia.</div>
+        {% if form.deposito_destino.errors %}
+          {% for error in form.deposito_destino.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.observacao.id_for_label }}">{{ form.observacao.label }}</label>
+        {{ form.observacao }}
+        {% if form.observacao.errors %}
+          {% for error in form.observacao.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if not form_hide_actions %}
+    <div class="d-flex gap-2 justify-content-end mt-3">
+      {% if form_cancel_url %}
+        <a class="btn btn-outline-secondary" href="{{ form_cancel_url }}">Cancelar</a>
+      {% else %}
+        <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+      {% endif %}
+      <button class="btn btn-primary" type="submit">Salvar</button>
+    </div>
+  {% endif %}
+</form>
+

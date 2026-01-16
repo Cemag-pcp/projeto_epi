@@ -10,6 +10,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.views import View
 
+from apps.entregas.models import EntregaItem
 from apps.core.views import (
     BaseTenantCreateView,
     BaseTenantDetailView,
@@ -141,8 +142,25 @@ class FuncionarioListView(BaseTenantListView):
             context["edit_rows"] = []
         context["anexo_form"] = FuncionarioAnexoForm()
         context["anexo_create_url"] = reverse_lazy("funcionarios:anexos_create")
-        context["historico_filters"] = [
+        context["historico_mov_filters"] = [
             {"name": "descricao", "label": "Descricao", "type": "text", "value": ""},
+            {"name": "data_inicio", "label": "Data inicio", "type": "date", "value": ""},
+            {"name": "data_fim", "label": "Data fim", "type": "date", "value": ""},
+        ]
+        context["historico_entregas_filters"] = [
+            {"name": "produto", "label": "Produto", "type": "text", "value": ""},
+            {
+                "name": "validacao",
+                "label": "Validacao",
+                "type": "select",
+                "options": [
+                    ("", "Todas"),
+                    ("nenhum", "Nenhum"),
+                    ("senha", "Senha"),
+                    ("assinatura", "Assinatura"),
+                ],
+                "value": "",
+            },
             {"name": "data_inicio", "label": "Data inicio", "type": "date", "value": ""},
             {"name": "data_fim", "label": "Data fim", "type": "date", "value": ""},
         ]
@@ -1317,6 +1335,63 @@ class FuncionarioHistoricoListView(View):
             page_obj = paginator.page(1)
         rows_html = render_to_string(
             "funcionarios/_historico_rows.html",
+            {"historico": page_obj.object_list},
+            request=request,
+        )
+        pagination_html = render_to_string(
+            "components/_pagination.html",
+            {"page_obj": page_obj},
+            request=request,
+        )
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "rows_html": rows_html,
+                    "pagination_html": pagination_html,
+                }
+            )
+        return render(request, "funcionarios/list.html")
+
+
+class FuncionarioHistoricoEntregaListView(View):
+    def get(self, request, pk):
+        funcionario = get_object_or_404(Funcionario, pk=pk, company=request.tenant)
+        queryset = (
+            EntregaItem.objects.filter(
+                entrega__company=request.tenant,
+                entrega__funcionario=funcionario,
+                entrega__status="entregue",
+            )
+            .select_related("entrega", "produto", "entrega__created_by")
+            .order_by("-entrega__entregue_em", "-entrega_id")
+        )
+        produto = request.GET.get("produto")
+        data_inicio = request.GET.get("data_inicio")
+        data_fim = request.GET.get("data_fim")
+        validacao = request.GET.get("validacao")
+        if produto:
+            queryset = queryset.filter(produto__nome__icontains=produto)
+        if validacao in {"nenhum", "senha", "assinatura"}:
+            queryset = queryset.filter(entrega__validacao_recebimento=validacao)
+        if data_inicio:
+            queryset = queryset.filter(entrega__entregue_em__date__gte=data_inicio)
+        if data_fim:
+            queryset = queryset.filter(entrega__entregue_em__date__lte=data_fim)
+        paginator = Paginator(queryset, 10)
+        page = request.GET.get("page") or 1
+        try:
+            page_number = int(page)
+        except (TypeError, ValueError):
+            page_number = 1
+        if page_number < 1:
+            page_number = 1
+        try:
+            page_obj = paginator.page(page_number)
+        except InvalidPage:
+            page_obj = paginator.page(1)
+        rows_html = render_to_string(
+            "funcionarios/_historico_entregas_rows.html",
             {"historico": page_obj.object_list},
             request=request,
         )

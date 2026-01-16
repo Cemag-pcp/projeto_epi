@@ -330,21 +330,7 @@ class FuncionarioValidacaoForm(forms.Form):
                 self.add_error("senha_recebimento_confirm", "Confirme a senha para recebimento.")
             if senha and senha_confirm and senha != senha_confirm:
                 self.add_error("senha_recebimento_confirm", "As senhas nao conferem.")
+        else:
+            cleaned_data["senha_recebimento"] = ""
+            cleaned_data["senha_recebimento_confirm"] = ""
         return cleaned_data
-
-    def __init__(self, *args, tenant=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        if tenant is None:
-            return
-        self.fields["funcionario"].queryset = Funcionario.objects.filter(
-            company=tenant,
-            ativo=True,
-        ).order_by("nome")
-        self.fields["produto_fornecedor"].queryset = (
-            ProdutoFornecedor.objects.filter(company=tenant, produto__ativo=True)
-            .select_related("produto", "fornecedor")
-            .order_by("produto__nome", "fornecedor__nome")
-        )
-        self.fields["produto_fornecedor"].label_from_instance = (
-            lambda obj: f"{obj.produto} | CA {obj.ca or '-'} | {obj.fornecedor}"
-        )

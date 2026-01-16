@@ -1,0 +1,89 @@
+<form
+  method="post"
+  id="{{ form_id|default:'' }}"
+  {% if form_action %}action="{{ form_action }}"{% endif %}
+  {% if form.is_multipart %}enctype="multipart/form-data"{% endif %}
+>
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger py-2">
+      {% for error in form.non_field_errors %}
+        <div>{{ error }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="row g-3">
+    <div class="col-12 col-md-8">
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
+        {{ form.nome }}
+        {% if form.nome.errors %}
+          {% for error in form.nome.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+      <div class="form-check pt-4">
+        {{ form.ativo }}
+        <label class="form-check-label" for="{{ form.ativo.id_for_label }}">{{ form.ativo.label }}</label>
+        {% if form.ativo.errors %}
+          {% for error in form.ativo.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.empresa_parceira.id_for_label }}">{{ form.empresa_parceira.label }}</label>
+        {{ form.empresa_parceira }}
+        {% if form.empresa_parceira.errors %}
+          {% for error in form.empresa_parceira.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6">
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.documento.id_for_label }}">{{ form.documento.label }}</label>
+        {{ form.documento }}
+        {% if form.documento.errors %}
+          {% for error in form.documento.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6">
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.telefone.id_for_label }}">{{ form.telefone.label }}</label>
+        {{ form.telefone }}
+        {% if form.telefone.errors %}
+          {% for error in form.telefone.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if not form_hide_actions %}
+    <div class="d-flex gap-2 justify-content-end mt-3">
+      {% if form_cancel_url %}
+        <a class="btn btn-outline-secondary" href="{{ form_cancel_url }}">Cancelar</a>
+      {% else %}
+        <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+      {% endif %}
+      <button class="btn btn-primary" type="submit">Salvar</button>
+    </div>
+  {% endif %}
+</form>

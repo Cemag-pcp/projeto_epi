@@ -23,7 +23,15 @@
     <div><strong>Gestor:</strong> {{ entrega.funcionario.gestor|default:"-" }}</div>
     <div><strong>Empresa:</strong> {{ empresa_nome|default:"-" }}</div>
     <div><strong>Deposito:</strong> {{ deposito_label|default:"-" }}</div>
-    <div><strong>Validacao de Entrega:</strong> {% if entrega.funcionario.validacao_recebimento == "senha" %}Senha{% else %}Nenhum{% endif %}</div>
+    <div><strong>Validacao de Entrega:</strong> {{ entrega.get_validacao_recebimento_display|default:"Nenhum" }}</div>
+    {% if entrega.assinatura %}
+      <div class="mt-2">
+        <strong>Assinatura:</strong>
+        <div class="border rounded mt-1 p-2 bg-light">
+          <img src="{{ entrega.assinatura.url }}" alt="Assinatura do funcionario" class="img-fluid">
+        </div>
+      </div>
+    {% endif %}
     <div><strong>Liberado por:</strong> {{ entrega.created_by|default:"-" }}</div>
     <div><strong>Usuario:</strong> {{ entrega.created_by|default:"-" }}</div>
   </div>

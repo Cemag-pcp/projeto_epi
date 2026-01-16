@@ -58,7 +58,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
           </div>
           <div class="modal-body">
-            {% include "components/_form.html" with form=create_form form_action=create_url %}
+            {% include "treinamentos/_treinamento_form.html" with form=create_form form_action=create_url %}
           </div>
         </div>
       </div>
@@ -74,7 +74,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
           </div>
           <div class="modal-body">
-            {% include "components/_form.html" with form=row.form form_action=row.update_url %}
+            {% include "treinamentos/_treinamento_form.html" with form=row.form form_action=row.update_url %}
           </div>
         </div>
       </div>
@@ -85,6 +85,28 @@
 
   <script>
     (function () {
+      function bindMultiselectSearch() {
+        if (document.body && !document.body.dataset.multiselectSearchBound) {
+          document.body.dataset.multiselectSearchBound = "1";
+          document.addEventListener("input", function (event) {
+            var target = event.target;
+            if (!target || !target.matches || !target.matches("[data-multiselect-search]")) {
+              return;
+            }
+            var wrapper = target.closest("[data-multiselect-wrapper]");
+            if (!wrapper) {
+              return;
+            }
+            var term = (target.value || "").trim().toLowerCase();
+            var options = wrapper.querySelectorAll("[data-multiselect-option]");
+            options.forEach(function (option) {
+              var label = (option.getAttribute("data-label") || option.textContent || "").toLowerCase();
+              option.style.display = !term || label.indexOf(term) !== -1 ? "" : "none";
+            });
+          });
+        }
+      }
+
       function bindTreinamentoToggle() {
         var triggers = document.querySelectorAll(".js-treinamento-toggle-trigger");
         triggers.forEach(function (trigger) {
@@ -163,9 +185,11 @@
 
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", function () {
+          bindMultiselectSearch();
           bindTreinamentoToggle();
         });
       } else {
+        bindMultiselectSearch();
         bindTreinamentoToggle();
       }
     })();

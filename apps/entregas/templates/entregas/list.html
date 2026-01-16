@@ -64,7 +64,7 @@
           </div>
           <div class="modal-body" data-entrega-modal-body data-row-id="" data-entrega-depositos-url="{% url 'entregas:depositos' %}" data-entrega-produtos-url="{% url 'entregas:produtos' %}">
             <div data-entrega-form>
-              {% include "components/_form.html" with form=create_form form_action=create_url form_id="entrega-form" form_hide_actions=True %}
+              {% include "entregas/_entrega_form.html" with form=create_form form_action=create_url form_id="entrega-form" form_hide_actions=True %}
             </div>
             <div class="alert alert-danger d-none" data-entrega-error></div>
             <div class="mt-4">
@@ -192,7 +192,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
         </div>
         <div class="modal-body" data-entrega-validacao-body>
-          <p class="mb-3">Informe a senha do funcionario para continuar.</p>
+          <p class="mb-3">Realize a validacao do funcionario para continuar.</p>
         </div>
         <div class="modal-footer">
           <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
@@ -261,7 +261,7 @@
           }
         }
 
-        function renderValidacaoModal(modal, message, funcionarios, invalid, items) {
+        function renderValidacaoModal(modal, message, funcionarios, invalid, items, existingPayload) {
           var bodyEl = modal.querySelector("[data-entrega-validacao-body]");
           if (!bodyEl) {
             return;
@@ -269,11 +269,103 @@
           bodyEl.innerHTML = "";
           var messageEl = document.createElement("p");
           messageEl.className = "mb-3";
-          messageEl.textContent = message || "Informe a senha do funcionario para continuar.";
+          messageEl.textContent = message || "Realize a validacao do funcionario para continuar.";
           bodyEl.appendChild(messageEl);
           if (!funcionarios || !funcionarios.length) {
             return;
           }
+
+          function setupSignaturePad(wrapper, canvas, initialValue) {
+            var ctx = canvas.getContext("2d");
+            var drawing = false;
+            var hasDrawing = false;
+            var height = 200;
+            var width = wrapper.clientWidth || canvas.parentElement.clientWidth || 360;
+            canvas.width = Math.max(width, 320);
+            canvas.height = height;
+            canvas.style.touchAction = "none";
+            ctx.lineWidth = 2;
+            ctx.lineJoin = "round";
+            ctx.lineCap = "round";
+            ctx.strokeStyle = "#111";
+
+            function getPoint(event) {
+              var rect = canvas.getBoundingClientRect();
+              var clientX = event.clientX;
+              var clientY = event.clientY;
+              if (event.touches && event.touches.length) {
+                clientX = event.touches[0].clientX;
+                clientY = event.touches[0].clientY;
+              }
+              return {
+                x: clientX - rect.left,
+                y: clientY - rect.top,
+              };
+            }
+
+            function start(event) {
+              drawing = true;
+              var point = getPoint(event);
+              ctx.beginPath();
+              ctx.moveTo(point.x, point.y);
+              event.preventDefault();
+            }
+
+            function move(event) {
+              if (!drawing) {
+                return;
+              }
+              var point = getPoint(event);
+              ctx.lineTo(point.x, point.y);
+              ctx.stroke();
+              hasDrawing = true;
+              event.preventDefault();
+            }
+
+            function end() {
+              drawing = false;
+            }
+
+            canvas.addEventListener("pointerdown", start);
+            canvas.addEventListener("pointermove", move);
+            canvas.addEventListener("pointerup", end);
+            canvas.addEventListener("pointerleave", end);
+            canvas.addEventListener("pointercancel", end);
+
+            function clear() {
+              ctx.clearRect(0, 0, canvas.width, canvas.height);
+              hasDrawing = false;
+            }
+
+            function loadFromDataUrl(dataUrl) {
+              if (!dataUrl) {
+                return;
+              }
+              var img = new Image();
+              img.onload = function () {
+                clear();
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                hasDrawing = true;
+              };
+              img.src = dataUrl;
+            }
+
+            if (initialValue) {
+              loadFromDataUrl(initialValue);
+            }
+
+            return {
+              clear: clear,
+              getValue: function () {
+                if (!hasDrawing) {
+                  return "";
+                }
+                return canvas.toDataURL("image/png");
+              },
+              load: loadFromDataUrl,
+            };
+          }
+
           function buildResumo(funcionarioId) {
             if (!items || !items.length) {
               return null;
@@ -317,23 +409,64 @@
           funcionarios.forEach(function (funcionario) {
             var wrapper = document.createElement("div");
             wrapper.className = "mb-3";
+            wrapper.setAttribute("data-funcionario-validacao-id", funcionario.id);
+            wrapper.setAttribute("data-funcionario-validacao", funcionario.validacao || "senha");
             var resumo = buildResumo(funcionario.id);
             if (resumo) {
               wrapper.appendChild(resumo);
             }
-            var label = document.createElement("label");
-            label.className = "form-label";
-            label.textContent = "Senha de " + (funcionario.nome || "funcionario");
-            var input = document.createElement("input");
-            input.type = "password";
-            input.className = "form-control";
-            input.setAttribute("data-funcionario-validacao-id", funcionario.id);
+            var tipo = funcionario.validacao || "senha";
+            var label = document.createElement("div");
+            label.className = "form-label fw-semibold";
+            label.textContent =
+              (tipo === "assinatura" ? "Assinatura de " : "Senha de ") + (funcionario.nome || "funcionario");
             wrapper.appendChild(label);
-            wrapper.appendChild(input);
+            if (tipo === "assinatura") {
+              var helper = document.createElement("div");
+              helper.className = "small text-muted mb-2";
+              helper.textContent = "Assine na area abaixo usando a tela do dispositivo.";
+              wrapper.appendChild(helper);
+              var canvas = document.createElement("canvas");
+              canvas.className = "border rounded w-100";
+              canvas.height = 200;
+              wrapper.appendChild(canvas);
+              var actions = document.createElement("div");
+              actions.className = "d-flex justify-content-between align-items-center mt-2";
+              var legend = document.createElement("div");
+              legend.className = "small text-muted";
+              legend.textContent = "Use o dedo ou caneta para assinar.";
+              var clearBtn = document.createElement("button");
+              clearBtn.type = "button";
+              clearBtn.className = "btn btn-sm btn-outline-secondary";
+              clearBtn.textContent = "Limpar";
+              actions.appendChild(legend);
+              actions.appendChild(clearBtn);
+              wrapper.appendChild(actions);
+              var initialSignature =
+                existingPayload && existingPayload[String(funcionario.id)]
+                  ? existingPayload[String(funcionario.id)]
+                  : "";
+              var pad = setupSignaturePad(wrapper, canvas, initialSignature);
+              clearBtn.addEventListener("click", function () {
+                pad.clear();
+              });
+              wrapper._signaturePad = pad;
+            } else {
+              var input = document.createElement("input");
+              input.type = "password";
+              input.className = "form-control";
+              input.value =
+                existingPayload && existingPayload[String(funcionario.id)]
+                  ? existingPayload[String(funcionario.id)]
+                  : "";
+              input.setAttribute("data-funcionario-validacao-id", funcionario.id);
+              wrapper.appendChild(input);
+            }
             if (invalid) {
               var feedback = document.createElement("div");
               feedback.className = "invalid-feedback d-block";
-              feedback.textContent = "Senha invalida.";
+              feedback.textContent =
+                tipo === "assinatura" ? "Assinatura invalida ou ausente." : "Senha invalida.";
               wrapper.appendChild(feedback);
             }
             bodyEl.appendChild(wrapper);
@@ -792,7 +925,7 @@
                     return;
                   }
                   if (result.data && result.data.validate) {
-                    var message = result.data.message || "Informe a senha do funcionario para continuar.";
+                    var message = result.data.message || "Realize a validacao do funcionario para continuar.";
                     var validacaoModal = document.getElementById("entregaValidacaoModal");
                     var confirmBtn = document.getElementById("entrega-validacao-confirm");
                     if (validacaoModal && confirmBtn && window.bootstrap) {
@@ -801,7 +934,8 @@
                         message,
                         result.data.funcionarios || [],
                         result.data.invalid,
-                        items
+                        items,
+                        form._entregaValidacaoPayload || null
                       );
                       ensureValidacaoBackdrop();
                       var instance = bootstrap.Modal.getOrCreateInstance(validacaoModal);
@@ -1062,12 +1196,19 @@
             return;
           }
           var payload = {};
-          var inputs = modalEl ? modalEl.querySelectorAll("[data-funcionario-validacao-id]") : [];
-          inputs.forEach(function (input) {
-            var id = input.getAttribute("data-funcionario-validacao-id");
-            if (id) {
-              payload[id] = input.value || "";
+          var wrappers = modalEl ? modalEl.querySelectorAll("[data-funcionario-validacao]") : [];
+          wrappers.forEach(function (wrapper) {
+            var id = wrapper.getAttribute("data-funcionario-validacao-id");
+            var tipo = wrapper.getAttribute("data-funcionario-validacao");
+            if (!id) {
+              return;
             }
+            if (tipo === "assinatura" && wrapper._signaturePad) {
+              payload[id] = wrapper._signaturePad.getValue();
+              return;
+            }
+            var input = wrapper.querySelector("input[data-funcionario-validacao-id]");
+            payload[id] = input ? input.value || "" : "";
           });
           form._submitEntregaComValidacao(payload);
         });

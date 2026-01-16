@@ -71,6 +71,18 @@
     >
       <i class="bi bi-clock-history"></i>
     </button>
+    <button
+      class="btn btn-outline-dark btn-icon js-historico-entregas-trigger"
+      type="button"
+      data-bs-toggle="modal"
+      data-bs-target="#historicoEntregasModal"
+      data-funcionario-id="{{ funcionario.pk }}"
+      data-funcionario-nome="{{ funcionario.nome|escapejs }}"
+      title="Historico de entregas"
+      aria-label="Historico de entregas"
+    >
+      <i class="bi bi-box-seam"></i>
+    </button>
     {% if perms.funcionarios.change_funcionario %}
       <form
         class="d-inline js-funcionario-toggle"

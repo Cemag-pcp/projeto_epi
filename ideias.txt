@@ -1,11 +1,13 @@
-- forma de recebimento (assinatura na tela (tablet ou celular)) 
-para terceiros isso fica muito bom, pois não precisa cadastrar digital e etc.
-
 - alguma ia com nome de clara fazendo sentido com "clarus"
 quais tarefas a ia deverá fazer?
 
 - deve ter um modulo de auditoria
 o que deve ser mostrado?
+
+- pacote padrão de equipamentos, exemplo (pacote de visita -> protetor auricular + bota)
+isso facilita na hora de entregar para externo
+
+- módulo de checklist?
 
 Carteira digital (Com sistema de QR CODE você pode
  consultar se o colaborador está com o EPI e treinamentos em dia, apenas usando um celular.)
@@ -22,9 +24,6 @@ permite que as empresas fiquem de acordo com as normativas regulamentadoras e au
 - Receba alertas sobre a periodicidade de troca dos EPIs dos seus funcionários,
  controlando a validade dos equipamentos, data de entrega, troca e prazo.
 
-- Controle sobre os EPIs e acessos de funcionários ou terceiros na sua empresa.
- Faça, também, a gestão de consumo de empresas parceiras.
-
 - Separe o estoque de produtos para empréstimo ou de uso de visitantes, tendo perfeito controle sobre devoluções.
 
 - Módulo de cipa (eleição e histórico de cipeiros) ? (onsafety)
@@ -40,3 +39,5 @@ permite que as empresas fiquem de acordo com as normativas regulamentadoras e au
 - Módulo de saude (PCMSO, Atestados, configuração de exames) ? (onsafety)
 
 - Módulo de PGR? (onsafety)
+
+- Ao digitar o CA do produto, verificar se o CA está ativo ou existe.

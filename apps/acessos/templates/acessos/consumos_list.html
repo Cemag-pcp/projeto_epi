@@ -46,7 +46,56 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
           </div>
           <div class="modal-body" data-consumo-modal-body data-row-id="">
-            {% include "components/_form.html" with form=create_form form_action=create_url %}
+            <div data-consumo-form>
+              {% include "acessos/_consumo_batch_form.html" with form=create_form form_action=create_url form_id="consumo-form" %}
+            </div>
+            <div class="alert alert-danger d-none mt-3" data-consumo-error></div>
+
+            <div class="mt-4">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <h6 class="mb-0">Equipamentos adicionados</h6>
+                <button
+                  class="btn btn-outline-primary btn-icon"
+                  type="button"
+                  data-consumo-add-item
+                  title="Adicionar item"
+                  aria-label="Adicionar item"
+                >
+                  <i class="bi bi-plus"></i>
+                </button>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Produto</th>
+                      <th>Deposito</th>
+                      <th>Quantidade</th>
+                      <th class="text-end">Acoes</th>
+                    </tr>
+                  </thead>
+                  <tbody data-consumo-items>
+                    <tr>
+                      <td colspan="4" class="text-muted text-center py-3">Nenhum item adicionado</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <h6 class="mb-2">Assinatura do terceiro</h6>
+              <div class="small text-muted mb-2">O terceiro deve assinar para confirmar o recebimento.</div>
+              <canvas class="border rounded w-100" data-consumo-signature-canvas height="200"></canvas>
+              <div class="d-flex justify-content-end mt-2">
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-consumo-signature-clear>Limpar</button>
+              </div>
+            </div>
+
+            <div class="d-flex gap-2 justify-content-end mt-3">
+              <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+              <button class="btn btn-primary" type="submit" form="consumo-form">Salvar</button>
+            </div>
           </div>
         </div>
       </div>
@@ -62,6 +111,7 @@
   <script>
     (function () {
       var endpoint = "{% url 'acessos:terceiros_por_empresa' %}";
+      var depositosEndpoint = "{% url 'acessos:depositos_por_produto' %}";
 
       function loadTerceiros(selectEmpresa, selectTerceiro) {
         if (!selectEmpresa || !selectTerceiro) {
@@ -104,6 +154,54 @@
         });
         if (!terceiroSelect.value && empresaSelect.value) {
           loadTerceiros(empresaSelect, terceiroSelect);
+        }
+      }
+
+      function loadDepositos(produtoSelect, depositoSelect) {
+        if (!produtoSelect || !depositoSelect) {
+          return;
+        }
+        var produtoId = produtoSelect.value;
+        depositoSelect.innerHTML = "";
+        var emptyOption = document.createElement("option");
+        emptyOption.value = "";
+        emptyOption.textContent = "---------";
+        depositoSelect.appendChild(emptyOption);
+        depositoSelect.disabled = true;
+        if (!produtoId) {
+          return;
+        }
+        var url = depositosEndpoint + "?produto_id=" + encodeURIComponent(produtoId);
+        fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+          .then(function (response) { return response.json(); })
+          .then(function (data) {
+            if (!data || !data.ok || !data.depositos) {
+              return;
+            }
+            data.depositos.forEach(function (item) {
+              var option = document.createElement("option");
+              option.value = item.id;
+              option.textContent = item.nome;
+              depositoSelect.appendChild(option);
+            });
+            if (data.depositos.length) {
+              depositoSelect.disabled = false;
+            }
+          })
+          .catch(function () {});
+      }
+
+      function bindProdutoSelect(form) {
+        var produtoSelect = form.querySelector("select[name$='produto']");
+        var depositoSelect = form.querySelector("select[name$='deposito']");
+        if (!produtoSelect || !depositoSelect) {
+          return;
+        }
+        produtoSelect.addEventListener("change", function () {
+          loadDepositos(produtoSelect, depositoSelect);
+        });
+        if (produtoSelect.value && !depositoSelect.value) {
+          loadDepositos(produtoSelect, depositoSelect);
         }
       }
 
@@ -272,9 +370,299 @@
         });
       }
 
+      function setupSignaturePad(canvas) {
+        if (!canvas) {
+          return null;
+        }
+        var ctx = canvas.getContext("2d");
+        var drawing = false;
+        var hasDrawing = false;
+        function resize() {
+          var width = canvas.parentElement ? canvas.parentElement.clientWidth : canvas.clientWidth;
+          canvas.width = Math.max(320, width || 320);
+          canvas.height = 200;
+          ctx.lineWidth = 2;
+          ctx.lineJoin = "round";
+          ctx.lineCap = "round";
+          ctx.strokeStyle = "#111";
+        }
+        resize();
+
+        function getPoint(event) {
+          var rect = canvas.getBoundingClientRect();
+          var clientX = event.clientX;
+          var clientY = event.clientY;
+          if (event.touches && event.touches.length) {
+            clientX = event.touches[0].clientX;
+            clientY = event.touches[0].clientY;
+          }
+          return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function start(event) {
+          drawing = true;
+          var p = getPoint(event);
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          event.preventDefault();
+        }
+        function move(event) {
+          if (!drawing) {
+            return;
+          }
+          var p = getPoint(event);
+          ctx.lineTo(p.x, p.y);
+          ctx.stroke();
+          hasDrawing = true;
+          event.preventDefault();
+        }
+        function end() {
+          drawing = false;
+        }
+
+        canvas.style.touchAction = "none";
+        canvas.addEventListener("pointerdown", start);
+        canvas.addEventListener("pointermove", move);
+        canvas.addEventListener("pointerup", end);
+        canvas.addEventListener("pointerleave", end);
+        canvas.addEventListener("pointercancel", end);
+
+        return {
+          clear: function () {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            hasDrawing = false;
+          },
+          hasValue: function () {
+            return hasDrawing;
+          },
+          toDataURL: function () {
+            return hasDrawing ? canvas.toDataURL("image/png") : "";
+          },
+          resize: resize,
+        };
+      }
+
+      function bindConsumoBatchForm(form) {
+        if (form.dataset.boundBatch === "1") {
+          return;
+        }
+        form.dataset.boundBatch = "1";
+        var modalBody = form.closest("[data-consumo-modal-body]");
+        if (!modalBody) {
+          return;
+        }
+        var items = [];
+        var itemsBody = modalBody.querySelector("[data-consumo-items]");
+        var addBtn = modalBody.querySelector("[data-consumo-add-item]");
+        var errorBox = modalBody.querySelector("[data-consumo-error]");
+        var signatureCanvas = modalBody.querySelector("[data-consumo-signature-canvas]");
+        var signatureClearBtn = modalBody.querySelector("[data-consumo-signature-clear]");
+        var signaturePad = setupSignaturePad(signatureCanvas);
+
+        function clearError() {
+          if (!errorBox) {
+            return;
+          }
+          errorBox.classList.add("d-none");
+          errorBox.textContent = "";
+        }
+
+        function showError(message) {
+          if (!errorBox) {
+            return;
+          }
+          errorBox.textContent = message || "Erro ao registrar consumo.";
+          errorBox.classList.remove("d-none");
+        }
+
+        function renderItems() {
+          if (!itemsBody) {
+            return;
+          }
+          itemsBody.innerHTML = "";
+          if (!items.length) {
+            itemsBody.innerHTML =
+              '<tr><td colspan="4" class="text-muted text-center py-3">Nenhum item adicionado</td></tr>';
+            return;
+          }
+          items.forEach(function (item, index) {
+            var tr = document.createElement("tr");
+            tr.innerHTML =
+              "<td>" +
+              (item.produto_label || "-") +
+              "</td>" +
+              "<td>" +
+              (item.deposito_label || "-") +
+              "</td>" +
+              "<td>" +
+              (item.quantidade || "-") +
+              "</td>" +
+              '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger" data-consumo-remove="' +
+              index +
+              '">Remover</button></td>';
+            itemsBody.appendChild(tr);
+          });
+        }
+
+        function addItemFromFields() {
+          clearError();
+          var produtoField = form.querySelector("[name='produto']");
+          var depositoField = form.querySelector("[name='deposito']");
+          var quantidadeField = form.querySelector("[name='quantidade']");
+          if (
+            !produtoField ||
+            !depositoField ||
+            !quantidadeField ||
+            !produtoField.value ||
+            !depositoField.value ||
+            !quantidadeField.value
+          ) {
+            showError("Selecione o produto, deposito e informe a quantidade.");
+            return;
+          }
+          var produtoId = String(produtoField.value || "");
+          var jaExiste = items.some(function (item) {
+            return String(item.produto_id || "") === produtoId;
+          });
+          if (jaExiste) {
+            showError("Este produto ja foi adicionado. Remova o item anterior para incluir novamente.");
+            return;
+          }
+          var depositoId = String(depositoField.value || "");
+          var selected = produtoField.options[produtoField.selectedIndex];
+          var label = selected ? selected.textContent.trim() : "";
+          var depositoSelected = depositoField.options[depositoField.selectedIndex];
+          var depositoLabel = depositoSelected ? depositoSelected.textContent.trim() : "";
+          items.push({
+            produto_id: produtoId,
+            produto_label: label,
+            deposito_id: depositoId,
+            deposito_label: depositoLabel,
+            quantidade: quantidadeField.value,
+          });
+          quantidadeField.value = "";
+          if (depositoField) {
+            depositoField.value = "";
+          }
+          renderItems();
+        }
+
+        if (addBtn && !addBtn.dataset.bound) {
+          addBtn.dataset.bound = "1";
+          addBtn.addEventListener("click", addItemFromFields);
+        }
+
+        if (itemsBody && !itemsBody.dataset.bound) {
+          itemsBody.dataset.bound = "1";
+          itemsBody.addEventListener("click", function (event) {
+            var btn = event.target.closest("[data-consumo-remove]");
+            if (!btn) {
+              return;
+            }
+            var idx = parseInt(btn.getAttribute("data-consumo-remove"), 10);
+            if (!isNaN(idx)) {
+              items.splice(idx, 1);
+              renderItems();
+            }
+          });
+        }
+
+        if (signatureClearBtn && signaturePad && !signatureClearBtn.dataset.bound) {
+          signatureClearBtn.dataset.bound = "1";
+          signatureClearBtn.addEventListener("click", function () {
+            signaturePad.clear();
+          });
+        }
+
+        renderItems();
+
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          clearError();
+          if (!items.length) {
+            showError("Adicione ao menos um produto.");
+            return;
+          }
+          if (!signaturePad || !signaturePad.hasValue()) {
+            showError("Assinatura obrigatoria.");
+            return;
+          }
+
+          var formData = new FormData(form);
+          formData.set("itens_payload", JSON.stringify(items.map(function (item) {
+            return { produto_id: item.produto_id, deposito_id: item.deposito_id, quantidade: item.quantidade };
+          })));
+          formData.set("assinatura_payload", signaturePad.toDataURL());
+
+          fetch(form.action, {
+            method: "POST",
+            body: formData,
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          })
+            .then(function (response) {
+              return response
+                .json()
+                .then(function (data) {
+                  return { ok: response.ok, data: data };
+                })
+                .catch(function () {
+                  return { ok: response.ok, data: null };
+                });
+            })
+            .then(function (result) {
+              if (!result.ok || !result.data || !result.data.ok) {
+                if (result.data && result.data.form_html) {
+                  var formContainer = modalBody.querySelector("[data-consumo-form]");
+                  if (formContainer) {
+                    formContainer.innerHTML = result.data.form_html;
+                    var newForm = formContainer.querySelector("form");
+                    if (newForm) {
+                      bindConsumoBatchForm(newForm);
+                      bindEmpresaSelect(newForm);
+                      bindProdutoSelect(newForm);
+                    }
+                  }
+                  var parser = new DOMParser();
+                  var doc = parser.parseFromString(result.data.form_html, "text/html");
+                  var alertEl = doc.querySelector(".alert");
+                  if (alertEl) {
+                    showError(alertEl.textContent.trim());
+                  } else {
+                    showError("Erro ao validar o consumo.");
+                  }
+                } else {
+                  showError("Erro ao registrar consumo.");
+                }
+                return;
+              }
+
+              if (result.data.action === "create_batch") {
+                var modalEl = document.getElementById("createModal");
+                if (modalEl && window.bootstrap) {
+                  bootstrap.Modal.getInstance(modalEl).hide();
+                }
+                items = [];
+                renderItems();
+                if (signaturePad) {
+                  signaturePad.clear();
+                }
+                refreshList(window.location.href);
+              }
+            })
+            .catch(function () {
+              form.submit();
+            });
+        });
+      }
+
       function initForms() {
-        var forms = document.querySelectorAll("#createModal form, [id^='editModal-'] form");
-        forms.forEach(function (form) {
+        var createForm = document.querySelector("#createModal form");
+        if (createForm) {
+          bindConsumoBatchForm(createForm);
+          bindProdutoSelect(createForm);
+        }
+        var editForms = document.querySelectorAll("[id^='editModal-'] form");
+        editForms.forEach(function (form) {
           bindConsumoForm(form);
         });
       }

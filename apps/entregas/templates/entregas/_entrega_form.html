@@ -1,0 +1,90 @@
+<form
+  method="post"
+  id="{{ form_id|default:'' }}"
+  {% if form_action %}action="{{ form_action }}"{% endif %}
+  {% if form.is_multipart %}enctype="multipart/form-data"{% endif %}
+>
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger py-2">
+      {% for error in form.non_field_errors %}
+        <div>{{ error }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="row g-3">
+    <div class="col-12 col-md-6">
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.funcionario.id_for_label }}">{{ form.funcionario.label }}</label>
+        {{ form.funcionario }}
+        {% if form.funcionario.errors %}
+          {% for error in form.funcionario.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6">
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.produto_fornecedor.id_for_label }}">{{ form.produto_fornecedor.label }}</label>
+        {{ form.produto_fornecedor }}
+        {% if form.produto_fornecedor.errors %}
+          {% for error in form.produto_fornecedor.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-12 col-md-8">
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.deposito.id_for_label }}">{{ form.deposito.label }}</label>
+        {{ form.deposito }}
+        {% if form.deposito.errors %}
+          {% for error in form.deposito.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.quantidade.id_for_label }}">{{ form.quantidade.label }}</label>
+        {{ form.quantidade }}
+        {% if form.quantidade.errors %}
+          {% for error in form.quantidade.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="mb-0">
+        <label class="form-label" for="{{ form.observacao.id_for_label }}">{{ form.observacao.label }}</label>
+        {{ form.observacao }}
+        {% if form.observacao.errors %}
+          {% for error in form.observacao.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if not form_hide_actions %}
+    <div class="d-flex gap-2 justify-content-end mt-3">
+      {% if form_cancel_url %}
+        <a class="btn btn-outline-secondary" href="{{ form_cancel_url }}">Cancelar</a>
+      {% else %}
+        <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+      {% endif %}
+      <button class="btn btn-primary" type="submit">Salvar</button>
+    </div>
+  {% endif %}
+</form>
+

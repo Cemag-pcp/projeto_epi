@@ -42,139 +42,151 @@
 
           <div class="tab-content">
             <div class="tab-pane fade show active" id="tab-info-pane-{{ prefix }}" role="tabpanel" aria-labelledby="tab-info-{{ prefix }}" tabindex="0">
-              <div class="mb-3">
-                <label class="form-label" for="{{ form.sku.id_for_label }}">{{ form.sku.label }}</label>
-                {{ form.sku }}
-                {% for error in form.sku.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="{{ form.codigo_externo.id_for_label }}">{{ form.codigo_externo.label }}</label>
-                {{ form.codigo_externo }}
-                {% for error in form.codigo_externo.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
-                {{ form.nome }}
-                {% for error in form.nome.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="{{ form.referencia.id_for_label }}">{{ form.referencia.label }}</label>
-                {{ form.referencia }}
-                {% for error in form.referencia.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="{{ form.periodicidade_quantidade.id_for_label }}">{{ form.periodicidade_quantidade.label }}</label>
-                {{ form.periodicidade_quantidade }}
-                {% for error in form.periodicidade_quantidade.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="{{ form.periodicidade.id_for_label }}">{{ form.periodicidade.label }}</label>
-                {{ form.periodicidade }}
-                {% for error in form.periodicidade.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="{{ form.imposto_ipi.id_for_label }}">{{ form.imposto_ipi.label }}</label>
-                {{ form.imposto_ipi }}
-                {% for error in form.imposto_ipi.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="{{ form.marca.id_for_label }}">{{ form.marca.label }}</label>
-                {{ form.marca }}
-                {% for error in form.marca.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="{{ form.unidade.id_for_label }}">{{ form.unidade.label }}</label>
-                {{ form.unidade }}
-                {% for error in form.unidade.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}</label>
-                {{ form.tipo }}
-                {% for error in form.tipo.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="{{ form.familia.id_for_label }}">{{ form.familia.label }}</label>
-                {{ form.familia }}
-                {% for error in form.familia.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="{{ form.subfamilia.id_for_label }}">{{ form.subfamilia.label }}</label>
-                {{ form.subfamilia }}
-                {% for error in form.subfamilia.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="{{ form.localizacao.id_for_label }}">{{ form.localizacao.label }}</label>
-                {{ form.localizacao }}
-                {% for error in form.localizacao.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
+              <div class="row g-3">
+                <div class="col-12 col-sm-6 col-lg-3">
+                  <label class="form-label" for="{{ form.sku.id_for_label }}">{{ form.sku.label }}{% if form.sku.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  {{ form.sku }}
+                  {% for error in form.sku.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                  <label class="form-label" for="{{ form.codigo_externo.id_for_label }}">{{ form.codigo_externo.label }}{% if form.codigo_externo.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  {{ form.codigo_externo }}
+                  {% for error in form.codigo_externo.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-12 col-lg-6">
+                  <label class="form-label" for="{{ form.nome.id_for_label }}">{{ form.nome.label }}{% if form.nome.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  {{ form.nome }}
+                  {% for error in form.nome.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                  <label class="form-label" for="{{ form.referencia.id_for_label }}">{{ form.referencia.label }}{% if form.referencia.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  {{ form.referencia }}
+                  {% for error in form.referencia.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                  <label class="form-label" for="{{ form.periodicidade_quantidade.id_for_label }}">{{ form.periodicidade_quantidade.label }}{% if form.periodicidade_quantidade.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  {{ form.periodicidade_quantidade }}
+                  {% for error in form.periodicidade_quantidade.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                  <label class="form-label" for="{{ form.periodicidade.id_for_label }}">{{ form.periodicidade.label }}{% if form.periodicidade.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  {{ form.periodicidade }}
+                  {% for error in form.periodicidade.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                  <label class="form-label" for="{{ form.imposto_ipi.id_for_label }}">{{ form.imposto_ipi.label }}{% if form.imposto_ipi.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  {{ form.imposto_ipi }}
+                  {% for error in form.imposto_ipi.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                  <label class="form-label" for="{{ form.marca.id_for_label }}">{{ form.marca.label }}{% if form.marca.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  {{ form.marca }}
+                  {% for error in form.marca.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                  <label class="form-label" for="{{ form.unidade.id_for_label }}">{{ form.unidade.label }}{% if form.unidade.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  {{ form.unidade }}
+                  {% for error in form.unidade.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                  <label class="form-label" for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}{% if form.tipo.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  {{ form.tipo }}
+                  {% for error in form.tipo.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                  <label class="form-label" for="{{ form.familia.id_for_label }}">{{ form.familia.label }}{% if form.familia.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  {{ form.familia }}
+                  {% for error in form.familia.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                  <label class="form-label" for="{{ form.subfamilia.id_for_label }}">{{ form.subfamilia.label }}{% if form.subfamilia.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  {{ form.subfamilia }}
+                  {% for error in form.subfamilia.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                  <label class="form-label" for="{{ form.localizacao.id_for_label }}">{{ form.localizacao.label }}{% if form.localizacao.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  {{ form.localizacao }}
+                  {% for error in form.localizacao.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                  <label class="form-label" for="{{ form.dias_entrega.id_for_label }}">{{ form.dias_entrega.label }}{% if form.dias_entrega.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  {{ form.dias_entrega }}
+                  {% for error in form.dias_entrega.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
 
-              <div class="form-check mb-3">
-                {{ form.monitora_uso }}
-                <label class="form-check-label" for="{{ form.monitora_uso.id_for_label }}">{{ form.monitora_uso.label }}</label>
-                {% for error in form.monitora_uso.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="form-check mb-3">
-                {{ form.troca_funcionario }}
-                <label class="form-check-label" for="{{ form.troca_funcionario.id_for_label }}">{{ form.troca_funcionario.label }}</label>
-                {% for error in form.troca_funcionario.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="form-check mb-3">
-                {{ form.obrigar_entrega }}
-                <label class="form-check-label" for="{{ form.obrigar_entrega.id_for_label }}">{{ form.obrigar_entrega.label }}</label>
-                {% for error in form.obrigar_entrega.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="{{ form.dias_entrega.id_for_label }}">{{ form.dias_entrega.label }}</label>
-                {{ form.dias_entrega }}
-                {% for error in form.dias_entrega.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="form-check mb-3">
-                {{ form.controle_epi }}
-                <label class="form-check-label" for="{{ form.controle_epi.id_for_label }}">{{ form.controle_epi.label }}</label>
-                {% for error in form.controle_epi.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="form-check mb-3">
-                {{ form.ativo }}
-                <label class="form-check-label" for="{{ form.ativo.id_for_label }}">{{ form.ativo.label }}</label>
-                {% for error in form.ativo.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
+                <div class="col-12 col-sm-6 col-lg-4">
+                  <div class="form-check pt-2">
+                    {{ form.monitora_uso }}
+                    <label class="form-check-label" for="{{ form.monitora_uso.id_for_label }}">{{ form.monitora_uso.label }}{% if form.monitora_uso.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                    {% for error in form.monitora_uso.errors %}
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-4">
+                  <div class="form-check pt-2">
+                    {{ form.troca_funcionario }}
+                    <label class="form-check-label" for="{{ form.troca_funcionario.id_for_label }}">{{ form.troca_funcionario.label }}{% if form.troca_funcionario.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                    {% for error in form.troca_funcionario.errors %}
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-4">
+                  <div class="form-check pt-2">
+                    {{ form.obrigar_entrega }}
+                    <label class="form-check-label" for="{{ form.obrigar_entrega.id_for_label }}">{{ form.obrigar_entrega.label }}{% if form.obrigar_entrega.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                    {% for error in form.obrigar_entrega.errors %}
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-4">
+                  <div class="form-check pt-2">
+                    {{ form.controle_epi }}
+                    <label class="form-check-label" for="{{ form.controle_epi.id_for_label }}">{{ form.controle_epi.label }}{% if form.controle_epi.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                    {% for error in form.controle_epi.errors %}
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-4">
+                  <div class="form-check pt-2">
+                    {{ form.ativo }}
+                    <label class="form-check-label" for="{{ form.ativo.id_for_label }}">{{ form.ativo.label }}{% if form.ativo.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                    {% for error in form.ativo.errors %}
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                </div>
               </div>
               <div class="d-flex gap-2 justify-content-end mt-3">
                 <button class="btn btn-primary" type="button" data-tab-next="#tab-outros-pane-{{ prefix }}">Continuar</button>
@@ -182,33 +194,35 @@
             </div>
 
             <div class="tab-pane fade" id="tab-outros-pane-{{ prefix }}" role="tabpanel" aria-labelledby="tab-outros-{{ prefix }}" tabindex="0">
-              <div class="mb-3">
-                <label class="form-label" for="{{ form.estoque_minimo.id_for_label }}">{{ form.estoque_minimo.label }}</label>
-                {{ form.estoque_minimo }}
-                {% for error in form.estoque_minimo.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="{{ form.estoque_ideal.id_for_label }}">{{ form.estoque_ideal.label }}</label>
-                {{ form.estoque_ideal }}
-                {% for error in form.estoque_ideal.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="{{ form.imposto_st.id_for_label }}">{{ form.imposto_st.label }}</label>
-                {{ form.imposto_st }}
-                {% for error in form.imposto_st.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="{{ form.imposto_outros.id_for_label }}">{{ form.imposto_outros.label }}</label>
-                {{ form.imposto_outros }}
-                {% for error in form.imposto_outros.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
+              <div class="row g-3">
+                <div class="col-12 col-sm-6 col-lg-3">
+                  <label class="form-label" for="{{ form.estoque_minimo.id_for_label }}">{{ form.estoque_minimo.label }}{% if form.estoque_minimo.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  {{ form.estoque_minimo }}
+                  {% for error in form.estoque_minimo.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                  <label class="form-label" for="{{ form.estoque_ideal.id_for_label }}">{{ form.estoque_ideal.label }}{% if form.estoque_ideal.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  {{ form.estoque_ideal }}
+                  {% for error in form.estoque_ideal.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                  <label class="form-label" for="{{ form.imposto_st.id_for_label }}">{{ form.imposto_st.label }}{% if form.imposto_st.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  {{ form.imposto_st }}
+                  {% for error in form.imposto_st.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                  <label class="form-label" for="{{ form.imposto_outros.id_for_label }}">{{ form.imposto_outros.label }}{% if form.imposto_outros.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  {{ form.imposto_outros }}
+                  {% for error in form.imposto_outros.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
               </div>
               <div class="d-flex gap-2 justify-content-end mt-3">
                 <button class="btn btn-outline-secondary" type="button" data-tab-prev="#tab-info-pane-{{ prefix }}">Voltar</button>
@@ -234,12 +248,7 @@
                 <table class="table table-sm align-middle">
                   <thead>
                     <tr>
-                      <th scope="col">CA</th>
-                      <th scope="col">Fornecedor</th>
-                      <th scope="col">Codigo de barras</th>
-                      <th scope="col">Valor</th>
-                      <th scope="col">Fator de compra</th>
-                      <th scope="col">Codigo no fornecedor</th>
+                      <th scope="col">Dados do fornecedor</th>
                       <th scope="col" class="text-end">Acoes</th>
                     </tr>
                   </thead>
@@ -248,31 +257,44 @@
                       {% for rel in fornecedores %}
                         <tr data-fornecedor-row>
                           <td>
-                            <input class="form-control" type="text" data-field="ca" value="{{ rel.ca|default_if_none:'' }}">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                              <span class="badge bg-secondary" data-fornecedor-label>Fornecedor</span>
+                            </div>
+                            <div class="row g-3">
+                              <div class="col-12 col-md-6">
+                                <label class="form-label small mb-1">CA</label>
+                                <input class="form-control" type="text" data-field="ca" name="fornecedores[{{ forloop.counter0 }}][ca]" value="{{ rel.ca|default_if_none:'' }}">
+                              </div>
+                              <div class="col-12 col-md-6">
+                                <label class="form-label small mb-1">Fornecedor</label>
+                                <select class="form-select" data-field="fornecedor" name="fornecedores[{{ forloop.counter0 }}][fornecedor]">
+                                  <option value="">Selecione</option>
+                                  {% for fornecedor in form.fornecedor.field.queryset %}
+                                    <option value="{{ fornecedor.pk }}"{% if fornecedor.pk == rel.fornecedor_id %} selected{% endif %}>{{ fornecedor }}</option>
+                                  {% endfor %}
+                                </select>
+                              </div>
+                              <div class="col-12 col-md-6">
+                                <label class="form-label small mb-1">Codigo de barras</label>
+                                <input class="form-control" type="text" data-field="codigo_barras" name="fornecedores[{{ forloop.counter0 }}][codigo_barras]" value="{{ rel.codigo_barras|default_if_none:'' }}">
+                              </div>
+                              <div class="col-12 col-md-6">
+                                <label class="form-label small mb-1">Valor</label>
+                                <input class="form-control" type="number" step="0.01" min="0" data-field="valor" name="fornecedores[{{ forloop.counter0 }}][valor]" value="{{ rel.valor|unlocalize|default_if_none:'' }}">
+                              </div>
+                              <div class="col-12 col-md-6">
+                                <label class="form-label small mb-1">Fator de compra</label>
+                                <input class="form-control" type="number" step="0.0001" min="0" data-field="fator_compra" name="fornecedores[{{ forloop.counter0 }}][fator_compra]" value="{{ rel.fator_compra|unlocalize|default_if_none:'' }}">
+                              </div>
+                              <div class="col-12 col-md-6">
+                                <label class="form-label small mb-1">Codigo no fornecedor</label>
+                                <input class="form-control" type="text" data-field="codigo_fornecedor" name="fornecedores[{{ forloop.counter0 }}][codigo_fornecedor]" value="{{ rel.codigo_fornecedor|default_if_none:'' }}">
+                              </div>
+                            </div>
                           </td>
-                          <td>
-                            <select class="form-select" data-field="fornecedor">
-                              <option value="">Selecione</option>
-                              {% for fornecedor in form.fornecedor.field.queryset %}
-                                <option value="{{ fornecedor.pk }}"{% if fornecedor.pk == rel.fornecedor_id %} selected{% endif %}>{{ fornecedor }}</option>
-                              {% endfor %}
-                            </select>
-                          </td>
-                          <td>
-                            <input class="form-control" type="text" data-field="codigo_barras" value="{{ rel.codigo_barras|default_if_none:'' }}">
-                          </td>
-                          <td>
-                            <input class="form-control" type="number" step="0.01" min="0" data-field="valor" value="{{ rel.valor|unlocalize|default_if_none:'' }}">
-                          </td>
-                          <td>
-                            <input class="form-control" type="number" step="0.0001" min="0" data-field="fator_compra" value="{{ rel.fator_compra|unlocalize|default_if_none:'' }}">
-                          </td>
-                          <td>
-                            <input class="form-control" type="text" data-field="codigo_fornecedor" value="{{ rel.codigo_fornecedor|default_if_none:'' }}">
-                          </td>
-                          <td class="text-end">
+                          <td class="text-end align-top">
                             <button
-                              class="btn btn-outline-danger btn-icon"
+                              class="btn btn-outline-danger btn-icon mt-2"
                               type="button"
                               data-fornecedor-remove
                               title="Remover"
@@ -286,31 +308,44 @@
                     {% else %}
                       <tr data-fornecedor-row>
                         <td>
-                          <input class="form-control" type="text" data-field="ca" placeholder="Ex: 12345">
+                          <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="badge bg-secondary" data-fornecedor-label>Fornecedor</span>
+                          </div>
+                          <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                              <label class="form-label small mb-1">CA</label>
+                              <input class="form-control" type="text" data-field="ca" name="fornecedores[0][ca]" placeholder="Ex: 12345">
+                            </div>
+                            <div class="col-12 col-md-6">
+                              <label class="form-label small mb-1">Fornecedor</label>
+                              <select class="form-select" data-field="fornecedor" name="fornecedores[0][fornecedor]">
+                                <option value="">Selecione</option>
+                                {% for fornecedor in form.fornecedor.field.queryset %}
+                                  <option value="{{ fornecedor.pk }}">{{ fornecedor }}</option>
+                                {% endfor %}
+                              </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                              <label class="form-label small mb-1">Codigo de barras</label>
+                              <input class="form-control" type="text" data-field="codigo_barras" name="fornecedores[0][codigo_barras]" placeholder="Codigo de barras">
+                            </div>
+                            <div class="col-12 col-md-6">
+                              <label class="form-label small mb-1">Valor</label>
+                              <input class="form-control" type="number" step="0.01" min="0" data-field="valor" name="fornecedores[0][valor]" placeholder="0,00">
+                            </div>
+                            <div class="col-12 col-md-6">
+                              <label class="form-label small mb-1">Fator de compra</label>
+                              <input class="form-control" type="number" step="0.0001" min="0" data-field="fator_compra" name="fornecedores[0][fator_compra]" placeholder="1,0000">
+                            </div>
+                            <div class="col-12 col-md-6">
+                              <label class="form-label small mb-1">Codigo no fornecedor</label>
+                              <input class="form-control" type="text" data-field="codigo_fornecedor" name="fornecedores[0][codigo_fornecedor]" placeholder="Codigo interno">
+                            </div>
+                          </div>
                         </td>
-                        <td>
-                          <select class="form-select" data-field="fornecedor">
-                            <option value="">Selecione</option>
-                            {% for fornecedor in form.fornecedor.field.queryset %}
-                              <option value="{{ fornecedor.pk }}">{{ fornecedor }}</option>
-                            {% endfor %}
-                          </select>
-                        </td>
-                        <td>
-                          <input class="form-control" type="text" data-field="codigo_barras" placeholder="Codigo de barras">
-                        </td>
-                        <td>
-                          <input class="form-control" type="number" step="0.01" min="0" data-field="valor" placeholder="0,00">
-                        </td>
-                        <td>
-                          <input class="form-control" type="number" step="0.0001" min="0" data-field="fator_compra" placeholder="1,0000">
-                        </td>
-                        <td>
-                          <input class="form-control" type="text" data-field="codigo_fornecedor" placeholder="Codigo interno">
-                        </td>
-                        <td class="text-end">
+                        <td class="text-end align-top">
                           <button
-                            class="btn btn-outline-danger btn-icon"
+                            class="btn btn-outline-danger btn-icon mt-2"
                             type="button"
                             data-fornecedor-remove
                             title="Remover"
@@ -328,31 +363,44 @@
               <template data-fornecedor-template>
                 <tr data-fornecedor-row>
                   <td>
-                    <input class="form-control" type="text" data-field="ca" placeholder="Ex: 12345">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                      <span class="badge bg-secondary" data-fornecedor-label>Fornecedor</span>
+                    </div>
+                    <div class="row g-3">
+                      <div class="col-12 col-md-6">
+                        <label class="form-label small mb-1">CA</label>
+                        <input class="form-control" type="text" data-field="ca" name="fornecedores[__index__][ca]" placeholder="Ex: 12345">
+                      </div>
+                      <div class="col-12 col-md-6">
+                        <label class="form-label small mb-1">Fornecedor</label>
+                        <select class="form-select" data-field="fornecedor" name="fornecedores[__index__][fornecedor]">
+                          <option value="">Selecione</option>
+                          {% for fornecedor in form.fornecedor.field.queryset %}
+                            <option value="{{ fornecedor.pk }}">{{ fornecedor }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="col-12 col-md-6">
+                        <label class="form-label small mb-1">Codigo de barras</label>
+                        <input class="form-control" type="text" data-field="codigo_barras" name="fornecedores[__index__][codigo_barras]" placeholder="Codigo de barras">
+                      </div>
+                      <div class="col-12 col-md-6">
+                        <label class="form-label small mb-1">Valor</label>
+                        <input class="form-control" type="number" step="0.01" min="0" data-field="valor" name="fornecedores[__index__][valor]" placeholder="0,00">
+                      </div>
+                      <div class="col-12 col-md-6">
+                        <label class="form-label small mb-1">Fator de compra</label>
+                        <input class="form-control" type="number" step="0.0001" min="0" data-field="fator_compra" name="fornecedores[__index__][fator_compra]" placeholder="1,0000">
+                      </div>
+                      <div class="col-12 col-md-6">
+                        <label class="form-label small mb-1">Codigo no fornecedor</label>
+                        <input class="form-control" type="text" data-field="codigo_fornecedor" name="fornecedores[__index__][codigo_fornecedor]" placeholder="Codigo interno">
+                      </div>
+                    </div>
                   </td>
-                  <td>
-                    <select class="form-select" data-field="fornecedor">
-                      <option value="">Selecione</option>
-                      {% for fornecedor in form.fornecedor.field.queryset %}
-                        <option value="{{ fornecedor.pk }}">{{ fornecedor }}</option>
-                      {% endfor %}
-                    </select>
-                  </td>
-                  <td>
-                    <input class="form-control" type="text" data-field="codigo_barras" placeholder="Codigo de barras">
-                  </td>
-                  <td>
-                    <input class="form-control" type="number" step="0.01" min="0" data-field="valor" placeholder="0,00">
-                  </td>
-                  <td>
-                    <input class="form-control" type="number" step="0.0001" min="0" data-field="fator_compra" placeholder="1,0000">
-                  </td>
-                  <td>
-                    <input class="form-control" type="text" data-field="codigo_fornecedor" placeholder="Codigo interno">
-                  </td>
-                  <td class="text-end">
+                  <td class="text-end align-top">
                     <button
-                      class="btn btn-outline-danger btn-icon"
+                      class="btn btn-outline-danger btn-icon mt-2"
                       type="button"
                       data-fornecedor-remove
                       title="Remover"

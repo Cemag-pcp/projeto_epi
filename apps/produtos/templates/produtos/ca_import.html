@@ -266,7 +266,12 @@
             row.dataset.index = String(index);
             var fields = row.querySelectorAll("[data-field]");
             fields.forEach(function (field) {
-              field.name = "fornecedores[" + index + "][" + field.dataset.field + "]";
+              var baseName = field.getAttribute("name") || "";
+              if (baseName.indexOf("__index__") !== -1) {
+                field.name = baseName.replace("__index__", String(index));
+              } else {
+                field.name = "fornecedores[" + index + "][" + field.dataset.field + "]";
+              }
             });
             var removeButton = row.querySelector("[data-fornecedor-remove]");
             if (removeButton) {
@@ -454,6 +459,9 @@
           form.dataset.bound = "1";
           form.addEventListener("submit", function (event) {
             event.preventDefault();
+            if (rowsContainer) {
+              syncRowIndices();
+            }
             var formData = new FormData(form);
             fetch(form.action, {
               method: "POST",

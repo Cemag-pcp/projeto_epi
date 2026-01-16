@@ -78,6 +78,11 @@ urlpatterns = [
         views.FuncionarioHistoricoListView.as_view(),
         name="historico_list",
     ),
+    path(
+        "funcionarios/<int:pk>/historico-entregas/",
+        views.FuncionarioHistoricoEntregaListView.as_view(),
+        name="historico_entregas_list",
+    ),
     path("funcionarios/produtos/", views.FuncionarioProdutoListView.as_view(), name="produtos_list"),
     path("funcionarios/produtos/novo/", views.FuncionarioProdutoCreateView.as_view(), name="produtos_create"),
     path(
