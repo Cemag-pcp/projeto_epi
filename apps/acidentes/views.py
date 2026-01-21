@@ -1,3 +1,4 @@
+import gzip
 import json
 import re
 from urllib.error import URLError, HTTPError
@@ -12,7 +13,7 @@ from django.views import View
 
 from apps.core.views import BaseTenantCreateView, BaseTenantListView, BaseTenantUpdateView
 
-from .forms import AcidenteTrabalhoForm
+from .forms import AcidenteAnexoFormSet, AcidenteFatoFormSet, AcidenteTrabalhoForm
 from .models import AcidenteTrabalho
 
 
@@ -56,6 +57,15 @@ AMBIENTES_POR_TIPO_LOCAL = {
 }
 
 
+def _read_json_response(response):
+    data = response.read()
+    content_encoding = (response.headers.get("Content-Encoding") or "").lower()
+    if "gzip" in content_encoding:
+        data = gzip.decompress(data)
+    charset = response.headers.get_content_charset() or "utf-8"
+    return json.loads(data.decode(charset))
+
+
 class AcidenteTrabalhoListView(BaseTenantListView):
     model = AcidenteTrabalho
     template_name = "acidentes/list.html"
@@ -88,7 +98,19 @@ class AcidenteTrabalhoListView(BaseTenantListView):
         context["can_change"] = can_change
         context["create_url"] = reverse("acidentes:create") if can_add else ""
         context["create_form"] = (
-            AcidenteTrabalhoForm(tenant=self.request.tenant, planta_id=planta_id) if can_add else None
+            AcidenteTrabalhoForm(
+                tenant=self.request.tenant,
+                planta_id=planta_id,
+                user=self.request.user,
+            )
+            if can_add
+            else None
+        )
+        context["create_fatos_formset"] = (
+            AcidenteFatoFormSet(prefix="fatos", instance=AcidenteTrabalho()) if can_add else None
+        )
+        context["create_anexos_formset"] = (
+            AcidenteAnexoFormSet(prefix="anexos", instance=AcidenteTrabalho()) if can_add else None
         )
         context["edit_rows"] = []
         if can_change:
@@ -99,8 +121,11 @@ class AcidenteTrabalhoListView(BaseTenantListView):
                         instance=obj,
                         tenant=self.request.tenant,
                         planta_id=planta_id,
+                        user=self.request.user,
                     ),
                     "update_url": reverse("acidentes:update", args=[obj.pk]),
+                    "fatos_formset": AcidenteFatoFormSet(prefix=f"fatos_{obj.pk}", instance=obj),
+                    "anexos_formset": AcidenteAnexoFormSet(prefix=f"anexos_{obj.pk}", instance=obj),
                 }
                 for obj in context.get("object_list", [])
             ]
@@ -122,6 +147,7 @@ class AcidenteTrabalhoCreateView(BaseTenantCreateView):
         kwargs = super().get_form_kwargs()
         kwargs["tenant"] = self.request.tenant
         kwargs["planta_id"] = self.request.session.get("planta_id")
+        kwargs["user"] = self.request.user
         return kwargs
 
     def get_context_data(self, **kwargs):
@@ -131,10 +157,36 @@ class AcidenteTrabalhoCreateView(BaseTenantCreateView):
         context["api_ambientes_url"] = reverse("acidentes:api_ambientes")
         context["api_cidades_url"] = reverse("acidentes:api_cidades")
         context["api_cep_url"] = reverse("acidentes:api_cep")
+        context["fatos_formset"] = context.get("fatos_formset") or AcidenteFatoFormSet(
+            prefix="fatos",
+            instance=self.object if self.object else AcidenteTrabalho(),
+        )
+        context["anexos_formset"] = context.get("anexos_formset") or AcidenteAnexoFormSet(
+            prefix="anexos",
+            instance=self.object if self.object else AcidenteTrabalho(),
+        )
         return context
 
     def form_valid(self, form):
+        fatos_prefix, anexos_prefix = self._get_formset_prefixes()
+        fatos_formset = AcidenteFatoFormSet(
+            data=self.request.POST or None,
+            files=self.request.FILES or None,
+            instance=form.instance,
+            prefix=fatos_prefix,
+        )
+        anexos_formset = AcidenteAnexoFormSet(
+            data=self.request.POST or None,
+            files=self.request.FILES or None,
+            instance=form.instance,
+            prefix=anexos_prefix,
+        )
+        if not (fatos_formset.is_valid() and anexos_formset.is_valid()):
+            return self.form_invalid(form, fatos_formset=fatos_formset, anexos_formset=anexos_formset)
+
+        form.instance.analise_preenchido_por = self.request.user
         response = super().form_valid(form)
+        self._save_formsets(fatos_formset, anexos_formset)
         if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
             row_html = render_to_string(
                 "acidentes/_acidente_row.html",
@@ -149,8 +201,11 @@ class AcidenteTrabalhoCreateView(BaseTenantCreateView):
                         instance=self.object,
                         tenant=self.request.tenant,
                         planta_id=self.request.session.get("planta_id"),
+                        user=self.request.user,
                     ),
                     "update_url": reverse("acidentes:update", args=[self.object.pk]),
+                    "fatos_formset": AcidenteFatoFormSet(prefix=f"fatos_{self.object.pk}", instance=self.object),
+                    "anexos_formset": AcidenteAnexoFormSet(prefix=f"anexos_{self.object.pk}", instance=self.object),
                 },
                 request=self.request,
             )
@@ -160,8 +215,12 @@ class AcidenteTrabalhoCreateView(BaseTenantCreateView):
                     "form": AcidenteTrabalhoForm(
                         tenant=self.request.tenant,
                         planta_id=self.request.session.get("planta_id"),
+                        user=self.request.user,
                     ),
                     "form_action": reverse("acidentes:create"),
+                    "fatos_formset": AcidenteFatoFormSet(prefix="fatos", instance=AcidenteTrabalho()),
+                    "anexos_formset": AcidenteAnexoFormSet(prefix="anexos", instance=AcidenteTrabalho()),
+                    "tab_id": "create",
                 },
                 request=self.request,
             )
@@ -177,15 +236,61 @@ class AcidenteTrabalhoCreateView(BaseTenantCreateView):
             )
         return response
 
-    def form_invalid(self, form):
+    def form_invalid(self, form, fatos_formset=None, anexos_formset=None):
+        fatos_prefix, anexos_prefix = self._get_formset_prefixes()
+        fatos_formset = fatos_formset or AcidenteFatoFormSet(
+            data=self.request.POST or None,
+            files=self.request.FILES or None,
+            instance=form.instance,
+            prefix=fatos_prefix,
+        )
+        anexos_formset = anexos_formset or AcidenteAnexoFormSet(
+            data=self.request.POST or None,
+            files=self.request.FILES or None,
+            instance=form.instance,
+            prefix=anexos_prefix,
+        )
         if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
             form_html = render_to_string(
                 "acidentes/_acidente_form.html",
-                {"form": form, "form_action": reverse("acidentes:create")},
+                {
+                    "form": form,
+                    "form_action": reverse("acidentes:create"),
+                    "fatos_formset": fatos_formset,
+                    "anexos_formset": anexos_formset,
+                    "tab_id": "create",
+                },
                 request=self.request,
             )
             return JsonResponse({"ok": False, "form_html": form_html}, status=400)
         return super().form_invalid(form)
+
+    def _save_formsets(self, fatos_formset, anexos_formset):
+        for formset in (fatos_formset, anexos_formset):
+            instances = formset.save(commit=False)
+            for obj in instances:
+                obj.acidente = self.object
+                obj.company = self.object.company
+                if obj.created_by_id is None:
+                    obj.created_by = self.request.user
+                obj.updated_by = self.request.user
+                obj.save()
+            for obj in formset.deleted_objects:
+                obj.delete()
+            if hasattr(formset, "save_m2m"):
+                formset.save_m2m()
+    
+    def _get_formset_prefixes(self):
+        return (
+            self._find_formset_prefix("fatos"),
+            self._find_formset_prefix("anexos"),
+        )
+
+    def _find_formset_prefix(self, base):
+        for key in self.request.POST.keys():
+            if key.startswith(base) and key.endswith("-TOTAL_FORMS"):
+                return key[: -len("-TOTAL_FORMS")]
+        return base
 
 
 class AcidenteTrabalhoUpdateView(BaseTenantUpdateView):
@@ -198,6 +303,7 @@ class AcidenteTrabalhoUpdateView(BaseTenantUpdateView):
         kwargs = super().get_form_kwargs()
         kwargs["tenant"] = self.request.tenant
         kwargs["planta_id"] = self.request.session.get("planta_id")
+        kwargs["user"] = self.request.user
         return kwargs
 
     def get_context_data(self, **kwargs):
@@ -207,10 +313,36 @@ class AcidenteTrabalhoUpdateView(BaseTenantUpdateView):
         context["api_ambientes_url"] = reverse("acidentes:api_ambientes")
         context["api_cidades_url"] = reverse("acidentes:api_cidades")
         context["api_cep_url"] = reverse("acidentes:api_cep")
+        context["fatos_formset"] = context.get("fatos_formset") or AcidenteFatoFormSet(
+            prefix="fatos",
+            instance=self.object,
+        )
+        context["anexos_formset"] = context.get("anexos_formset") or AcidenteAnexoFormSet(
+            prefix="anexos",
+            instance=self.object,
+        )
         return context
 
     def form_valid(self, form):
+        fatos_prefix, anexos_prefix = self._get_formset_prefixes()
+        fatos_formset = AcidenteFatoFormSet(
+            data=self.request.POST or None,
+            files=self.request.FILES or None,
+            instance=form.instance,
+            prefix=fatos_prefix,
+        )
+        anexos_formset = AcidenteAnexoFormSet(
+            data=self.request.POST or None,
+            files=self.request.FILES or None,
+            instance=form.instance,
+            prefix=anexos_prefix,
+        )
+        if not (fatos_formset.is_valid() and anexos_formset.is_valid()):
+            return self.form_invalid(form, fatos_formset=fatos_formset, anexos_formset=anexos_formset)
+
+        form.instance.analise_preenchido_por = self.request.user
         response = super().form_valid(form)
+        self._save_formsets(fatos_formset, anexos_formset)
         if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
             row_html = render_to_string(
                 "acidentes/_acidente_row.html",
@@ -227,15 +359,61 @@ class AcidenteTrabalhoUpdateView(BaseTenantUpdateView):
             )
         return response
 
-    def form_invalid(self, form):
+    def form_invalid(self, form, fatos_formset=None, anexos_formset=None):
+        fatos_prefix, anexos_prefix = self._get_formset_prefixes()
+        fatos_formset = fatos_formset or AcidenteFatoFormSet(
+            data=self.request.POST or None,
+            files=self.request.FILES or None,
+            instance=form.instance,
+            prefix=fatos_prefix,
+        )
+        anexos_formset = anexos_formset or AcidenteAnexoFormSet(
+            data=self.request.POST or None,
+            files=self.request.FILES or None,
+            instance=form.instance,
+            prefix=anexos_prefix,
+        )
         if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
             form_html = render_to_string(
                 "acidentes/_acidente_form.html",
-                {"form": form, "form_action": reverse("acidentes:update", args=[self.get_object().pk])},
+                {
+                    "form": form,
+                    "form_action": reverse("acidentes:update", args=[self.get_object().pk]),
+                    "fatos_formset": fatos_formset,
+                    "anexos_formset": anexos_formset,
+                    "tab_id": f"edit-{self.get_object().pk}",
+                },
                 request=self.request,
             )
             return JsonResponse({"ok": False, "form_html": form_html, "row_id": self.get_object().pk}, status=400)
         return super().form_invalid(form)
+
+    def _save_formsets(self, fatos_formset, anexos_formset):
+        for formset in (fatos_formset, anexos_formset):
+            instances = formset.save(commit=False)
+            for obj in instances:
+                obj.acidente = self.object
+                obj.company = self.object.company
+                if obj.created_by_id is None:
+                    obj.created_by = self.request.user
+                obj.updated_by = self.request.user
+                obj.save()
+            for obj in formset.deleted_objects:
+                obj.delete()
+            if hasattr(formset, "save_m2m"):
+                formset.save_m2m()
+
+    def _get_formset_prefixes(self):
+        return (
+            self._find_formset_prefix("fatos"),
+            self._find_formset_prefix("anexos"),
+        )
+
+    def _find_formset_prefix(self, base):
+        for key in self.request.POST.keys():
+            if key.startswith(base) and key.endswith("-TOTAL_FORMS"):
+                return key[: -len("-TOTAL_FORMS")]
+        return base
 
 
 class AmbientesApiView(LoginRequiredMixin, PermissionRequiredMixin, View):
@@ -263,8 +441,8 @@ class CidadesApiView(LoginRequiredMixin, PermissionRequiredMixin, View):
         url = f"https://servicodados.ibge.gov.br/api/v1/localidades/estados/{uf}/municipios?orderBy=nome"
         try:
             with urlopen(url, timeout=4) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-        except (URLError, HTTPError, TimeoutError, json.JSONDecodeError):
+                payload = _read_json_response(response)
+        except (URLError, HTTPError, TimeoutError, json.JSONDecodeError, OSError):
             return JsonResponse({"ok": False, "uf": uf, "cidades": []}, status=200)
         cidades = []
         for item in payload or []:
@@ -285,8 +463,8 @@ class CepLookupApiView(LoginRequiredMixin, PermissionRequiredMixin, View):
         url = f"https://viacep.com.br/ws/{cep_digits}/json/"
         try:
             with urlopen(url, timeout=4) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-        except (URLError, HTTPError, TimeoutError, json.JSONDecodeError):
+                payload = _read_json_response(response)
+        except (URLError, HTTPError, TimeoutError, json.JSONDecodeError, OSError):
             return JsonResponse({"ok": False, "message": "Falha ao consultar CEP."}, status=200)
         if payload.get("erro"):
             return JsonResponse({"ok": False, "message": "CEP nao encontrado."}, status=200)

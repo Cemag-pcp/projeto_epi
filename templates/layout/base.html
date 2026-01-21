@@ -7,6 +7,7 @@
     <title>{% block title %}Clarus{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/styles/choices.min.css" rel="stylesheet">
     <link href="https://unpkg.com/unpoly@3.5.1/unpoly.min.css" rel="stylesheet">
     <link href="{% static 'css/clarus-theme.css' %}" rel="stylesheet">
     {% block extra_head %}{% endblock %}
@@ -35,6 +36,10 @@
       .sidebar-logo {
         max-height: 32px;
         width: auto;
+      }
+      .choices.is-invalid .choices__inner {
+        border-color: var(--bs-danger);
+        box-shadow: 0 0 0 0.25rem rgba(var(--bs-danger-rgb), 0.25);
       }
     </style>
   </head>
@@ -104,6 +109,113 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
     <div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3"></div>
     <script src="https://unpkg.com/unpoly@3.5.1/unpoly.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/scripts/choices.min.js"></script>
+    <script>
+      (function () {
+        function initSelect(selectEl) {
+          if (!selectEl || selectEl.dataset.choicesBound === "1") return;
+          selectEl.dataset.choicesBound = "1";
+          var instance = new Choices(selectEl, {
+            searchEnabled: true,
+            shouldSort: false,
+            itemSelectText: "",
+            allowHTML: false,
+            placeholder: true,
+            placeholderValue: "Selecione",
+            removeItemButton: !!selectEl.multiple,
+          });
+          selectEl._choicesInstance = instance;
+          selectEl.addEventListener("change", function () {
+            if (!instance.containerOuter || !instance.containerOuter.element) return;
+            if (selectEl.value) {
+              instance.containerOuter.element.classList.remove("is-invalid");
+            }
+          });
+        }
+
+        function enhance(root) {
+          (root || document).querySelectorAll("select[data-choices]").forEach(function (selectEl) {
+            initSelect(selectEl);
+          });
+        }
+
+        function refresh(selectEl) {
+          if (!selectEl) return;
+          var instance = selectEl._choicesInstance;
+          if (!instance) {
+            initSelect(selectEl);
+            return;
+          }
+          var choices = Array.from(selectEl.options).map(function (opt) {
+            return {
+              value: opt.value,
+              label: opt.text,
+              selected: opt.selected,
+              disabled: opt.disabled,
+            };
+          });
+          instance.clearChoices();
+          instance.setChoices(choices, "value", "label", true);
+        }
+
+        window.clarusChoices = { enhance: enhance, refresh: refresh };
+
+        function validateRequiredChoices(form) {
+          var ok = true;
+          var selects = form.querySelectorAll("select[data-choices][required]");
+          selects.forEach(function (selectEl) {
+            var wrapper = selectEl._choicesInstance ? selectEl._choicesInstance.containerOuter.element : null;
+            if (!wrapper) return;
+            if (!selectEl.value) {
+              ok = false;
+              wrapper.classList.add("is-invalid");
+            } else {
+              wrapper.classList.remove("is-invalid");
+            }
+          });
+          return ok;
+        }
+
+        document.addEventListener(
+          "submit",
+          function (event) {
+            var form = event.target;
+            if (!form || !form.matches || !form.matches("[data-validate-choices]")) return;
+            if (!validateRequiredChoices(form)) {
+              event.preventDefault();
+              event.stopPropagation();
+            }
+          },
+          true
+        );
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", function () {
+            enhance(document);
+          });
+        } else {
+          enhance(document);
+        }
+
+        if (window.MutationObserver) {
+          var choicesObserver = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+              mutation.addedNodes.forEach(function (node) {
+                if (node.nodeType !== 1) return;
+                if (node.matches && node.matches("select[data-choices]")) {
+                  initSelect(node);
+                  return;
+                }
+                if (node.querySelectorAll) {
+                  enhance(node);
+                }
+              });
+            });
+          });
+          choicesObserver.observe(document.body, { childList: true, subtree: true });
+        }
+      })();
+    </script>
     <script>
       (function () {
         var sidebarKey = "clarus.sidebar.collapsed";

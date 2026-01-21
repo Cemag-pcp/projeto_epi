@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -340,15 +341,15 @@ class AcidenteTrabalho(TenantModel):
     ambiente = models.CharField(max_length=120)
     descricao_local = models.CharField(max_length=80)
 
-    cep = models.CharField("CEP", max_length=9)
+    cep = models.CharField("CEP", max_length=9, blank=True)
     estado = models.CharField("Estado", max_length=2, choices=ESTADO_CHOICES)
     cidade = models.CharField("Cidade", max_length=120)
 
     tipo_logradouro = models.CharField("Tipo do Logradouro", max_length=40, choices=TIPO_LOGRADOURO_CHOICES)
-    endereco = models.CharField("Endereco", max_length=100)
-    numero = models.CharField("Numero", max_length=10)
+    endereco = models.CharField("Endereco", max_length=100, blank=True)
+    numero = models.CharField("Numero", max_length=10, blank=True)
     complemento = models.CharField("Complemento", max_length=100, blank=True)
-    bairro = models.CharField("Bairro", max_length=90)
+    bairro = models.CharField("Bairro", max_length=90, blank=True)
 
     existe_atestado = models.BooleanField(default=False)
     data_atendimento = models.DateField(null=True, blank=True)
@@ -374,6 +375,32 @@ class AcidenteTrabalho(TenantModel):
     )
     codigo_cnes = models.CharField(max_length=20, blank=True)
 
+    analise_data_conclusao = models.DateField(null=True, blank=True)
+    analise_preenchido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="acidentes_analise_preenchidos",
+    )
+    analise_coordenador = models.ForeignKey(
+        "funcionarios.Funcionario",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="acidentes_analise_coordenados",
+    )
+    analise_envolvidos = models.ManyToManyField(
+        "funcionarios.Funcionario",
+        blank=True,
+        related_name="acidentes_analise_envolvidos",
+    )
+    analise_participantes = models.ManyToManyField(
+        "funcionarios.Funcionario",
+        blank=True,
+        related_name="acidentes_analise_participantes",
+    )
+
     class Meta:
         ordering = ["-data_ocorrencia"]
 
@@ -392,3 +419,35 @@ class AcidenteTrabalho(TenantModel):
     @property
     def update_date(self):
         return self.updated_at
+
+
+class AcidenteFato(TenantModel):
+    acidente = models.ForeignKey(
+        AcidenteTrabalho,
+        on_delete=models.CASCADE,
+        related_name="fatos",
+    )
+    hora_ocorrencia = models.TimeField()
+    detalhamento = models.TextField()
+
+    class Meta:
+        ordering = ["hora_ocorrencia", "pk"]
+
+    def __str__(self):
+        return f"Fato {self.hora_ocorrencia} - {self.acidente_id}"
+
+
+class AcidenteAnexo(TenantModel):
+    acidente = models.ForeignKey(
+        AcidenteTrabalho,
+        on_delete=models.CASCADE,
+        related_name="anexos",
+    )
+    arquivo = models.FileField(upload_to="acidentes/anexos/")
+    descricao = models.CharField(max_length=200, blank=True)
+
+    class Meta:
+        ordering = ["pk"]
+
+    def __str__(self):
+        return f"Anexo {self.pk} - {self.acidente_id}"

@@ -8,7 +8,7 @@
   <div class="card border-0 shadow-sm">
     <div class="card-body">
       {% if title %}<h1 class="h5 mb-3">{{ title }}</h1>{% endif %}
-      {% include "components/_form.html" with form=form form_cancel_url=form_cancel_url %}
+      {% include "acidentes/_acidente_form.html" with form=form form_cancel_url=form_cancel_url fatos_formset=fatos_formset anexos_formset=anexos_formset tab_id="page" %}
     </div>
   </div>
 
@@ -28,6 +28,49 @@
       var bairroEl = document.getElementById("id_bairro");
       var complementoEl = document.getElementById("id_complemento");
 
+      function bindFormsets(root) {
+        (root || document).querySelectorAll("[data-formset]").forEach(function (wrapper) {
+          if (wrapper.dataset.bound === "1") return;
+          wrapper.dataset.bound = "1";
+
+          var items = wrapper.querySelector("[data-formset-items]");
+          var template = wrapper.querySelector("template[data-formset-template]");
+          var prefix = wrapper.getAttribute("data-formset-prefix") || "";
+          var totalInput = wrapper.querySelector('input[name="' + prefix + '-TOTAL_FORMS"]');
+          if (!items || !template || !totalInput) return;
+
+          wrapper.addEventListener("click", function (event) {
+            if (event.target && event.target.closest("[data-formset-add]")) {
+              event.preventDefault();
+              var index = parseInt(totalInput.value || "0", 10);
+              var html = template.innerHTML.replace(/__prefix__/g, String(index));
+              var container = document.createElement("div");
+              container.innerHTML = html;
+              Array.from(container.children).forEach(function (child) {
+                items.appendChild(child);
+              });
+              totalInput.value = String(index + 1);
+              if (window.clarusChoices && window.clarusChoices.enhance) {
+                window.clarusChoices.enhance(items);
+              }
+              return;
+            }
+
+            var removeBtn = event.target && event.target.closest("[data-formset-remove]");
+            if (removeBtn) {
+              event.preventDefault();
+              var item = removeBtn.closest("[data-formset-item]");
+              if (!item) return;
+              var deleteInput = item.querySelector('input[name$="-DELETE"]');
+              if (deleteInput) {
+                deleteInput.checked = true;
+              }
+              item.style.display = "none";
+            }
+          });
+        });
+      }
+
       function setOptions(selectEl, items, selectedValue) {
         if (!selectEl) return;
         selectEl.innerHTML = "";
@@ -43,6 +86,9 @@
         });
         if (selectedValue) {
           selectEl.value = selectedValue;
+        }
+        if (window.clarusChoices && window.clarusChoices.refresh) {
+          window.clarusChoices.refresh(selectEl);
         }
       }
 
@@ -146,6 +192,8 @@
           lookupCep(cepEl.value);
         });
       }
+
+      bindFormsets(document);
     })();
   </script>
 {% endblock %}

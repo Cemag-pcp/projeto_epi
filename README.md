@@ -2,8 +2,8 @@
 
 criar tenant:
 - from apps.tenants.models import Company, Domain
-- company = Company.objects.create(schema_name="cliente2", name="Cliente 2")
-- Domain.objects.create(domain="cliente2.localhost", tenant=company, is_primary=True)
+- company = Company.objects.create(schema_name="cliente1", name="Cliente 1")
+- Domain.objects.create(domain="cliente1.localhost", tenant=company, is_primary=True)
 
 
 criar usuario no tenant:

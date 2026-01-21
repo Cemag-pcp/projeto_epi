@@ -55,7 +55,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
           </div>
           <div class="modal-body" data-acidente-modal-body data-row-id="">
-            {% include "acidentes/_acidente_form.html" with form=create_form form_action=create_url %}
+            {% include "acidentes/_acidente_form.html" with form=create_form form_action=create_url fatos_formset=create_fatos_formset anexos_formset=create_anexos_formset tab_id="create" %}
           </div>
         </div>
       </div>
@@ -88,6 +88,49 @@
           });
       }
 
+      function bindFormsets(root) {
+        (root || document).querySelectorAll("[data-formset]").forEach(function (wrapper) {
+          if (wrapper.dataset.bound === "1") return;
+          wrapper.dataset.bound = "1";
+
+          var items = wrapper.querySelector("[data-formset-items]");
+          var template = wrapper.querySelector("template[data-formset-template]");
+          var prefix = wrapper.getAttribute("data-formset-prefix") || "";
+          var totalInput = wrapper.querySelector('input[name="' + prefix + '-TOTAL_FORMS"]');
+          if (!items || !template || !totalInput) return;
+
+          wrapper.addEventListener("click", function (event) {
+            if (event.target && event.target.closest("[data-formset-add]")) {
+              event.preventDefault();
+              var index = parseInt(totalInput.value || "0", 10);
+              var html = template.innerHTML.replace(/__prefix__/g, String(index));
+              var container = document.createElement("div");
+              container.innerHTML = html;
+              Array.from(container.children).forEach(function (child) {
+                items.appendChild(child);
+              });
+              totalInput.value = String(index + 1);
+              if (window.clarusChoices && window.clarusChoices.enhance) {
+                window.clarusChoices.enhance(items);
+              }
+              return;
+            }
+
+            var removeBtn = event.target && event.target.closest("[data-formset-remove]");
+            if (removeBtn) {
+              event.preventDefault();
+              var item = removeBtn.closest("[data-formset-item]");
+              if (!item) return;
+              var deleteInput = item.querySelector('input[name$="-DELETE"]');
+              if (deleteInput) {
+                deleteInput.checked = true;
+              }
+              item.style.display = "none";
+            }
+          });
+        });
+      }
+
       function setOptions(selectEl, items, selectedValue) {
         if (!selectEl) return;
         selectEl.innerHTML = "";
@@ -104,6 +147,9 @@
         if (selectedValue) {
           selectEl.value = selectedValue;
         }
+        if (window.clarusChoices && window.clarusChoices.refresh) {
+          window.clarusChoices.refresh(selectEl);
+        }
       }
 
       function normalizeCep(value) {
@@ -113,6 +159,7 @@
       function attachDynamicHandlers(modalBody) {
         if (!modalBody || modalBody.dataset.dynamicBound === "1") return;
         modalBody.dataset.dynamicBound = "1";
+        bindFormsets(modalBody);
 
         var tipoLocalEl = modalBody.querySelector("[data-acidente-tipo-local]");
         var ambienteEl = modalBody.querySelector("[data-acidente-ambiente]");

@@ -1,6 +1,8 @@
 <form
   method="post"
   id="{{ form_id|default:'' }}"
+  data-validate-choices="1"
+  novalidate
   {% if form_action %}action="{{ form_action }}"{% endif %}
   {% if form.is_multipart %}enctype="multipart/form-data"{% endif %}
 >
@@ -14,90 +16,316 @@
     </div>
   {% endif %}
 
-  <div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-white">
-      <div class="fw-semibold">Dados principais</div>
-    </div>
-    <div class="card-body">
-      {% include "acidentes/_radio_group.html" with field=form.tipo_registro %}
-      {% include "acidentes/_radio_group.html" with field=form.tipo_acidente %}
-      {% include "acidentes/_radio_group.html" with field=form.trajeto_evento %}
+  <ul class="nav nav-tabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link active"
+        data-bs-toggle="tab"
+        data-bs-target="#tab-dados-{{ tab_id|default:'main' }}"
+        type="button"
+        role="tab"
+      >
+        Dados
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link"
+        data-bs-toggle="tab"
+        data-bs-target="#tab-endereco-{{ tab_id|default:'main' }}"
+        type="button"
+        role="tab"
+      >
+        Endereco
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link"
+        data-bs-toggle="tab"
+        data-bs-target="#tab-atestado-{{ tab_id|default:'main' }}"
+        type="button"
+        role="tab"
+      >
+        Atestado
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link"
+        data-bs-toggle="tab"
+        data-bs-target="#tab-fatos-{{ tab_id|default:'main' }}"
+        type="button"
+        role="tab"
+      >
+        Fatos
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link"
+        data-bs-toggle="tab"
+        data-bs-target="#tab-anexos-{{ tab_id|default:'main' }}"
+        type="button"
+        role="tab"
+      >
+        Anexos
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link"
+        data-bs-toggle="tab"
+        data-bs-target="#tab-analise-{{ tab_id|default:'main' }}"
+        type="button"
+        role="tab"
+      >
+        Equipe de analise
+      </button>
+    </li>
+  </ul>
 
-      <div class="row g-3">
-        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.funcionario %}</div>
-        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.data_ocorrencia %}</div>
-        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.ultimo_dia_trabalhado %}</div>
-        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.horas_trabalhadas %}</div>
+  <div class="tab-content pt-3">
+    <div
+      class="tab-pane fade show active"
+      id="tab-dados-{{ tab_id|default:'main' }}"
+      role="tabpanel"
+      tabindex="0"
+    >
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white">
+          <div class="fw-semibold">Dados principais</div>
+        </div>
+        <div class="card-body">
+          {% include "acidentes/_radio_group.html" with field=form.tipo_registro %}
+          {% include "acidentes/_radio_group.html" with field=form.tipo_acidente %}
+          {% include "acidentes/_radio_group.html" with field=form.trajeto_evento %}
+
+          <div class="row g-3">
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.funcionario %}</div>
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.data_ocorrencia %}</div>
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.ultimo_dia_trabalhado %}</div>
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.horas_trabalhadas %}</div>
+          </div>
+
+          {% include "acidentes/_radio_group.html" with field=form.houve_afastamento %}
+          <div class="row g-3">
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.houve_obito %}</div>
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.data_obito %}</div>
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.houve_comunicacao_policia %}</div>
+          </div>
+        </div>
       </div>
 
-      {% include "acidentes/_radio_group.html" with field=form.houve_afastamento %}
-      <div class="row g-3">
-        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.houve_obito %}</div>
-        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.data_obito %}</div>
-        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.houve_comunicacao_policia %}</div>
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white">
+          <div class="fw-semibold">Classificacao da ocorrencia</div>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.situacao_geradora %}</div>
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.agente_causador %}</div>
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.parte_atingida %}</div>
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.lateralidade %}</div>
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.severidade_real %}</div>
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.severidade_potencial %}</div>
+          </div>
+          {% include "acidentes/_field.html" with field=form.descricao_ocorrido %}
+          {% include "acidentes/_field.html" with field=form.observacao %}
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-white">
-      <div class="fw-semibold">Classificacao da ocorrencia</div>
-    </div>
-    <div class="card-body">
-      <div class="row g-3">
-        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.situacao_geradora %}</div>
-        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.agente_causador %}</div>
-        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.parte_atingida %}</div>
-        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.lateralidade %}</div>
-        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.severidade_real %}</div>
-        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.severidade_potencial %}</div>
+    <div
+      class="tab-pane fade"
+      id="tab-endereco-{{ tab_id|default:'main' }}"
+      role="tabpanel"
+      tabindex="0"
+    >
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white">
+          <div class="fw-semibold">Endereco</div>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.tipo_local %}</div>
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.ambiente %}</div>
+          </div>
+          {% include "acidentes/_field.html" with field=form.descricao_local %}
+          <div class="row g-3">
+            <div class="col-12 col-lg-3">{% include "acidentes/_field.html" with field=form.cep %}</div>
+            <div class="col-12 col-lg-3">{% include "acidentes/_field.html" with field=form.estado %}</div>
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.cidade %}</div>
+            <div class="col-12 col-lg-4">{% include "acidentes/_field.html" with field=form.tipo_logradouro %}</div>
+            <div class="col-12 col-lg-8">{% include "acidentes/_field.html" with field=form.endereco %}</div>
+            <div class="col-12 col-lg-2">{% include "acidentes/_field.html" with field=form.numero %}</div>
+            <div class="col-12 col-lg-4">{% include "acidentes/_field.html" with field=form.complemento %}</div>
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.bairro %}</div>
+          </div>
+        </div>
       </div>
-      {% include "acidentes/_field.html" with field=form.descricao_ocorrido %}
-      {% include "acidentes/_field.html" with field=form.observacao %}
     </div>
-  </div>
 
-  <div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-white">
-      <div class="fw-semibold">Endereco</div>
-    </div>
-    <div class="card-body">
-      <div class="row g-3">
-        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.tipo_local %}</div>
-        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.ambiente %}</div>
+    <div
+      class="tab-pane fade"
+      id="tab-atestado-{{ tab_id|default:'main' }}"
+      role="tabpanel"
+      tabindex="0"
+    >
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white">
+          <div class="fw-semibold">Atestado</div>
+        </div>
+        <div class="card-body">
+          {% include "acidentes/_field.html" with field=form.existe_atestado %}
+          <div class="row g-3">
+            <div class="col-12 col-lg-4">{% include "acidentes/_field.html" with field=form.data_atendimento %}</div>
+            <div class="col-12 col-lg-4">{% include "acidentes/_field.html" with field=form.duracao_tratamento_dias %}</div>
+            <div class="col-12 col-lg-4">{% include "acidentes/_field.html" with field=form.houve_internacao %}</div>
+            <div class="col-12 col-lg-4">{% include "acidentes/_field.html" with field=form.indicado_afastamento %}</div>
+            <div class="col-12 col-lg-8">{% include "acidentes/_field.html" with field=form.natureza_lesao %}</div>
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.codigo_cid10 %}</div>
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.codigo_cnes %}</div>
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.emitente %}</div>
+          </div>
+          {% include "acidentes/_field.html" with field=form.diagnostico_provavel %}
+          {% include "acidentes/_field.html" with field=form.observacao_atestado %}
+        </div>
       </div>
-      {% include "acidentes/_field.html" with field=form.descricao_local %}
-      <div class="row g-3">
-        <div class="col-12 col-lg-3">{% include "acidentes/_field.html" with field=form.cep %}</div>
-        <div class="col-12 col-lg-3">{% include "acidentes/_field.html" with field=form.estado %}</div>
-        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.cidade %}</div>
-        <div class="col-12 col-lg-4">{% include "acidentes/_field.html" with field=form.tipo_logradouro %}</div>
-        <div class="col-12 col-lg-8">{% include "acidentes/_field.html" with field=form.endereco %}</div>
-        <div class="col-12 col-lg-2">{% include "acidentes/_field.html" with field=form.numero %}</div>
-        <div class="col-12 col-lg-4">{% include "acidentes/_field.html" with field=form.complemento %}</div>
-        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.bairro %}</div>
-      </div>
     </div>
-  </div>
 
-  <div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-white">
-      <div class="fw-semibold">Atestado</div>
-    </div>
-    <div class="card-body">
-      {% include "acidentes/_field.html" with field=form.existe_atestado %}
-      <div class="row g-3">
-        <div class="col-12 col-lg-4">{% include "acidentes/_field.html" with field=form.data_atendimento %}</div>
-        <div class="col-12 col-lg-4">{% include "acidentes/_field.html" with field=form.duracao_tratamento_dias %}</div>
-        <div class="col-12 col-lg-4">{% include "acidentes/_field.html" with field=form.houve_internacao %}</div>
-        <div class="col-12 col-lg-4">{% include "acidentes/_field.html" with field=form.indicado_afastamento %}</div>
-        <div class="col-12 col-lg-8">{% include "acidentes/_field.html" with field=form.natureza_lesao %}</div>
-        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.codigo_cid10 %}</div>
-        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.codigo_cnes %}</div>
-        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.emitente %}</div>
+    <div
+      class="tab-pane fade"
+      id="tab-fatos-{{ tab_id|default:'main' }}"
+      role="tabpanel"
+      tabindex="0"
+    >
+      <div class="card border-0 shadow-sm mb-3" data-formset="fatos" data-formset-prefix="{{ fatos_formset.prefix }}">
+        <div class="card-header bg-white">
+          <div class="fw-semibold">Fatos</div>
+        </div>
+        <div class="card-body">
+          <div class="d-flex justify-content-end mb-3">
+            <button class="btn btn-sm btn-outline-primary" type="button" data-formset-add>
+              Adicionar fato
+            </button>
+          </div>
+          {% if fatos_formset.non_form_errors %}
+            <div class="alert alert-danger py-2">
+              {% for error in fatos_formset.non_form_errors %}
+                <div>{{ error }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+          {{ fatos_formset.management_form }}
+          <div data-formset-items>
+            {% for f in fatos_formset %}
+              <div class="border rounded p-3 mb-3" data-formset-item>
+                <div class="row g-3">
+                  <div class="col-12 col-lg-3">{% include "acidentes/_field.html" with field=f.hora_ocorrencia %}</div>
+                  <div class="col-12 col-lg-7">{% include "acidentes/_field.html" with field=f.detalhamento %}</div>
+                  <div class="col-12 col-lg-2 d-flex align-items-end">
+                    <button class="btn btn-outline-danger w-100" type="button" data-formset-remove>Remover</button>
+                  </div>
+                </div>
+                <div class="d-none">{{ f.id }}{{ f.DELETE }}</div>
+              </div>
+            {% endfor %}
+          </div>
+          <template data-formset-template>
+            {% with f=fatos_formset.empty_form %}
+              <div class="border rounded p-3 mb-3" data-formset-item>
+                <div class="row g-3">
+                  <div class="col-12 col-lg-3">{% include "acidentes/_field.html" with field=f.hora_ocorrencia %}</div>
+                  <div class="col-12 col-lg-7">{% include "acidentes/_field.html" with field=f.detalhamento %}</div>
+                  <div class="col-12 col-lg-2 d-flex align-items-end">
+                    <button class="btn btn-outline-danger w-100" type="button" data-formset-remove>Remover</button>
+                  </div>
+                </div>
+                <div class="d-none">{{ f.id }}{{ f.DELETE }}</div>
+              </div>
+            {% endwith %}
+          </template>
+        </div>
       </div>
-      {% include "acidentes/_field.html" with field=form.diagnostico_provavel %}
-      {% include "acidentes/_field.html" with field=form.observacao_atestado %}
+    </div>
+
+    <div
+      class="tab-pane fade"
+      id="tab-anexos-{{ tab_id|default:'main' }}"
+      role="tabpanel"
+      tabindex="0"
+    >
+      <div class="card border-0 shadow-sm mb-3" data-formset="anexos" data-formset-prefix="{{ anexos_formset.prefix }}">
+        <div class="card-header bg-white">
+          <div class="fw-semibold">Registro fotografico</div>
+        </div>
+        <div class="card-body">
+          <div class="d-flex justify-content-end mb-3">
+            <button class="btn btn-sm btn-outline-primary" type="button" data-formset-add>
+              Adicionar anexo
+            </button>
+          </div>
+          {% if anexos_formset.non_form_errors %}
+            <div class="alert alert-danger py-2">
+              {% for error in anexos_formset.non_form_errors %}
+                <div>{{ error }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+          {{ anexos_formset.management_form }}
+          <div data-formset-items>
+            {% for f in anexos_formset %}
+              <div class="border rounded p-3 mb-3" data-formset-item>
+                <div class="row g-3">
+                  <div class="col-12 col-lg-5">{% include "acidentes/_field.html" with field=f.arquivo %}</div>
+                  <div class="col-12 col-lg-5">{% include "acidentes/_field.html" with field=f.descricao %}</div>
+                  <div class="col-12 col-lg-2 d-flex align-items-end">
+                    <button class="btn btn-outline-danger w-100" type="button" data-formset-remove>Remover</button>
+                  </div>
+                </div>
+                <div class="d-none">{{ f.id }}{{ f.DELETE }}</div>
+              </div>
+            {% endfor %}
+          </div>
+          <template data-formset-template>
+            {% with f=anexos_formset.empty_form %}
+              <div class="border rounded p-3 mb-3" data-formset-item>
+                <div class="row g-3">
+                  <div class="col-12 col-lg-5">{% include "acidentes/_field.html" with field=f.arquivo %}</div>
+                  <div class="col-12 col-lg-5">{% include "acidentes/_field.html" with field=f.descricao %}</div>
+                  <div class="col-12 col-lg-2 d-flex align-items-end">
+                    <button class="btn btn-outline-danger w-100" type="button" data-formset-remove>Remover</button>
+                  </div>
+                </div>
+                <div class="d-none">{{ f.id }}{{ f.DELETE }}</div>
+              </div>
+            {% endwith %}
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="tab-pane fade"
+      id="tab-analise-{{ tab_id|default:'main' }}"
+      role="tabpanel"
+      tabindex="0"
+    >
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white">
+          <div class="fw-semibold">Equipe de analise do acidente</div>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12 col-lg-4">{% include "acidentes/_field.html" with field=form.analise_data_conclusao %}</div>
+            <div class="col-12 col-lg-8">{% include "acidentes/_field.html" with field=form.analise_preenchido_por %}</div>
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.analise_coordenador %}</div>
+            <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.analise_envolvidos %}</div>
+            <div class="col-12">{% include "acidentes/_field.html" with field=form.analise_participantes %}</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -112,4 +340,3 @@
     </div>
   {% endif %}
 </form>
-

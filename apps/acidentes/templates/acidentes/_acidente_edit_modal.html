@@ -12,7 +12,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
       <div class="modal-body" data-acidente-modal-body data-row-id="{{ acidente.pk }}">
-        {% include "acidentes/_acidente_form.html" with form=form form_action=update_url %}
+        {% include "acidentes/_acidente_form.html" with form=form form_action=update_url fatos_formset=fatos_formset anexos_formset=anexos_formset tab_id="edit-"|add:acidente.pk %}
       </div>
     </div>
   </div>

@@ -1,10 +1,14 @@
 from django import forms
+from django.contrib.auth import get_user_model
+from django.forms import inlineformset_factory
 
 from apps.core.forms import BootstrapModelForm
 from apps.funcionarios.models import Funcionario
 
 from .models import (
     AcidenteTrabalho,
+    AcidenteAnexo,
+    AcidenteFato,
     AgenteCausador,
     EmitenteAtestado,
     NaturezaLesao,
@@ -85,17 +89,24 @@ class AcidenteTrabalhoForm(BootstrapModelForm):
             "observacao_atestado",
             "emitente",
             "codigo_cnes",
+            "analise_data_conclusao",
+            "analise_preenchido_por",
+            "analise_coordenador",
+            "analise_envolvidos",
+            "analise_participantes",
         ]
         widgets = {
-            "data_ocorrencia": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "data_ocorrencia": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
             "ultimo_dia_trabalhado": forms.DateInput(attrs={"type": "date"}),
             "data_obito": forms.DateInput(attrs={"type": "date"}),
             "descricao_local": forms.Textarea(attrs={"rows": 2, "maxlength": "80"}),
             "data_atendimento": forms.DateInput(attrs={"type": "date"}),
+            "analise_data_conclusao": forms.DateInput(attrs={"type": "date"}),
         }
 
-    def __init__(self, *args, tenant=None, planta_id=None, **kwargs):
+    def __init__(self, *args, tenant=None, planta_id=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
+        User = get_user_model()
         funcionarios = Funcionario.objects.all()
         agentes = AgenteCausador.objects.none()
         partes = ParteAtingida.objects.none()
@@ -122,6 +133,24 @@ class AcidenteTrabalhoForm(BootstrapModelForm):
         if "emitente" in self.fields:
             self.fields["emitente"].queryset = emitentes.order_by("nome")
             self.fields["emitente"].empty_label = "Selecione"
+        if "analise_coordenador" in self.fields:
+            self.fields["analise_coordenador"].queryset = funcionarios.order_by("nome")
+            self.fields["analise_coordenador"].empty_label = "Selecione"
+        if "analise_envolvidos" in self.fields:
+            self.fields["analise_envolvidos"].queryset = funcionarios.order_by("nome")
+        if "analise_participantes" in self.fields:
+            self.fields["analise_participantes"].queryset = funcionarios.order_by("nome")
+        if "analise_preenchido_por" in self.fields:
+            current_user = getattr(self.instance, "analise_preenchido_por", None)
+            if current_user:
+                self.fields["analise_preenchido_por"].queryset = User.objects.filter(pk=current_user.pk)
+            elif user is not None:
+                self.fields["analise_preenchido_por"].queryset = User.objects.filter(pk=user.pk)
+                self.fields["analise_preenchido_por"].initial = user
+            else:
+                self.fields["analise_preenchido_por"].queryset = User.objects.none()
+            self.fields["analise_preenchido_por"].disabled = True
+            self.fields["analise_preenchido_por"].required = False
 
         self.fields["tipo_local"].widget.attrs["data-acidente-tipo-local"] = "1"
         self.fields["estado"].widget.attrs["data-acidente-estado"] = "1"
@@ -147,6 +176,22 @@ class AcidenteTrabalhoForm(BootstrapModelForm):
 
         self.fields["horas_trabalhadas"].widget.attrs.update({"min": "0", "step": "0.25"})
 
+        for field_name in (
+            "situacao_geradora",
+            "agente_causador",
+            "parte_atingida",
+            "funcionario",
+            "estado",
+            "cidade",
+            "tipo_logradouro",
+            "analise_coordenador",
+            "analise_envolvidos",
+            "analise_participantes",
+        ):
+            field = self.fields.get(field_name)
+            if field:
+                field.widget.attrs["data-choices"] = "1"
+
         for field_name in ("tipo_registro", "tipo_acidente", "trajeto_evento", "houve_afastamento"):
             field = self.fields.get(field_name)
             if not field:
@@ -155,6 +200,10 @@ class AcidenteTrabalhoForm(BootstrapModelForm):
             current = (widget.attrs.get("class") or "").split()
             widget.attrs["class"] = " ".join([cls for cls in current if cls != "form-control"])
 
+        self.fields["cep"].required = False
+        self.fields["endereco"].required = False
+        self.fields["numero"].required = False
+        self.fields["bairro"].required = False
         self.fields["cep"].widget.attrs.update(
             {
                 "placeholder": "00000-000",
@@ -163,6 +212,8 @@ class AcidenteTrabalhoForm(BootstrapModelForm):
                 "data-acidente-cep": "1",
             }
         )
+        if "data_ocorrencia" in self.fields:
+            self.fields["data_ocorrencia"].input_formats = ["%Y-%m-%dT%H:%M"]
 
         if self.instance and getattr(self.instance, "ambiente", ""):
             current = self.instance.ambiente
@@ -173,6 +224,13 @@ class AcidenteTrabalhoForm(BootstrapModelForm):
             current = self.instance.cidade
             if current and current not in {value for value, _ in self.fields["cidade"].choices}:
                 self.fields["cidade"].choices = [("", "Selecione"), (current, current)]
+        if self.is_bound:
+            cidade_value = self.data.get(self.add_prefix("cidade"))
+            if cidade_value and cidade_value not in {value for value, _ in self.fields["cidade"].choices}:
+                self.fields["cidade"].choices = [("", "Selecione"), (cidade_value, cidade_value)]
+            ambiente_value = self.data.get(self.add_prefix("ambiente"))
+            if ambiente_value and ambiente_value not in {value for value, _ in self.fields["ambiente"].choices}:
+                self.fields["ambiente"].choices = [("", "Selecione"), (ambiente_value, ambiente_value)]
 
     def clean(self):
         cleaned = super().clean()
@@ -214,3 +272,33 @@ class AcidenteTrabalhoForm(BootstrapModelForm):
             cleaned["emitente"] = None
             cleaned["codigo_cnes"] = ""
         return cleaned
+
+
+class AcidenteFatoForm(BootstrapModelForm):
+    class Meta:
+        model = AcidenteFato
+        fields = ["hora_ocorrencia", "detalhamento"]
+        widgets = {"hora_ocorrencia": forms.TimeInput(attrs={"type": "time"})}
+
+
+class AcidenteAnexoForm(BootstrapModelForm):
+    class Meta:
+        model = AcidenteAnexo
+        fields = ["arquivo", "descricao"]
+
+
+AcidenteFatoFormSet = inlineformset_factory(
+    AcidenteTrabalho,
+    AcidenteFato,
+    form=AcidenteFatoForm,
+    extra=1,
+    can_delete=True,
+)
+
+AcidenteAnexoFormSet = inlineformset_factory(
+    AcidenteTrabalho,
+    AcidenteAnexo,
+    form=AcidenteAnexoForm,
+    extra=1,
+    can_delete=True,
+)
