@@ -1,0 +1,115 @@
+<form
+  method="post"
+  id="{{ form_id|default:'' }}"
+  {% if form_action %}action="{{ form_action }}"{% endif %}
+  {% if form.is_multipart %}enctype="multipart/form-data"{% endif %}
+>
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger py-2">
+      {% for error in form.non_field_errors %}
+        <div>{{ error }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white">
+      <div class="fw-semibold">Dados principais</div>
+    </div>
+    <div class="card-body">
+      {% include "acidentes/_radio_group.html" with field=form.tipo_registro %}
+      {% include "acidentes/_radio_group.html" with field=form.tipo_acidente %}
+      {% include "acidentes/_radio_group.html" with field=form.trajeto_evento %}
+
+      <div class="row g-3">
+        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.funcionario %}</div>
+        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.data_ocorrencia %}</div>
+        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.ultimo_dia_trabalhado %}</div>
+        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.horas_trabalhadas %}</div>
+      </div>
+
+      {% include "acidentes/_radio_group.html" with field=form.houve_afastamento %}
+      <div class="row g-3">
+        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.houve_obito %}</div>
+        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.data_obito %}</div>
+        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.houve_comunicacao_policia %}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white">
+      <div class="fw-semibold">Classificacao da ocorrencia</div>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.situacao_geradora %}</div>
+        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.agente_causador %}</div>
+        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.parte_atingida %}</div>
+        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.lateralidade %}</div>
+        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.severidade_real %}</div>
+        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.severidade_potencial %}</div>
+      </div>
+      {% include "acidentes/_field.html" with field=form.descricao_ocorrido %}
+      {% include "acidentes/_field.html" with field=form.observacao %}
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white">
+      <div class="fw-semibold">Endereco</div>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.tipo_local %}</div>
+        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.ambiente %}</div>
+      </div>
+      {% include "acidentes/_field.html" with field=form.descricao_local %}
+      <div class="row g-3">
+        <div class="col-12 col-lg-3">{% include "acidentes/_field.html" with field=form.cep %}</div>
+        <div class="col-12 col-lg-3">{% include "acidentes/_field.html" with field=form.estado %}</div>
+        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.cidade %}</div>
+        <div class="col-12 col-lg-4">{% include "acidentes/_field.html" with field=form.tipo_logradouro %}</div>
+        <div class="col-12 col-lg-8">{% include "acidentes/_field.html" with field=form.endereco %}</div>
+        <div class="col-12 col-lg-2">{% include "acidentes/_field.html" with field=form.numero %}</div>
+        <div class="col-12 col-lg-4">{% include "acidentes/_field.html" with field=form.complemento %}</div>
+        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.bairro %}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white">
+      <div class="fw-semibold">Atestado</div>
+    </div>
+    <div class="card-body">
+      {% include "acidentes/_field.html" with field=form.existe_atestado %}
+      <div class="row g-3">
+        <div class="col-12 col-lg-4">{% include "acidentes/_field.html" with field=form.data_atendimento %}</div>
+        <div class="col-12 col-lg-4">{% include "acidentes/_field.html" with field=form.duracao_tratamento_dias %}</div>
+        <div class="col-12 col-lg-4">{% include "acidentes/_field.html" with field=form.houve_internacao %}</div>
+        <div class="col-12 col-lg-4">{% include "acidentes/_field.html" with field=form.indicado_afastamento %}</div>
+        <div class="col-12 col-lg-8">{% include "acidentes/_field.html" with field=form.natureza_lesao %}</div>
+        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.codigo_cid10 %}</div>
+        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.codigo_cnes %}</div>
+        <div class="col-12 col-lg-6">{% include "acidentes/_field.html" with field=form.emitente %}</div>
+      </div>
+      {% include "acidentes/_field.html" with field=form.diagnostico_provavel %}
+      {% include "acidentes/_field.html" with field=form.observacao_atestado %}
+    </div>
+  </div>
+
+  {% if not form_hide_actions %}
+    <div class="d-flex gap-2 justify-content-end mt-3">
+      {% if form_cancel_url %}
+        <a class="btn btn-outline-secondary" href="{{ form_cancel_url }}">Cancelar</a>
+      {% else %}
+        <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+      {% endif %}
+      <button class="btn btn-primary" type="submit">Salvar</button>
+    </div>
+  {% endif %}
+</form>
+

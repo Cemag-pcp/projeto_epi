@@ -44,16 +44,9 @@
             <div class="tab-pane fade show active" id="tab-info-pane-{{ prefix }}" role="tabpanel" aria-labelledby="tab-info-{{ prefix }}" tabindex="0">
               <div class="row g-3">
                 <div class="col-12 col-sm-6 col-lg-3">
-                  <label class="form-label" for="{{ form.sku.id_for_label }}">{{ form.sku.label }}{% if form.sku.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
-                  {{ form.sku }}
-                  {% for error in form.sku.errors %}
-                    <div class="invalid-feedback d-block">{{ error }}</div>
-                  {% endfor %}
-                </div>
-                <div class="col-12 col-sm-6 col-lg-3">
-                  <label class="form-label" for="{{ form.codigo_externo.id_for_label }}">{{ form.codigo_externo.label }}{% if form.codigo_externo.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
-                  {{ form.codigo_externo }}
-                  {% for error in form.codigo_externo.errors %}
+                  <label class="form-label" for="{{ form.codigo.id_for_label }}">{{ form.codigo.label }}{% if form.codigo.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  {{ form.codigo }}
+                  {% for error in form.codigo.errors %}
                     <div class="invalid-feedback d-block">{{ error }}</div>
                   {% endfor %}
                 </div>
@@ -68,6 +61,39 @@
                   <label class="form-label" for="{{ form.referencia.id_for_label }}">{{ form.referencia.label }}{% if form.referencia.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
                   {{ form.referencia }}
                   {% for error in form.referencia.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                  <label class="form-label" for="{{ form.ca.id_for_label }}">{{ form.ca.label }}{% if form.ca.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  {{ form.ca }}
+                  {% for error in form.ca.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                  <div class="d-flex flex-wrap align-items-center gap-2 mt-1" data-ca-feedback>
+                    <span class="badge d-none" data-ca-status data-ca-status-url="{% url 'produtos:ca_status_api' %}"></span>
+                    <span class="text-muted small d-none" data-ca-status-text></span>
+                  </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                  <label class="form-label" for="{{ form.data_vencimento_ca.id_for_label }}">{{ form.data_vencimento_ca.label }}{% if form.data_vencimento_ca.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  {{ form.data_vencimento_ca }}
+                  {% for error in form.data_vencimento_ca.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-12 col-sm-6 col-lg-3">
+                  <label class="form-label" for="fabricante-display-{{ prefix }}">{{ form.fabricante.label }}{% if form.fabricante.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
+                  <input
+                    class="form-control"
+                    id="fabricante-display-{{ prefix }}"
+                    type="text"
+                    value="{{ form.instance.fabricante|default:'' }}"
+                    disabled
+                    data-fabricante-display
+                  >
+                  {{ form.fabricante }}
+                  {% for error in form.fabricante.errors %}
                     <div class="invalid-feedback d-block">{{ error }}</div>
                   {% endfor %}
                 </div>
@@ -262,10 +288,6 @@
                             </div>
                             <div class="row g-3">
                               <div class="col-12 col-md-6">
-                                <label class="form-label small mb-1">CA</label>
-                                <input class="form-control" type="text" data-field="ca" name="fornecedores[{{ forloop.counter0 }}][ca]" value="{{ rel.ca|default_if_none:'' }}">
-                              </div>
-                              <div class="col-12 col-md-6">
                                 <label class="form-label small mb-1">Fornecedor</label>
                                 <select class="form-select" data-field="fornecedor" name="fornecedores[{{ forloop.counter0 }}][fornecedor]">
                                   <option value="">Selecione</option>
@@ -312,10 +334,6 @@
                             <span class="badge bg-secondary" data-fornecedor-label>Fornecedor</span>
                           </div>
                           <div class="row g-3">
-                            <div class="col-12 col-md-6">
-                              <label class="form-label small mb-1">CA</label>
-                              <input class="form-control" type="text" data-field="ca" name="fornecedores[0][ca]" placeholder="Ex: 12345">
-                            </div>
                             <div class="col-12 col-md-6">
                               <label class="form-label small mb-1">Fornecedor</label>
                               <select class="form-select" data-field="fornecedor" name="fornecedores[0][fornecedor]">
@@ -367,10 +385,6 @@
                       <span class="badge bg-secondary" data-fornecedor-label>Fornecedor</span>
                     </div>
                     <div class="row g-3">
-                      <div class="col-12 col-md-6">
-                        <label class="form-label small mb-1">CA</label>
-                        <input class="form-control" type="text" data-field="ca" name="fornecedores[__index__][ca]" placeholder="Ex: 12345">
-                      </div>
                       <div class="col-12 col-md-6">
                         <label class="form-label small mb-1">Fornecedor</label>
                         <select class="form-select" data-field="fornecedor" name="fornecedores[__index__][fornecedor]">

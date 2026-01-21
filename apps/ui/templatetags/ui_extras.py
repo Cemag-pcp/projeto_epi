@@ -1,4 +1,5 @@
 from django import template
+from django.http import QueryDict
 from django.urls import reverse, NoReverseMatch
 
 from apps.funcionarios.models import Planta
@@ -35,6 +36,28 @@ def get_item(mapping, key):
     if isinstance(mapping, dict):
         return mapping.get(key)
     return None
+
+
+@register.simple_tag(takes_context=True)
+def querystring(context, **kwargs):
+    """
+    Builds a querystring preserving current request.GET, overriding with kwargs.
+    Returns a string without the leading "?" so templates can do: "?{% querystring page=2 %}".
+    """
+    request = context.get("request")
+    if request is not None and hasattr(request, "GET"):
+        query = request.GET.copy()
+    else:
+        query = QueryDict("", mutable=True)
+
+    for key, value in kwargs.items():
+        if value in (None, ""):
+            if key in query:
+                del query[key]
+        else:
+            query[key] = str(value)
+
+    return query.urlencode()
 
 
 def _match_path(path, prefixes, exact=False):
@@ -209,6 +232,13 @@ def sidebar_menu(context):
                     "url_name": "produtos:periodicidades_list",
                     "prefixes": ["/produtos/periodicidades/"],
                     "perm": "produtos.view_periodicidade",
+                },
+                {
+                    "label": "Unidades",
+                    "icon": "bi-rulers",
+                    "url_name": "produtos:unidades_list",
+                    "prefixes": ["/produtos/unidades/"],
+                    "perm": "produtos.view_unidadeproduto",
                 },
                 {
                     "label": "Localizacao de produto",

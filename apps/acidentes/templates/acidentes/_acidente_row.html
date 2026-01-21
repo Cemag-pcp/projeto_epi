@@ -1,0 +1,19 @@
+<tr id="acidente-row-{{ acidente.pk }}">
+  <td>{{ acidente.funcionario }}</td>
+  <td>{{ acidente.data_ocorrencia|date:"d/m/Y H:i" }}</td>
+  <td>{{ acidente.get_tipo_local_display }}</td>
+  <td>{{ acidente.cidade_uf }}</td>
+  <td class="text-end">
+    <button
+      class="btn btn-outline-primary btn-icon"
+      type="button"
+      data-bs-toggle="modal"
+      data-bs-target="#editModal-{{ acidente.pk }}"
+      title="Editar"
+      aria-label="Editar"
+    >
+      <i class="bi bi-pencil"></i>
+    </button>
+  </td>
+</tr>
+

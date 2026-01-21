@@ -138,7 +138,7 @@ class BaseDadosCaEPI:
         from django_tenants.utils import schema_context
         from apps.caepi.models import CaEPI
 
-        if not self.baseDadosDF:
+        if self.baseDadosDF is None:
             self.retornarBaseDados()
 
         df = self.baseDadosDF.copy()

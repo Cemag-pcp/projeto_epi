@@ -1,0 +1,152 @@
+{% extends "layout/base.html" %}
+
+{% block title %}{{ title|default:"Acidente" }}{% endblock %}
+
+{% block content %}
+  {% include "components/_alerts.html" %}
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-body">
+      {% if title %}<h1 class="h5 mb-3">{{ title }}</h1>{% endif %}
+      {% include "components/_form.html" with form=form form_cancel_url=form_cancel_url %}
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var apiAmbientesUrl = "{{ api_ambientes_url|default:'' }}";
+      var apiCidadesUrl = "{{ api_cidades_url|default:'' }}";
+      var apiCepUrl = "{{ api_cep_url|default:'' }}";
+
+      var tipoLocalEl = document.querySelector("[data-acidente-tipo-local]");
+      var ambienteEl = document.querySelector("[data-acidente-ambiente]");
+      var estadoEl = document.querySelector("[data-acidente-estado]");
+      var cidadeEl = document.querySelector("[data-acidente-cidade]");
+      var cepEl = document.querySelector("[data-acidente-cep]");
+
+      var enderecoEl = document.getElementById("id_endereco");
+      var bairroEl = document.getElementById("id_bairro");
+      var complementoEl = document.getElementById("id_complemento");
+
+      function setOptions(selectEl, items, selectedValue) {
+        if (!selectEl) return;
+        selectEl.innerHTML = "";
+        var placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "Selecione";
+        selectEl.appendChild(placeholder);
+        (items || []).forEach(function (item) {
+          var opt = document.createElement("option");
+          opt.value = item.value;
+          opt.textContent = item.label;
+          selectEl.appendChild(opt);
+        });
+        if (selectedValue) {
+          selectEl.value = selectedValue;
+        }
+      }
+
+      function fetchJson(url) {
+        return fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+          .then(function (response) {
+            return response
+              .json()
+              .then(function (data) {
+                return { ok: response.ok, data: data };
+              })
+              .catch(function () {
+                return { ok: response.ok, data: null };
+              });
+          });
+      }
+
+      function loadAmbientes(tipoLocal, selectedAmbiente) {
+        if (!apiAmbientesUrl || !ambienteEl) return;
+        if (!tipoLocal) {
+          setOptions(ambienteEl, [], "");
+          return;
+        }
+        fetchJson(apiAmbientesUrl + "?tipo_local=" + encodeURIComponent(tipoLocal))
+          .then(function (result) {
+            var items = result.data && result.data.ambientes ? result.data.ambientes : [];
+            setOptions(ambienteEl, items, selectedAmbiente);
+          })
+          .catch(function () {
+            setOptions(ambienteEl, [], "");
+          });
+      }
+
+      function loadCidades(uf, selectedCidade) {
+        if (!apiCidadesUrl || !cidadeEl) return Promise.resolve();
+        if (!uf) {
+          setOptions(cidadeEl, [], "");
+          return Promise.resolve();
+        }
+        return fetchJson(apiCidadesUrl + "?uf=" + encodeURIComponent(uf))
+          .then(function (result) {
+            var items = result.data && result.data.cidades ? result.data.cidades : [];
+            setOptions(cidadeEl, items, selectedCidade);
+          })
+          .catch(function () {
+            setOptions(cidadeEl, [], "");
+          });
+      }
+
+      function normalizeCep(value) {
+        return String(value || "").replace(/\D+/g, "").slice(0, 8);
+      }
+
+      function lookupCep(value) {
+        if (!apiCepUrl) return;
+        var cep = normalizeCep(value);
+        if (cep.length !== 8) return;
+        fetchJson(apiCepUrl + "?cep=" + encodeURIComponent(cep))
+          .then(function (result) {
+            if (!result.data || !result.data.ok) return;
+            if (cepEl && result.data.cep) {
+              cepEl.value = result.data.cep;
+            }
+            if (enderecoEl && result.data.endereco) {
+              enderecoEl.value = result.data.endereco;
+            }
+            if (bairroEl && result.data.bairro) {
+              bairroEl.value = result.data.bairro;
+            }
+            if (complementoEl && result.data.complemento && !complementoEl.value) {
+              complementoEl.value = result.data.complemento;
+            }
+            if (estadoEl && result.data.uf) {
+              estadoEl.value = result.data.uf;
+              loadCidades(result.data.uf, result.data.cidade || "");
+            }
+          })
+          .catch(function () {});
+      }
+
+      if (tipoLocalEl && ambienteEl) {
+        tipoLocalEl.addEventListener("change", function () {
+          loadAmbientes(tipoLocalEl.value, "");
+        });
+        if (tipoLocalEl.value) {
+          loadAmbientes(tipoLocalEl.value, ambienteEl.value || "");
+        }
+      }
+
+      if (estadoEl && cidadeEl) {
+        estadoEl.addEventListener("change", function () {
+          loadCidades(estadoEl.value, "");
+        });
+        if (estadoEl.value) {
+          loadCidades(estadoEl.value, cidadeEl.value || "");
+        }
+      }
+
+      if (cepEl) {
+        cepEl.addEventListener("blur", function () {
+          lookupCep(cepEl.value);
+        });
+      }
+    })();
+  </script>
+{% endblock %}
+

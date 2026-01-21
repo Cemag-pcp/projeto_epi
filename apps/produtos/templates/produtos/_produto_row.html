@@ -1,7 +1,7 @@
 {% load l10n %}
 <tr id="produto-row-{{ produto.pk }}">
-  <td>{{ produto.ca_fornecedor|default:"-" }}</td>
-  <td>{{ produto.codigo_externo|default:"-" }}</td>
+  <td>{{ produto.ca|default:"-" }}</td>
+  <td>{{ produto.codigo|default:"-" }}</td>
   <td>{{ produto.nome }}</td>
   <td>{{ produto.referencia|default:"-" }}</td>
   <td>{{ produto.estoque_ideal|default:"-" }}</td>

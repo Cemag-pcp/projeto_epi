@@ -783,7 +783,7 @@ class EntregaDetailView(PermissionRequiredMixin, View):
 
             codigo = "-"
             if produto:
-                codigo = produto.sku or produto.codigo_externo or "-"
+                codigo = getattr(produto, "codigo", "") or "-"
 
             itens.append(
                 {

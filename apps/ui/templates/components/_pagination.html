@@ -1,9 +1,11 @@
+{% load ui_extras %}
+
 {% if page_obj and page_obj.paginator.num_pages > 1 %}
   <nav aria-label="Paginacao">
     <ul class="pagination">
       <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
         {% if page_obj.has_previous %}
-          <a class="page-link" href="?page={{ page_obj.previous_page_number }}" tabindex="-1">Anterior</a>
+          <a class="page-link" href="?{% querystring page=page_obj.previous_page_number %}" tabindex="-1">Anterior</a>
         {% else %}
           <span class="page-link" tabindex="-1">Anterior</span>
         {% endif %}
@@ -14,7 +16,7 @@
             {% if page_obj.number == num %}
               <li class="page-item active"><span class="page-link">{{ num }}</span></li>
             {% else %}
-              <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+              <li class="page-item"><a class="page-link" href="?{% querystring page=num %}">{{ num }}</a></li>
             {% endif %}
           {% elif num == 3 and current > 5 %}
             <li class="page-item disabled"><span class="page-link">...</span></li>
@@ -25,7 +27,7 @@
       {% endwith %}
       <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
         {% if page_obj.has_next %}
-          <a class="page-link" href="?page={{ page_obj.next_page_number }}">Proxima</a>
+          <a class="page-link" href="?{% querystring page=page_obj.next_page_number %}">Proxima</a>
         {% else %}
           <span class="page-link">Proxima</span>
         {% endif %}

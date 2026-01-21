@@ -9,7 +9,7 @@ from django.utils import timezone
 from apps.funcionarios.models import Planta
 from apps.entregas.models import Entrega
 from apps.estoque.models import Estoque
-from apps.produtos.models import ProdutoFornecedor
+from apps.produtos.models import Produto
 from apps.treinamentos.models import TreinamentoPendencia, TurmaAula
 
 
@@ -31,11 +31,12 @@ def home(request):
     else:
         entregas_delta_label = "Sem comparacao"
 
-    epis_vencendo = ProdutoFornecedor.objects.filter(
+    epis_vencendo = Produto.objects.filter(
         company=tenant,
-        data_vencimento__isnull=False,
-        data_vencimento__gte=today,
-        data_vencimento__lte=today + timedelta(days=30),
+        controle_epi=True,
+        data_vencimento_ca__isnull=False,
+        data_vencimento_ca__gte=today,
+        data_vencimento_ca__lte=today + timedelta(days=30),
     ).count()
 
     treinamentos_pendentes = TreinamentoPendencia.objects.filter(
@@ -75,10 +76,11 @@ def home(request):
     treinamentos_expirados = TreinamentoPendencia.objects.filter(
         company=tenant, status="expirado"
     ).count()
-    ca_expirado = ProdutoFornecedor.objects.filter(
+    ca_expirado = Produto.objects.filter(
         company=tenant,
-        data_vencimento__isnull=False,
-        data_vencimento__lt=today,
+        controle_epi=True,
+        data_vencimento_ca__isnull=False,
+        data_vencimento_ca__lt=today,
     ).count()
     assinaturas_pendentes = Entrega.objects.filter(
         company=tenant, status="aguardando"

@@ -21,6 +21,7 @@ urlpatterns = [
     path("", include(("apps.acessos.urls", "acessos"), namespace="acessos")),
     path("", include(("apps.accounts.urls", "accounts"), namespace="accounts")),
     path("", include(("apps.relatorios.urls", "relatorios"), namespace="relatorios")),
+    path("", include(("apps.acidentes.urls", "acidentes"), namespace="acidentes")),
 ]
 
 if settings.DEBUG:

@@ -26,3 +26,11 @@ class TenantModel(models.Model):
 
     class Meta:
         abstract = True
+
+    @property
+    def create_date(self):
+        return self.created_at
+
+    @property
+    def update_date(self):
+        return self.updated_at

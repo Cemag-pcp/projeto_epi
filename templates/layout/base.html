@@ -210,5 +210,60 @@
         }
       })();
     </script>
+    <script>
+      (function () {
+        function ensureContainer() {
+          var container = document.getElementById("toast-container");
+          if (!container) {
+            container = document.createElement("div");
+            container.id = "toast-container";
+            container.className = "toast-container position-fixed top-0 end-0 p-3";
+            document.body.appendChild(container);
+          }
+          return container;
+        }
+
+        window.clarusToast = function (message, level, options) {
+          var container = ensureContainer();
+          var toastLevel = level || "danger";
+          var opts = options || {};
+          var delay = typeof opts.delay === "number" ? opts.delay : 4500;
+
+          var toastEl = document.createElement("div");
+          toastEl.className = "toast align-items-center text-bg-" + toastLevel + " border-0";
+          toastEl.setAttribute("role", "alert");
+          toastEl.setAttribute("aria-live", "assertive");
+          toastEl.setAttribute("aria-atomic", "true");
+          toastEl.setAttribute("data-bs-delay", String(delay));
+          toastEl.innerHTML =
+            '<div class="d-flex">' +
+            '<div class="toast-body"></div>' +
+            '<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fechar"></button>' +
+            "</div>";
+
+          var body = toastEl.querySelector(".toast-body");
+          if (body) {
+            body.textContent = String(message || "");
+          }
+
+          container.appendChild(toastEl);
+          if (window.bootstrap && bootstrap.Toast) {
+            var instance = bootstrap.Toast.getOrCreateInstance(toastEl);
+            toastEl.addEventListener(
+              "hidden.bs.toast",
+              function () {
+                toastEl.remove();
+              },
+              { once: true }
+            );
+            instance.show();
+          } else {
+            setTimeout(function () {
+              toastEl.remove();
+            }, delay);
+          }
+        };
+      })();
+    </script>
   </body>
 </html>

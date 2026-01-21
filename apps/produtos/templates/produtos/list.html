@@ -107,6 +107,187 @@
         modal.dataset.bound = "1";
 
         var isReadOnly = modal.dataset.readonly === "1";
+        var caInput = modal.querySelector("input[name='ca']");
+        var vencimentoInput = modal.querySelector("input[name='data_vencimento_ca']");
+        var caStatusBadge = modal.querySelector("[data-ca-status]");
+        var caStatusText = modal.querySelector("[data-ca-status-text]");
+
+        function setCaStatus(kind, text) {
+          if (!caStatusBadge) {
+            return;
+          }
+          caStatusBadge.classList.add("d-none");
+          caStatusBadge.classList.remove(
+            "text-bg-success",
+            "text-bg-danger",
+            "text-bg-secondary",
+            "text-bg-warning",
+            "text-dark"
+          );
+          caStatusBadge.textContent = "";
+          if (caStatusText) {
+            caStatusText.classList.add("d-none");
+            caStatusText.textContent = "";
+          }
+          if (!kind) {
+            return;
+          }
+          caStatusBadge.classList.remove("d-none");
+          if (kind === "valid") {
+            caStatusBadge.classList.add("text-bg-success");
+            caStatusBadge.textContent = "Valido";
+          } else if (kind === "expired") {
+            caStatusBadge.classList.add("text-bg-danger");
+            caStatusBadge.textContent = "Vencido";
+          } else if (kind === "not_found") {
+            caStatusBadge.classList.add("text-bg-secondary");
+            caStatusBadge.textContent = "Nao encontrado";
+          } else {
+            caStatusBadge.classList.add("text-bg-warning", "text-dark");
+            caStatusBadge.textContent = "Indisponivel";
+          }
+          if (text && caStatusText) {
+            caStatusText.classList.remove("d-none");
+            caStatusText.textContent = text;
+          }
+        }
+
+        function fetchCaStatus(ca) {
+          if (!caStatusBadge) {
+            return Promise.resolve(null);
+          }
+          var url = caStatusBadge.getAttribute("data-ca-status-url") || "";
+          if (!url) {
+            return Promise.resolve(null);
+          }
+          return fetch(url + "?ca=" + encodeURIComponent(ca), {
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          })
+            .then(function (response) {
+              return response.json();
+            })
+            .then(function (data) {
+              return data && data.ok ? data : null;
+            })
+            .catch(function () {
+              return null;
+            });
+        }
+
+        function ensureCaValid() {
+          if (!caInput || isReadOnly) {
+            return Promise.resolve(true);
+          }
+          var ca = (caInput.value || "").trim();
+          if (!ca) {
+            setCaStatus(null, "");
+            caInput.setCustomValidity("");
+            caInput.classList.remove("is-invalid", "is-valid");
+            if (vencimentoInput) {
+              // Mantem valor manual se usuario ja informou.
+            }
+            return Promise.resolve(true);
+          }
+          if (caInput.dataset.checkedValue === ca && caInput.dataset.caStatus) {
+            return Promise.resolve(caInput.dataset.caStatus === "valid");
+          }
+          setCaStatus("unknown", "Validando...");
+          return fetchCaStatus(ca).then(function (result) {
+            caInput.dataset.checkedValue = ca;
+            caInput.dataset.caStatus = result ? result.status || "" : "";
+            if (!result) {
+              setCaStatus("unknown", "Falha ao consultar base de CAs.");
+              caInput.setCustomValidity("");
+              caInput.classList.remove("is-invalid");
+              return true;
+            }
+            if (vencimentoInput && result.data_validade && !(vencimentoInput.value || "").trim()) {
+              vencimentoInput.value = result.data_validade;
+            }
+            if (result.status === "valid") {
+              setCaStatus("valid", "Vence em " + (result.data_validade_display || "-"));
+              caInput.setCustomValidity("");
+              caInput.classList.remove("is-invalid");
+              caInput.classList.add("is-valid");
+              return true;
+            }
+            if (result.status === "expired") {
+              setCaStatus("expired", "Venceu em " + (result.data_validade_display || "-"));
+              caInput.setCustomValidity("CA vencido.");
+              caInput.classList.remove("is-valid");
+              caInput.classList.add("is-invalid");
+              return false;
+            }
+            if (result.status === "not_found") {
+              setCaStatus("not_found", "Nao encontrado no schema public.");
+              caInput.setCustomValidity("");
+              caInput.classList.remove("is-invalid", "is-valid");
+              return true;
+            }
+            setCaStatus("unknown", "Sem validade na base.");
+            caInput.setCustomValidity("");
+            caInput.classList.remove("is-invalid", "is-valid");
+            return true;
+          });
+        }
+
+        var fabricanteSelect = modal.querySelector("select[name='fabricante']");
+        var fabricanteDisplay = modal.querySelector("[data-fabricante-display]");
+        function syncFabricanteDisplay() {
+          if (!fabricanteDisplay) {
+            return;
+          }
+          if (!fabricanteSelect) {
+            return;
+          }
+          var selectedOption = fabricanteSelect.options[fabricanteSelect.selectedIndex];
+          fabricanteDisplay.value = selectedOption ? selectedOption.text : "";
+        }
+        if (fabricanteSelect && fabricanteDisplay) {
+          fabricanteSelect.addEventListener("change", syncFabricanteDisplay);
+          syncFabricanteDisplay();
+        }
+
+        if (caInput && !isReadOnly) {
+          var caTimer = null;
+          caInput.addEventListener("input", function () {
+            if (caTimer) {
+              clearTimeout(caTimer);
+            }
+            caTimer = setTimeout(function () {
+              ensureCaValid();
+            }, 400);
+          });
+          caInput.addEventListener("blur", function () {
+            ensureCaValid();
+          });
+          if ((caInput.value || "").trim()) {
+            ensureCaValid();
+          }
+        }
+
+        function showTabForElement(element) {
+          if (!element || !tabsNav || !window.bootstrap) {
+            return null;
+          }
+          var pane = element.closest(".tab-pane");
+          if (!pane || !pane.id) {
+            return null;
+          }
+          var tabButton = tabsNav.querySelector("[data-bs-target='#" + pane.id + "']");
+          if (!tabButton) {
+            return null;
+          }
+          var tabInstance = bootstrap.Tab.getOrCreateInstance(tabButton);
+          tabInstance.show();
+          return { pane: pane, tabButton: tabButton };
+        }
+
+        function showToast(message, level) {
+          if (window.clarusToast) {
+            window.clarusToast(message, level || "danger");
+          }
+        }
 
         var addButton = modal.querySelector("[data-fornecedor-add]");
         var rowsContainer = modal.querySelector("[data-fornecedor-rows]");
@@ -324,91 +505,105 @@
               return;
             }
             event.preventDefault();
+            if (caInput && !caInput.checkValidity()) {
+              showTabForElement(caInput);
+              showToast("Verifique o CA antes de salvar.");
+              return;
+            }
             if (rowsContainer) {
               syncRowIndices();
             }
-            var formData = new FormData(form);
-            fetch(form.action, {
-              method: "POST",
-              body: formData,
-              headers: { "X-Requested-With": "XMLHttpRequest" },
-            })
-              .then(function (response) {
-                return response
-                  .json()
-                  .then(function (data) {
-                    return { ok: response.ok, data: data };
-                  })
-                  .catch(function () {
-                    return { ok: response.ok, data: null };
-                  });
+            ensureCaValid().then(function (valid) {
+              if (!valid) {
+                if (caInput) {
+                  showTabForElement(caInput);
+                  showToast("CA vencido. Nao e possivel salvar.");
+                }
+                return;
+              }
+              var formData = new FormData(form);
+              fetch(form.action, {
+                method: "POST",
+                body: formData,
+                headers: { "X-Requested-With": "XMLHttpRequest" },
               })
-              .then(function (result) {
-                if (!result.ok || !result.data || !result.data.ok) {
-                  if (result.data && result.data.form_html) {
-                    var parser = new DOMParser();
-                    var doc = parser.parseFromString(result.data.form_html, "text/html");
-                    var newModal = doc.querySelector("[data-produto-modal]");
-                    var newBody = newModal ? newModal.querySelector(".modal-body") : null;
-                    var currentBody = modal.querySelector(".modal-body");
-                    if (newBody && currentBody) {
-                      currentBody.innerHTML = newBody.innerHTML;
-                      modal.dataset.bound = "0";
-                      initProdutoModal(modal);
+                .then(function (response) {
+                  return response
+                    .json()
+                    .then(function (data) {
+                      return { ok: response.ok, data: data };
+                    })
+                    .catch(function () {
+                      return { ok: response.ok, data: null };
+                    });
+                })
+                .then(function (result) {
+                  if (!result.ok || !result.data || !result.data.ok) {
+                    if (result.data && result.data.form_html) {
+                      var parser = new DOMParser();
+                      var doc = parser.parseFromString(result.data.form_html, "text/html");
+                      var newModal = doc.querySelector("[data-produto-modal]");
+                      var newBody = newModal ? newModal.querySelector(".modal-body") : null;
+                      var currentBody = modal.querySelector(".modal-body");
+                      if (newBody && currentBody) {
+                        currentBody.innerHTML = newBody.innerHTML;
+                        modal.dataset.bound = "0";
+                        initProdutoModal(modal);
+                      }
                     }
+                    return;
                   }
-                  return;
-                }
 
-                if (result.data.action === "create") {
-                  var tbody = document.querySelector("[data-produto-rows]");
-                  if (tbody) {
-                    var emptyRow = tbody.querySelector("td.text-muted");
-                    if (emptyRow) {
-                      emptyRow.parentElement.remove();
+                  if (result.data.action === "create") {
+                    var tbody = document.querySelector("[data-produto-rows]");
+                    if (tbody) {
+                      var emptyRow = tbody.querySelector("td.text-muted");
+                      if (emptyRow) {
+                        emptyRow.parentElement.remove();
+                      }
+                      tbody.insertAdjacentHTML("afterbegin", result.data.row_html);
                     }
-                    tbody.insertAdjacentHTML("afterbegin", result.data.row_html);
-                  }
-                  if (window.bootstrap) {
-                    var modalInstance = bootstrap.Modal.getInstance(modal);
-                    if (modalInstance) {
-                      modalInstance.hide();
+                    if (window.bootstrap) {
+                      var modalInstance = bootstrap.Modal.getInstance(modal);
+                      if (modalInstance) {
+                        modalInstance.hide();
+                      }
                     }
+                    if (result.data.edit_modal_html && modalsContainer) {
+                      modalsContainer.insertAdjacentHTML("beforeend", result.data.edit_modal_html);
+                      var newModal = modalsContainer.querySelector("[data-produto-modal]:last-child");
+                      initProdutoModal(newModal);
+                    }
+                    if (result.data.create_modal_html) {
+                      modal.outerHTML = result.data.create_modal_html;
+                      var newCreateModal = document.getElementById("createModal");
+                      initProdutoModal(newCreateModal);
+                    }
+                    return;
                   }
-                  if (result.data.edit_modal_html && modalsContainer) {
-                    modalsContainer.insertAdjacentHTML("beforeend", result.data.edit_modal_html);
-                    var newModal = modalsContainer.querySelector("[data-produto-modal]:last-child");
-                    initProdutoModal(newModal);
-                  }
-                  if (result.data.create_modal_html) {
-                    modal.outerHTML = result.data.create_modal_html;
-                    var newCreateModal = document.getElementById("createModal");
-                    initProdutoModal(newCreateModal);
-                  }
-                  return;
-                }
 
-                if (result.data.action === "update" && result.data.row_id) {
-                  var row = document.getElementById("produto-row-" + result.data.row_id);
-                  if (row) {
-                    row.outerHTML = result.data.row_html;
-                  }
-                  if (window.bootstrap) {
-                    var editInstance = bootstrap.Modal.getInstance(modal);
-                    if (editInstance) {
-                      editInstance.hide();
+                  if (result.data.action === "update" && result.data.row_id) {
+                    var row = document.getElementById("produto-row-" + result.data.row_id);
+                    if (row) {
+                      row.outerHTML = result.data.row_html;
+                    }
+                    if (window.bootstrap) {
+                      var editInstance = bootstrap.Modal.getInstance(modal);
+                      if (editInstance) {
+                        editInstance.hide();
+                      }
+                    }
+                    if (result.data.edit_modal_html) {
+                      modal.outerHTML = result.data.edit_modal_html;
+                      var refreshedModal = document.getElementById("editModal-" + result.data.row_id);
+                      initProdutoModal(refreshedModal);
                     }
                   }
-                  if (result.data.edit_modal_html) {
-                    modal.outerHTML = result.data.edit_modal_html;
-                    var refreshedModal = document.getElementById("editModal-" + result.data.row_id);
-                    initProdutoModal(refreshedModal);
-                  }
-                }
-              })
-              .catch(function () {
-                form.submit();
-              });
+                })
+                .catch(function () {
+                  form.submit();
+                });
+            });
           });
         }
       }

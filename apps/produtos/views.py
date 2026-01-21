@@ -4,11 +4,11 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db import transaction
-from django.db.models import Avg, OuterRef, Subquery
+from django.db.models import Avg
 from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.template.loader import render_to_string
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.views import View
 from django.core.paginator import InvalidPage, Paginator
@@ -27,9 +27,11 @@ from .forms import (
     ProdutoForm,
     SubfamiliaProdutoForm,
     TipoProdutoForm,
+    UnidadeProdutoForm,
 )
 from .models import (
     FamiliaProduto,
+    Fabricante,
     LocalizacaoProduto,
     LocalRetirada,
     Periodicidade,
@@ -38,6 +40,7 @@ from .models import (
     ProdutoFornecedor,
     SubfamiliaProduto,
     TipoProduto,
+    UnidadeProduto,
 )
 from apps.estoque.models import ActionLog, MovimentacaoEstoque
 
@@ -60,8 +63,8 @@ class ProdutoListView(BaseTenantListView):
         "Ativo",
     ]
     row_fields = [
-        "ca_fornecedor",
-        "codigo_externo",
+        "ca",
+        "codigo",
         "nome",
         "referencia",
         "estoque_ideal",
@@ -114,28 +117,33 @@ class ProdutoListView(BaseTenantListView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        ca_subquery = (
-            ProdutoFornecedor.objects.filter(produto=OuterRef("pk"))
-            .exclude(ca="")
-            .values("ca")[:1]
-        )
-        return queryset.annotate(
-            ca_fornecedor=Subquery(ca_subquery),
-            valor_medio=Avg("fornecedores_rel__valor"),
-        )
+        return queryset.annotate(valor_medio=Avg("fornecedores_rel__valor"))
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if context.get("can_add"):
+            context["create_form"] = ProdutoForm(tenant=self.request.tenant)
+        else:
+            context["create_form"] = None
+        if context.get("can_change"):
+            context["edit_rows"] = [
+                {
+                    "object": obj,
+                    "form": ProdutoForm(instance=obj, tenant=self.request.tenant),
+                    "update_url": reverse_lazy(self.update_url_name, args=[obj.pk]),
+                }
+                for obj in context.get("object_list", [])
+            ]
+        else:
+            context["edit_rows"] = []
+        return context
 
 
 class ProdutoFornecedorAnexoMixin:
     def _get_annotated_produto(self, produto_id):
-        ca_subquery = (
-            ProdutoFornecedor.objects.filter(produto=OuterRef("pk"))
-            .exclude(ca="")
-            .values("ca")[:1]
-        )
         return (
             Produto.objects.filter(pk=produto_id)
             .annotate(
-                ca_fornecedor=Subquery(ca_subquery),
                 valor_medio=Avg("fornecedores_rel__valor"),
             )
             .get()
@@ -190,7 +198,6 @@ class ProdutoFornecedorAnexoMixin:
                     company=self.request.tenant,
                     created_by=self.request.user,
                     updated_by=self.request.user,
-                    ca=cleaned.get("ca", ""),
                     codigo_barras=cleaned.get("codigo_barras", ""),
                     codigo_fornecedor=cleaned.get("codigo_fornecedor", ""),
                     valor=valor,
@@ -267,6 +274,11 @@ class ProdutoCreateView(ProdutoFornecedorAnexoMixin, BaseTenantCreateView):
     form_class = ProdutoForm
     success_url_name = "produtos:list"
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["tenant"] = self.request.tenant
+        return kwargs
+
     def form_valid(self, form):
         errors = []
         try:
@@ -300,7 +312,7 @@ class ProdutoCreateView(ProdutoFornecedorAnexoMixin, BaseTenantCreateView):
                     "modal_id": f"editModal-{produto.pk}",
                     "modal_label_id": f"editModalLabel-{produto.pk}",
                     "modal_title": "Editar",
-                    "form": ProdutoForm(instance=produto),
+                    "form": ProdutoForm(instance=produto, tenant=self.request.tenant),
                     "form_action": reverse("produtos:update", args=[produto.pk]),
                     "prefix": f"edit-{produto.pk}",
                     "fornecedores": produto.fornecedores_rel.all(),
@@ -314,7 +326,7 @@ class ProdutoCreateView(ProdutoFornecedorAnexoMixin, BaseTenantCreateView):
                     "modal_id": "createModal",
                     "modal_label_id": "createModalLabel",
                     "modal_title": "Novo produto",
-                    "form": ProdutoForm(),
+                    "form": ProdutoForm(tenant=self.request.tenant),
                     "form_action": reverse("produtos:create"),
                     "prefix": "create",
                     "fornecedores": None,
@@ -359,6 +371,11 @@ class ProdutoUpdateView(ProdutoFornecedorAnexoMixin, BaseTenantUpdateView):
     form_class = ProdutoForm
     success_url_name = "produtos:list"
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["tenant"] = self.request.tenant
+        return kwargs
+
     def form_valid(self, form):
         errors = []
         try:
@@ -392,7 +409,7 @@ class ProdutoUpdateView(ProdutoFornecedorAnexoMixin, BaseTenantUpdateView):
                     "modal_id": f"editModal-{produto.pk}",
                     "modal_label_id": f"editModalLabel-{produto.pk}",
                     "modal_title": "Editar",
-                    "form": ProdutoForm(instance=produto),
+                    "form": ProdutoForm(instance=produto, tenant=self.request.tenant),
                     "form_action": self.request.path,
                     "prefix": f"edit-{produto.pk}",
                     "fornecedores": produto.fornecedores_rel.all(),
@@ -564,6 +581,150 @@ class TipoProdutoDeleteView(PermissionRequiredMixin, View):
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return JsonResponse({"ok": True, "row_id": pk})
         return HttpResponseRedirect(reverse("produtos:tipos_list"))
+
+
+class UnidadeProdutoListView(BaseTenantListView):
+    model = UnidadeProduto
+    template_name = "produtos/unidades_list.html"
+    form_class = UnidadeProdutoForm
+    title = "Unidades"
+    headers = ["Nome", "Sigla"]
+    row_fields = ["nome", "sigla"]
+    filter_definitions = [
+        {"name": "nome", "label": "Nome", "lookup": "icontains", "type": "text"},
+        {"name": "sigla", "label": "Sigla", "lookup": "icontains", "type": "text"},
+    ]
+    create_url_name = "produtos:unidades_create"
+    update_url_name = "produtos:unidades_update"
+
+
+class UnidadeProdutoCreateView(BaseTenantCreateView):
+    model = UnidadeProduto
+    form_class = UnidadeProdutoForm
+    success_url_name = "produtos:unidades_list"
+
+    def form_valid(self, form):
+        nome = (form.cleaned_data.get("nome") or "").strip()
+        sigla = (form.cleaned_data.get("sigla") or "").strip()
+        if nome and UnidadeProduto.objects.filter(company=self.request.tenant, nome__iexact=nome).exists():
+            form.add_error("nome", "Unidade ja cadastrada.")
+            return self.form_invalid(form)
+        if sigla and UnidadeProduto.objects.filter(company=self.request.tenant, sigla__iexact=sigla).exists():
+            form.add_error("sigla", "Sigla ja cadastrada.")
+            return self.form_invalid(form)
+        response = super().form_valid(form)
+        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            row_html = render_to_string(
+                "produtos/_unidade_produto_row.html",
+                {"unidade": self.object},
+                request=self.request,
+            )
+            edit_modal_html = render_to_string(
+                "produtos/_unidade_produto_edit_modal.html",
+                {
+                    "unidade": self.object,
+                    "form": UnidadeProdutoForm(instance=self.object),
+                    "update_url": reverse("produtos:unidades_update", args=[self.object.pk]),
+                },
+                request=self.request,
+            )
+            form_html = render_to_string(
+                "components/_form.html",
+                {"form": UnidadeProdutoForm(), "form_action": reverse("produtos:unidades_create")},
+                request=self.request,
+            )
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "action": "create",
+                    "row_id": self.object.pk,
+                    "row_html": row_html,
+                    "edit_modal_html": edit_modal_html,
+                    "form_html": form_html,
+                }
+            )
+        return response
+
+    def form_invalid(self, form):
+        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            form_html = render_to_string(
+                "components/_form.html",
+                {"form": form, "form_action": reverse("produtos:unidades_create")},
+                request=self.request,
+            )
+            return JsonResponse({"ok": False, "form_html": form_html}, status=400)
+        return super().form_invalid(form)
+
+
+class UnidadeProdutoUpdateView(BaseTenantUpdateView):
+    model = UnidadeProduto
+    form_class = UnidadeProdutoForm
+    success_url_name = "produtos:unidades_list"
+
+    def form_valid(self, form):
+        nome = (form.cleaned_data.get("nome") or "").strip()
+        sigla = (form.cleaned_data.get("sigla") or "").strip()
+        if (
+            nome
+            and UnidadeProduto.objects.filter(company=self.request.tenant, nome__iexact=nome)
+            .exclude(pk=form.instance.pk)
+            .exists()
+        ):
+            form.add_error("nome", "Unidade ja cadastrada.")
+            return self.form_invalid(form)
+        if (
+            sigla
+            and UnidadeProduto.objects.filter(company=self.request.tenant, sigla__iexact=sigla)
+            .exclude(pk=form.instance.pk)
+            .exists()
+        ):
+            form.add_error("sigla", "Sigla ja cadastrada.")
+            return self.form_invalid(form)
+        response = super().form_valid(form)
+        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            row_html = render_to_string(
+                "produtos/_unidade_produto_row.html",
+                {"unidade": self.object},
+                request=self.request,
+            )
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "action": "update",
+                    "row_id": self.object.pk,
+                    "row_html": row_html,
+                }
+            )
+        return response
+
+    def form_invalid(self, form):
+        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            form_html = render_to_string(
+                "components/_form.html",
+                {
+                    "form": form,
+                    "form_action": reverse("produtos:unidades_update", args=[self.get_object().pk]),
+                },
+                request=self.request,
+            )
+            return JsonResponse(
+                {"ok": False, "form_html": form_html, "row_id": self.get_object().pk},
+                status=400,
+            )
+        return super().form_invalid(form)
+
+
+class UnidadeProdutoDeleteView(PermissionRequiredMixin, View):
+    permission_required = "produtos.delete_unidadeproduto"
+
+    def post(self, request, pk):
+        unidade = UnidadeProduto.objects.filter(pk=pk, company=request.tenant).first()
+        if not unidade:
+            return JsonResponse({"ok": False}, status=404)
+        unidade.delete()
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"ok": True, "row_id": pk})
+        return HttpResponseRedirect(reverse("produtos:unidades_list"))
 
 
 class FamiliaProdutoListView(BaseTenantListView):
@@ -1620,7 +1781,49 @@ def _caepi_to_dict(item):
     }
 
 
-def _query_caepi(ca, descricao, fornecedor, somente_validos, offset, limit):
+def _get_caepi_status(registro_ca):
+    registro_ca = (registro_ca or "").strip()
+    if not registro_ca:
+        return {"status": "empty", "found": False}
+
+    today = timezone.localdate()
+    with schema_context("public"):
+        caepi = (
+            CaEPI.objects.filter(registro_ca=registro_ca)
+            .order_by("-data_validade", "-ultima_atualizacao")
+            .first()
+        )
+    if not caepi:
+        return {"status": "not_found", "found": False}
+    if not caepi.data_validade:
+        return {"status": "unknown", "found": True, "data_validade": None}
+
+    expired = caepi.data_validade < today
+    return {
+        "status": "expired" if expired else "valid",
+        "found": True,
+        "data_validade": caepi.data_validade,
+        "data_validade_display": caepi.data_validade.strftime("%d/%m/%Y"),
+        "expired": expired,
+    }
+
+
+class CaStatusApiView(PermissionRequiredMixin, View):
+    permission_required = "produtos.view_produto"
+
+    def get(self, request):
+        registro_ca = (request.GET.get("ca") or "").strip()
+        result = _get_caepi_status(registro_ca)
+        payload = {"ok": True, "ca": registro_ca, **result}
+        data_validade = result.get("data_validade")
+        if data_validade:
+            payload["data_validade"] = data_validade.strftime("%Y-%m-%d")
+        else:
+            payload["data_validade"] = ""
+        return JsonResponse(payload)
+
+
+def _query_caepi(ca, descricao, fabricante, somente_validos, offset, limit):
     results = []
     selected = None
     data_found = False
@@ -1641,8 +1844,8 @@ def _query_caepi(ca, descricao, fornecedor, somente_validos, offset, limit):
                     Q(descricao_equipamento__icontains=descricao)
                     | Q(nome_equipamento__icontains=descricao)
                 )
-            if fornecedor:
-                queryset = queryset.filter(razao_social__icontains=fornecedor)
+            if fabricante:
+                queryset = queryset.filter(razao_social__icontains=fabricante)
 
         # Evita repeticao de um mesmo CA quando ha registros duplicados na base
         queryset = queryset.order_by("registro_ca", "-data_validade").distinct("registro_ca")
@@ -1653,7 +1856,7 @@ def _query_caepi(ca, descricao, fornecedor, somente_validos, offset, limit):
                 selected = results[0]
             has_more = False
         else:
-            if descricao or fornecedor:
+            if descricao or fabricante:
                 items = list(queryset[offset : offset + limit + 1])
                 has_more = len(items) > limit
                 items = items[:limit]
@@ -1668,7 +1871,7 @@ class CaImportApiView(PermissionRequiredMixin, View):
     def get(self, request):
         ca = (request.GET.get("ca") or "").strip()
         descricao = (request.GET.get("descricao") or "").strip()
-        fornecedor = (request.GET.get("fornecedor") or "").strip()
+        fabricante = (request.GET.get("fabricante") or request.GET.get("fornecedor") or "").strip()
         somente_validos = request.GET.get("validos") == "1"
         limit = 20
         try:
@@ -1676,14 +1879,14 @@ class CaImportApiView(PermissionRequiredMixin, View):
         except (TypeError, ValueError):
             offset = 0
 
-        if not ca and not descricao and not fornecedor:
+        if not ca and not descricao and not fabricante:
             return JsonResponse(
                 {"ok": False, "error": "Informe um valor para buscar."},
                 status=400,
             )
 
         data_found, results, selected, has_more, next_offset = _query_caepi(
-            ca, descricao, fornecedor, somente_validos, offset, limit
+            ca, descricao, fabricante, somente_validos, offset, limit
         )
         searched_ca = bool(ca)
         has_results = bool(results)
@@ -1747,6 +1950,47 @@ class CaImportFornecedorApiView(PermissionRequiredMixin, View):
         )
 
 
+class CaImportFabricanteApiView(PermissionRequiredMixin, View):
+    permission_required = "produtos.add_fabricante"
+
+    def post(self, request):
+        nome = (request.POST.get("nome") or "").strip()
+        cnpj = (request.POST.get("cnpj") or "").strip()
+        if not nome:
+            return JsonResponse({"ok": False, "error": "Fabricante invalido."}, status=400)
+
+        fabricante = Fabricante.objects.filter(company=request.tenant, nome__iexact=nome).first()
+
+        created = False
+        if not fabricante:
+            fabricante = Fabricante.objects.create(
+                company=request.tenant,
+                nome=nome,
+                cnpj=cnpj,
+                created_by=request.user,
+                updated_by=request.user,
+            )
+            created = True
+        else:
+            update_fields = []
+            if cnpj and not (fabricante.cnpj or "").strip():
+                fabricante.cnpj = cnpj
+                update_fields.append("cnpj")
+            if update_fields:
+                fabricante.updated_by = request.user
+                update_fields.append("updated_by")
+                fabricante.save(update_fields=update_fields)
+
+        return JsonResponse(
+            {
+                "ok": True,
+                "id": fabricante.pk,
+                "nome": fabricante.nome,
+                "created": created,
+            }
+        )
+
+
 class CaImportView(PermissionRequiredMixin, View):
     permission_required = "produtos.view_produto"
     template_name = "produtos/ca_import.html"
@@ -1754,7 +1998,7 @@ class CaImportView(PermissionRequiredMixin, View):
     def get(self, request):
         ca = (request.GET.get("ca") or "").strip()
         descricao = (request.GET.get("descricao") or "").strip()
-        fornecedor = (request.GET.get("fornecedor") or "").strip()
+        fabricante = (request.GET.get("fabricante") or request.GET.get("fornecedor") or "").strip()
         somente_validos = request.GET.get("validos") == "1"
         searched = request.GET.get("buscar") == "1"
         limit = 20
@@ -1771,7 +2015,7 @@ class CaImportView(PermissionRequiredMixin, View):
 
         if searched:
             data_found, results, selected, has_more, next_offset = _query_caepi(
-                ca, descricao, fornecedor, somente_validos, offset, limit
+                ca, descricao, fabricante, somente_validos, offset, limit
             )
 
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -1793,7 +2037,7 @@ class CaImportView(PermissionRequiredMixin, View):
             "title": "Importar CA",
             "ca_value": ca,
             "descricao_value": descricao,
-            "fornecedor_value": fornecedor,
+            "fabricante_value": fabricante,
             "somente_validos": somente_validos,
             "results": results,
             "selected": selected,
@@ -1801,7 +2045,7 @@ class CaImportView(PermissionRequiredMixin, View):
             "searched": searched,
             "has_more": has_more,
             "next_offset": next_offset,
-            "create_form": ProdutoForm(),
+            "create_form": ProdutoForm(tenant=request.tenant),
             "create_produto_url": reverse("produtos:create"),
         }
         return render(request, self.template_name, context)

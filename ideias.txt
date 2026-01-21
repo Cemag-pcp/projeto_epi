@@ -1,3 +1,7 @@
+- Para o modulo de treinamento deve ter um model para instrutor para atrelar aquele treinamento
+
+- Deve ter uma tela para produtos em posse do funcionário (será o último que ele recebeu, caso repita)
+
 - alguma ia com nome de clara fazendo sentido com "clarus"
 quais tarefas a ia deverá fazer?
 

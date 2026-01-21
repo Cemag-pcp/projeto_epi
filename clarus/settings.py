@@ -43,6 +43,7 @@ TENANT_APPS = (
     "apps.treinamentos",
     "apps.relatorios",
     "apps.acessos",
+    "apps.acidentes",
 )
 
 INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
@@ -85,7 +86,7 @@ WSGI_APPLICATION = "clarus.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django_tenants.postgresql_backend",
-        "NAME": os.getenv("POSTGRES_DB", "postgres"),
+        "NAME": os.getenv("POSTGRES_DB", "projeto_epi"),
         "USER": os.getenv("POSTGRES_USER", "postgres"),
         "PASSWORD": os.getenv("POSTGRES_PASSWORD", "15512332"),
         "HOST": os.getenv("POSTGRES_HOST", "127.0.0.1"),

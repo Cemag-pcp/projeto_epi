@@ -16,7 +16,7 @@
       <div class="alert alert-warning mb-3 {% if not searched or csv_found %}d-none{% endif %}" data-ca-data-warning>
         Base de CA no schema public ainda nao foi carregada.
       </div>
-      <form method="get" class="row g-3" id="ca-import-form" data-ca-api-url="{% url 'produtos:ca_import_api' %}" data-ca-fornecedor-url="{% url 'produtos:ca_import_fornecedor' %}">
+      <form method="get" class="row g-3" id="ca-import-form" data-ca-api-url="{% url 'produtos:ca_import_api' %}" data-ca-fabricante-url="{% url 'produtos:ca_import_fabricante' %}">
         <div class="col-12 col-md-3">
           <label class="form-label">CA</label>
           <input type="text" class="form-control" name="ca" value="{{ ca_value }}">
@@ -26,12 +26,12 @@
           <input type="text" class="form-control" name="descricao" value="{{ descricao_value }}">
         </div>
         <div class="col-12 col-md-4">
-          <label class="form-label">Fornecedor</label>
-          <input type="text" class="form-control" name="fornecedor" value="{{ fornecedor_value }}">
+          <label class="form-label">Fabricante</label>
+          <input type="text" class="form-control" name="fabricante" value="{{ fabricante_value }}">
         </div>
         <div class="col-12 col-md-3 d-flex align-items-center">
           <div class="form-check mt-2">
-            <input class="form-check-input" type="checkbox" name="validos" value="1" id="validosCheck" {% if somente_validos %}checked{% endif %}>
+            <input class="form-check-input" type="checkbox" name="validos" value="1" id="validosCheck" checked>
             <label class="form-check-label" for="validosCheck">Somente CA validos</label>
           </div>
         </div>
@@ -51,7 +51,7 @@
         return;
       }
       var button = form.querySelector("[data-ca-search-btn]");
-      var inputs = form.querySelectorAll("input[name='ca'], input[name='descricao'], input[name='fornecedor']");
+      var inputs = form.querySelectorAll("input[name='ca'], input[name='descricao'], input[name='fabricante']");
       function hasQuery() {
         return Array.from(inputs).some(function (input) {
           return (input.value || "").trim().length > 0;
@@ -86,7 +86,7 @@
             <tr>
               <th>Produto</th>
               <th>Descricao</th>
-              <th>Fornecedor</th>
+        <th>Fabricante</th>
               <th>CA</th>
               <th>Vencimento</th>
               <th></th>
@@ -127,7 +127,7 @@
         return;
       }
       var apiUrl = form.getAttribute("data-ca-api-url");
-      var fornecedorUrl = form.getAttribute("data-ca-fornecedor-url");
+      var fabricanteUrl = form.getAttribute("data-ca-fabricante-url");
       var hasMore = {{ has_more|yesno:"true,false" }};
       var offset = {{ next_offset|default:0 }};
       var isLoading = false;
@@ -146,7 +146,7 @@
       }
 
       function hasQuery() {
-        return Array.from(form.querySelectorAll("input[name='ca'], input[name='descricao'], input[name='fornecedor']"))
+        return Array.from(form.querySelectorAll("input[name='ca'], input[name='descricao'], input[name='fabricante']"))
           .some(function (input) {
             return (input.value || "").trim().length > 0;
           });
@@ -240,7 +240,7 @@
       if (!modalEl) {
         return;
       }
-      var fornecedorUrl = form ? form.getAttribute("data-ca-fornecedor-url") : "";
+      var fabricanteUrl = form ? form.getAttribute("data-ca-fabricante-url") : "";
 
       var successAlert = document.querySelector("[data-ca-import-success]");
 
@@ -249,6 +249,198 @@
           return;
         }
         modal.dataset.bound = "1";
+
+        var caInput = modal.querySelector("input[name='ca']");
+        var vencimentoInput = modal.querySelector("input[name='data_vencimento_ca']");
+        var caStatusBadge = modal.querySelector("[data-ca-status]");
+        var caStatusText = modal.querySelector("[data-ca-status-text]");
+        var tabsNav = modal.querySelector("[data-produto-tabs]");
+
+        function showTabForElement(element) {
+          if (!element || !tabsNav || !window.bootstrap) {
+            return null;
+          }
+          var pane = element.closest(".tab-pane");
+          if (!pane || !pane.id) {
+            return null;
+          }
+          var tabButton = tabsNav.querySelector("[data-bs-target='#" + pane.id + "']");
+          if (!tabButton) {
+            return null;
+          }
+          var tabInstance = bootstrap.Tab.getOrCreateInstance(tabButton);
+          tabInstance.show();
+          return { pane: pane, tabButton: tabButton };
+        }
+
+        function showToast(message, level) {
+          if (window.clarusToast) {
+            window.clarusToast(message, level || "danger");
+          }
+        }
+
+        function focusFirstError() {
+          var error = modal.querySelector(".invalid-feedback.d-block");
+          if (!error) {
+            return;
+          }
+          showTabForElement(error);
+          error.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+
+        function setCaStatus(kind, text) {
+          if (!caStatusBadge) {
+            return;
+          }
+          caStatusBadge.classList.add("d-none");
+          caStatusBadge.classList.remove(
+            "text-bg-success",
+            "text-bg-danger",
+            "text-bg-secondary",
+            "text-bg-warning",
+            "text-dark"
+          );
+          caStatusBadge.textContent = "";
+          if (caStatusText) {
+            caStatusText.classList.add("d-none");
+            caStatusText.textContent = "";
+          }
+          if (!kind) {
+            return;
+          }
+          caStatusBadge.classList.remove("d-none");
+          if (kind === "valid") {
+            caStatusBadge.classList.add("text-bg-success");
+            caStatusBadge.textContent = "Valido";
+          } else if (kind === "expired") {
+            caStatusBadge.classList.add("text-bg-danger");
+            caStatusBadge.textContent = "Vencido";
+          } else if (kind === "not_found") {
+            caStatusBadge.classList.add("text-bg-secondary");
+            caStatusBadge.textContent = "Nao encontrado";
+          } else {
+            caStatusBadge.classList.add("text-bg-warning", "text-dark");
+            caStatusBadge.textContent = "Indisponivel";
+          }
+          if (text && caStatusText) {
+            caStatusText.classList.remove("d-none");
+            caStatusText.textContent = text;
+          }
+        }
+
+        function fetchCaStatus(ca) {
+          if (!caStatusBadge) {
+            return Promise.resolve(null);
+          }
+          var url = caStatusBadge.getAttribute("data-ca-status-url") || "";
+          if (!url) {
+            return Promise.resolve(null);
+          }
+          return fetch(url + "?ca=" + encodeURIComponent(ca), {
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          })
+            .then(function (response) {
+              return response.json();
+            })
+            .then(function (data) {
+              return data && data.ok ? data : null;
+            })
+            .catch(function () {
+              return null;
+            });
+        }
+
+        function ensureCaValid() {
+          if (!caInput) {
+            return Promise.resolve(true);
+          }
+          var ca = (caInput.value || "").trim();
+          if (!ca) {
+            setCaStatus(null, "");
+            caInput.setCustomValidity("");
+            caInput.classList.remove("is-invalid", "is-valid");
+            if (vencimentoInput) {
+              // Mantem valor manual se usuario ja informou.
+            }
+            return Promise.resolve(true);
+          }
+          if (caInput.dataset.checkedValue === ca && caInput.dataset.caStatus) {
+            return Promise.resolve(caInput.dataset.caStatus === "valid");
+          }
+          setCaStatus("unknown", "Validando...");
+          return fetchCaStatus(ca).then(function (result) {
+            caInput.dataset.checkedValue = ca;
+            caInput.dataset.caStatus = result ? result.status || "" : "";
+            if (!result) {
+              setCaStatus("unknown", "Falha ao consultar base de CAs.");
+              caInput.setCustomValidity("");
+              caInput.classList.remove("is-invalid");
+              return true;
+            }
+            if (vencimentoInput && result.data_validade && !(vencimentoInput.value || "").trim()) {
+              vencimentoInput.value = result.data_validade;
+            }
+            if (result.status === "valid") {
+              setCaStatus("valid", "Vence em " + (result.data_validade_display || "-"));
+              caInput.setCustomValidity("");
+              caInput.classList.remove("is-invalid");
+              caInput.classList.add("is-valid");
+              return true;
+            }
+            if (result.status === "expired") {
+              setCaStatus("expired", "Venceu em " + (result.data_validade_display || "-"));
+              caInput.setCustomValidity("CA vencido.");
+              caInput.classList.remove("is-valid");
+              caInput.classList.add("is-invalid");
+              return false;
+            }
+            if (result.status === "not_found") {
+              setCaStatus("not_found", "Nao encontrado no schema public.");
+              caInput.setCustomValidity("");
+              caInput.classList.remove("is-invalid", "is-valid");
+              return true;
+            }
+            setCaStatus("unknown", "Sem validade na base.");
+            caInput.setCustomValidity("");
+            caInput.classList.remove("is-invalid", "is-valid");
+            return true;
+          });
+        }
+
+        var fabricanteSelect = modal.querySelector("select[name='fabricante']");
+        var fabricanteDisplay = modal.querySelector("[data-fabricante-display]");
+        function syncFabricanteDisplay() {
+          if (!fabricanteDisplay) {
+            return;
+          }
+          if (!fabricanteSelect) {
+            return;
+          }
+          var selectedOption = fabricanteSelect.options[fabricanteSelect.selectedIndex];
+          fabricanteDisplay.value = selectedOption ? selectedOption.text : "";
+        }
+        if (fabricanteSelect && fabricanteDisplay) {
+          fabricanteSelect.addEventListener("change", syncFabricanteDisplay);
+          syncFabricanteDisplay();
+        }
+
+        if (caInput) {
+          var caTimer = null;
+          caInput.addEventListener("input", function () {
+            if (caTimer) {
+              clearTimeout(caTimer);
+            }
+            caTimer = setTimeout(function () {
+              ensureCaValid();
+            }, 400);
+          });
+          caInput.addEventListener("blur", function () {
+            ensureCaValid();
+          });
+          if ((caInput.value || "").trim()) {
+            ensureCaValid();
+          }
+        }
 
         var addButton = modal.querySelector("[data-fornecedor-add]");
         var rowsContainer = modal.querySelector("[data-fornecedor-rows]");
@@ -459,55 +651,70 @@
           form.dataset.bound = "1";
           form.addEventListener("submit", function (event) {
             event.preventDefault();
+            if (caInput && !caInput.checkValidity()) {
+              showTabForElement(caInput);
+              showToast("Verifique o CA antes de salvar.");
+              return;
+            }
             if (rowsContainer) {
               syncRowIndices();
             }
-            var formData = new FormData(form);
-            fetch(form.action, {
-              method: "POST",
-              body: formData,
-              headers: { "X-Requested-With": "XMLHttpRequest" },
-            })
-              .then(function (response) {
-                return response
-                  .json()
-                  .then(function (data) {
-                    return { ok: response.ok, data: data };
-                  })
-                  .catch(function () {
-                    return { ok: response.ok, data: null };
-                  });
+            ensureCaValid().then(function (valid) {
+              if (!valid) {
+                if (caInput) {
+                  showTabForElement(caInput);
+                  showToast("CA vencido. Nao e possivel salvar.");
+                }
+                return;
+              }
+              var formData = new FormData(form);
+              fetch(form.action, {
+                method: "POST",
+                body: formData,
+                headers: { "X-Requested-With": "XMLHttpRequest" },
               })
-              .then(function (result) {
-                if (!result.ok || !result.data || !result.data.ok) {
-                  if (result.data && result.data.form_html) {
-                    var parser = new DOMParser();
-                    var doc = parser.parseFromString(result.data.form_html, "text/html");
-                    var newModal = doc.querySelector("[data-produto-modal]");
-                    var newBody = newModal ? newModal.querySelector(".modal-body") : null;
-                    var currentBody = modal.querySelector(".modal-body");
-                    if (newBody && currentBody) {
-                      currentBody.innerHTML = newBody.innerHTML;
-                      modal.dataset.bound = "0";
-                      initProdutoModal(modal);
+                .then(function (response) {
+                  return response
+                    .json()
+                    .then(function (data) {
+                      return { ok: response.ok, data: data };
+                    })
+                    .catch(function () {
+                      return { ok: response.ok, data: null };
+                    });
+                })
+                .then(function (result) {
+                  if (!result.ok || !result.data || !result.data.ok) {
+                    if (result.data && result.data.form_html) {
+                      var parser = new DOMParser();
+                      var doc = parser.parseFromString(result.data.form_html, "text/html");
+                      var newModal = doc.querySelector("[data-produto-modal]");
+                      var newBody = newModal ? newModal.querySelector(".modal-body") : null;
+                      var currentBody = modal.querySelector(".modal-body");
+                      if (newBody && currentBody) {
+                        currentBody.innerHTML = newBody.innerHTML;
+                        modal.dataset.bound = "0";
+                        initProdutoModal(modal);
+                        focusFirstError();
+                      }
+                    }
+                    return;
+                  }
+                  if (window.bootstrap) {
+                    var modalInstance = bootstrap.Modal.getInstance(modal);
+                    if (modalInstance) {
+                      modalInstance.hide();
                     }
                   }
-                  return;
-                }
-                if (window.bootstrap) {
-                  var modalInstance = bootstrap.Modal.getInstance(modal);
-                  if (modalInstance) {
-                    modalInstance.hide();
+                  if (successAlert) {
+                    successAlert.classList.remove("d-none");
+                    successAlert.scrollIntoView({ behavior: "smooth", block: "start" });
                   }
-                }
-                if (successAlert) {
-                  successAlert.classList.remove("d-none");
-                  successAlert.scrollIntoView({ behavior: "smooth", block: "start" });
-                }
-              })
-              .catch(function () {
-                form.submit();
-              });
+                })
+                .catch(function () {
+                  form.submit();
+                });
+            });
           });
         }
       }
@@ -522,50 +729,40 @@
         }
         var nomeInput = modal.querySelector("input[name='nome']");
         var referenciaInput = modal.querySelector("input[name='referencia']");
+        var caInput = modal.querySelector("input[name='ca']");
+        var validadeInput = modal.querySelector("input[name='data_vencimento_ca']");
+        var controleEpiInput = modal.querySelector("input[name='controle_epi']");
+        var fabricanteSelect = modal.querySelector("select[name='fabricante']");
+        var fabricanteDisplay = modal.querySelector("[data-fabricante-display]");
         if (nomeInput && data.nome) {
           nomeInput.value = data.nome;
         }
         if (referenciaInput && data.referencia) {
           referenciaInput.value = data.referencia;
         }
-
-        var rowsContainer = modal.querySelector("[data-fornecedor-rows]");
-        var addButton = modal.querySelector("[data-fornecedor-add]");
-        var row = rowsContainer ? rowsContainer.querySelector("[data-fornecedor-row]") : null;
-        if (!row && addButton) {
-          addButton.click();
-          row = rowsContainer ? rowsContainer.querySelector("[data-fornecedor-row]") : null;
+        if (caInput && data.ca) {
+          caInput.value = data.ca;
         }
-        if (row) {
-          var caInput = row.querySelector("[data-field='ca']");
-          if (caInput && data.ca) {
-            caInput.value = data.ca;
+        if (validadeInput && data.dataVencimentoCa) {
+          validadeInput.value = data.dataVencimentoCa;
+        }
+        if (controleEpiInput) {
+          controleEpiInput.checked = Boolean(data.ca || data.dataVencimentoCa || data.fabricanteId || data.fabricanteNome);
+        }
+
+        if (fabricanteSelect && data.fabricanteId) {
+          var existing = Array.from(fabricanteSelect.options).find(function (option) {
+            return String(option.value) === String(data.fabricanteId);
+          });
+          if (!existing && data.fabricanteNome) {
+            var newOption = document.createElement("option");
+            newOption.value = String(data.fabricanteId);
+            newOption.textContent = data.fabricanteNome;
+            fabricanteSelect.appendChild(newOption);
           }
-          var fornecedorSelect = row.querySelector("[data-field='fornecedor']");
-          if (fornecedorSelect && data.fornecedorId) {
-            var existing = Array.from(fornecedorSelect.options).find(function (option) {
-              return String(option.value) === String(data.fornecedorId);
-            });
-            if (!existing && data.fornecedorNome) {
-              var newOption = document.createElement("option");
-              newOption.value = String(data.fornecedorId);
-              newOption.textContent = data.fornecedorNome;
-              fornecedorSelect.appendChild(newOption);
-            }
-            fornecedorSelect.value = String(data.fornecedorId);
-          } else if (fornecedorSelect && data.fornecedor) {
-            var target = data.fornecedor.trim().toLowerCase();
-            var matched = Array.from(fornecedorSelect.options).find(function (option) {
-              return option.text.trim().toLowerCase() === target;
-            });
-            if (!matched) {
-              matched = Array.from(fornecedorSelect.options).find(function (option) {
-                return option.text.trim().toLowerCase().indexOf(target) !== -1;
-              });
-            }
-            if (matched) {
-              fornecedorSelect.value = matched.value;
-            }
+          fabricanteSelect.value = String(data.fabricanteId);
+          if (fabricanteDisplay) {
+            fabricanteDisplay.value = data.fabricanteNome || "";
           }
         }
 
@@ -590,8 +787,10 @@
         var payload = {
           nome: trigger.getAttribute("data-ca-nome") || "",
           referencia: trigger.getAttribute("data-ca-referencia") || "",
-          fornecedor: trigger.getAttribute("data-ca-fornecedor") || "",
+          fabricante: trigger.getAttribute("data-ca-fabricante") || "",
+          fabricanteCnpj: trigger.getAttribute("data-ca-cnpj") || "",
           ca: trigger.getAttribute("data-ca-registro") || "",
+          dataVencimentoCa: trigger.getAttribute("data-ca-validade") || "",
         };
 
         function openModal() {
@@ -610,13 +809,16 @@
           return "";
         }
 
-        function ensureFornecedor(nome) {
-          if (!fornecedorUrl || !nome) {
+        function ensureFabricante(nome, cnpj) {
+          if (!fabricanteUrl || !nome) {
             return Promise.resolve(null);
           }
           var body = new URLSearchParams();
           body.set("nome", nome);
-          return fetch(fornecedorUrl, {
+          if (cnpj) {
+            body.set("cnpj", cnpj);
+          }
+          return fetch(fabricanteUrl, {
             method: "POST",
             headers: {
               "Content-Type": "application/x-www-form-urlencoded",
@@ -635,10 +837,10 @@
             .catch(function () { return null; });
         }
 
-        ensureFornecedor(payload.fornecedor).then(function (fornecedorInfo) {
-          if (fornecedorInfo) {
-            payload.fornecedorId = fornecedorInfo.id;
-            payload.fornecedorNome = fornecedorInfo.nome;
+        ensureFabricante(payload.fabricante, payload.fabricanteCnpj).then(function (fabricanteInfo) {
+          if (fabricanteInfo) {
+            payload.fabricanteId = fabricanteInfo.id;
+            payload.fabricanteNome = fabricanteInfo.nome;
           }
           openModal();
           fillProdutoModal(modalEl, payload);

@@ -1,0 +1,411 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Acidente do trabalho{% endblock %}
+
+{% block content %}
+  {% include "components/_alerts.html" %}
+
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+    <div>
+      <h1 class="h4 mb-1">{{ title }}</h1>
+      {% if subtitle %}<p class="text-muted mb-0">{{ subtitle }}</p>{% endif %}
+    </div>
+    {% if create_form %}
+      <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#createModal">
+        Novo
+      </button>
+    {% endif %}
+  </div>
+
+  {% if filters %}
+    {% include "components/_filters.html" with filters=filters %}
+  {% endif %}
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th scope="col">Funcionario</th>
+          <th scope="col">Data</th>
+          <th scope="col">Tipo do local</th>
+          <th scope="col">Cidade/UF</th>
+          <th scope="col" class="text-end">Acoes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for acidente in object_list %}
+          {% include "acidentes/_acidente_row.html" with acidente=acidente %}
+        {% empty %}
+          <tr>
+            <td colspan="5" class="text-muted text-center py-4">Sem registros</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% include "components/_pagination.html" with page_obj=page_obj %}
+
+  {% if create_form %}
+    <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="createModalLabel">Novo acidente</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body" data-acidente-modal-body data-row-id="">
+            {% include "acidentes/_acidente_form.html" with form=create_form form_action=create_url %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <div data-acidente-modals>
+    {% for row in edit_rows %}
+      {% include "acidentes/_acidente_edit_modal.html" with acidente=row.object form=row.form update_url=row.update_url %}
+    {% endfor %}
+  </div>
+
+  <script>
+    (function () {
+      var apiAmbientesUrl = "{{ api_ambientes_url|default:'' }}";
+      var apiCidadesUrl = "{{ api_cidades_url|default:'' }}";
+      var apiCepUrl = "{{ api_cep_url|default:'' }}";
+
+      function fetchJson(url, options) {
+        return fetch(url, options || { headers: { "X-Requested-With": "XMLHttpRequest" } })
+          .then(function (response) {
+            return response
+              .json()
+              .then(function (data) {
+                return { ok: response.ok, data: data };
+              })
+              .catch(function () {
+                return { ok: response.ok, data: null };
+              });
+          });
+      }
+
+      function setOptions(selectEl, items, selectedValue) {
+        if (!selectEl) return;
+        selectEl.innerHTML = "";
+        var placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "Selecione";
+        selectEl.appendChild(placeholder);
+        (items || []).forEach(function (item) {
+          var opt = document.createElement("option");
+          opt.value = item.value;
+          opt.textContent = item.label;
+          selectEl.appendChild(opt);
+        });
+        if (selectedValue) {
+          selectEl.value = selectedValue;
+        }
+      }
+
+      function normalizeCep(value) {
+        return String(value || "").replace(/\D+/g, "").slice(0, 8);
+      }
+
+      function attachDynamicHandlers(modalBody) {
+        if (!modalBody || modalBody.dataset.dynamicBound === "1") return;
+        modalBody.dataset.dynamicBound = "1";
+
+        var tipoLocalEl = modalBody.querySelector("[data-acidente-tipo-local]");
+        var ambienteEl = modalBody.querySelector("[data-acidente-ambiente]");
+        var tipoAcidenteEl = modalBody.querySelector("[data-acidente-tipo-acidente]");
+        var trajetoEventoEl = modalBody.querySelector("[data-acidente-trajeto-evento]");
+        var houveObitoEl = modalBody.querySelector("[data-acidente-houve-obito]");
+        var dataObitoEl = modalBody.querySelector("[data-acidente-data-obito]");
+        var existeAtestadoEl = modalBody.querySelector("[data-acidente-existe-atestado]");
+        var estadoEl = modalBody.querySelector("[data-acidente-estado]");
+        var cidadeEl = modalBody.querySelector("[data-acidente-cidade]");
+        var cepEl = modalBody.querySelector("[data-acidente-cep]");
+
+        var enderecoEl = modalBody.querySelector("#id_endereco");
+        var bairroEl = modalBody.querySelector("#id_bairro");
+        var complementoEl = modalBody.querySelector("#id_complemento");
+
+        function loadAmbientes(tipoLocal, selectedAmbiente) {
+          if (!apiAmbientesUrl || !ambienteEl) return;
+          if (!tipoLocal) {
+            setOptions(ambienteEl, [], "");
+            return;
+          }
+          fetchJson(apiAmbientesUrl + "?tipo_local=" + encodeURIComponent(tipoLocal))
+            .then(function (result) {
+              var items = result.data && result.data.ambientes ? result.data.ambientes : [];
+              setOptions(ambienteEl, items, selectedAmbiente);
+            })
+            .catch(function () {
+              setOptions(ambienteEl, [], "");
+            });
+        }
+
+        function loadCidades(uf, selectedCidade) {
+          if (!apiCidadesUrl || !cidadeEl) return Promise.resolve();
+          if (!uf) {
+            setOptions(cidadeEl, [], "");
+            return Promise.resolve();
+          }
+          return fetchJson(apiCidadesUrl + "?uf=" + encodeURIComponent(uf))
+            .then(function (result) {
+              var items = result.data && result.data.cidades ? result.data.cidades : [];
+              setOptions(cidadeEl, items, selectedCidade);
+            })
+            .catch(function () {
+              setOptions(cidadeEl, [], "");
+            });
+        }
+
+        function lookupCep(value) {
+          if (!apiCepUrl) return;
+          var cep = normalizeCep(value);
+          if (cep.length !== 8) return;
+          fetchJson(apiCepUrl + "?cep=" + encodeURIComponent(cep))
+            .then(function (result) {
+              if (!result.data || !result.data.ok) return;
+              if (cepEl && result.data.cep) {
+                cepEl.value = result.data.cep;
+              }
+              if (enderecoEl && result.data.endereco) {
+                enderecoEl.value = result.data.endereco;
+              }
+              if (bairroEl && result.data.bairro) {
+                bairroEl.value = result.data.bairro;
+              }
+              if (complementoEl && result.data.complemento && !complementoEl.value) {
+                complementoEl.value = result.data.complemento;
+              }
+              if (estadoEl && result.data.uf) {
+                estadoEl.value = result.data.uf;
+                loadCidades(result.data.uf, result.data.cidade || "");
+              }
+            })
+            .catch(function () {});
+        }
+
+        function wrapperFor(el) {
+          if (!el) return null;
+          return el.closest(".mb-3") || el.closest(".form-check");
+        }
+
+        function toggleTrajetoFields() {
+          if (!tipoAcidenteEl || !trajetoEventoEl) return;
+          var selected = modalBody.querySelector('input[name="' + tipoAcidenteEl.name + '"]:checked');
+          var value = selected ? selected.value : tipoAcidenteEl.value;
+          var wrapper = wrapperFor(trajetoEventoEl);
+          if (!wrapper) return;
+          if (value === "trajeto") {
+            wrapper.style.display = "";
+          } else {
+            wrapper.style.display = "none";
+            var checked = wrapper.querySelector("input[type=radio]:checked");
+            if (checked) checked.checked = false;
+          }
+        }
+
+        function toggleObitoFields() {
+          if (!houveObitoEl || !dataObitoEl) return;
+          var wrapper = wrapperFor(dataObitoEl);
+          if (!wrapper) return;
+          if (houveObitoEl.checked) {
+            wrapper.style.display = "";
+          } else {
+            wrapper.style.display = "none";
+            dataObitoEl.value = "";
+          }
+        }
+
+        function toggleAtestadoFields() {
+          if (!existeAtestadoEl) return;
+          var fields = [
+            modalBody.querySelector("[data-acidente-data-atendimento]"),
+            modalBody.querySelector("[data-acidente-houve-internacao]"),
+            modalBody.querySelector("[data-acidente-duracao-tratamento]"),
+            modalBody.querySelector("[data-acidente-indicado-afastamento]"),
+            modalBody.querySelector("[data-acidente-natureza-lesao]"),
+            modalBody.querySelector("[data-acidente-diagnostico-provavel]"),
+            modalBody.querySelector("[data-acidente-cid10]"),
+            modalBody.querySelector("[data-acidente-observacao-atestado]"),
+            modalBody.querySelector("[data-acidente-emitente]"),
+            modalBody.querySelector("[data-acidente-cnes]"),
+          ];
+          fields.forEach(function (el) {
+            var wrapper = wrapperFor(el);
+            if (!wrapper) return;
+            wrapper.style.display = existeAtestadoEl.checked ? "" : "none";
+            if (!existeAtestadoEl.checked && el) {
+              if (el.type === "checkbox") {
+                el.checked = false;
+              } else {
+                el.value = "";
+              }
+            }
+          });
+        }
+
+        if (tipoLocalEl && ambienteEl) {
+          tipoLocalEl.addEventListener("change", function () {
+            loadAmbientes(tipoLocalEl.value, "");
+          });
+          if (tipoLocalEl.value) {
+            loadAmbientes(tipoLocalEl.value, ambienteEl.value || "");
+          }
+        }
+
+        if (tipoAcidenteEl && trajetoEventoEl) {
+          modalBody.querySelectorAll('input[name="' + tipoAcidenteEl.name + '"]').forEach(function (radio) {
+            radio.addEventListener("change", toggleTrajetoFields);
+          });
+          toggleTrajetoFields();
+        }
+
+        if (houveObitoEl && dataObitoEl) {
+          houveObitoEl.addEventListener("change", toggleObitoFields);
+          toggleObitoFields();
+        }
+
+        if (existeAtestadoEl) {
+          existeAtestadoEl.addEventListener("change", toggleAtestadoFields);
+          toggleAtestadoFields();
+        }
+
+        if (estadoEl && cidadeEl) {
+          estadoEl.addEventListener("change", function () {
+            loadCidades(estadoEl.value, "");
+          });
+          if (estadoEl.value) {
+            loadCidades(estadoEl.value, cidadeEl.value || "");
+          }
+        }
+
+        if (cepEl) {
+          cepEl.addEventListener("blur", function () {
+            lookupCep(cepEl.value);
+          });
+        }
+      }
+
+      function bindAcidenteForm(form) {
+        if (!form) return;
+        if (form.dataset.bound === "1") return;
+        form.dataset.bound = "1";
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          var modalBody = form.closest("[data-acidente-modal-body]");
+          var rowId = modalBody ? modalBody.getAttribute("data-row-id") : "";
+          var formData = new FormData(form);
+          fetch(form.action, {
+            method: "POST",
+            body: formData,
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          })
+            .then(function (response) {
+              return response
+                .json()
+                .then(function (data) {
+                  return { ok: response.ok, data: data };
+                })
+                .catch(function () {
+                  return { ok: response.ok, data: null };
+                });
+            })
+            .then(function (result) {
+              if (!result.ok || !result.data || !result.data.ok) {
+                if (modalBody && result.data && result.data.form_html) {
+                  modalBody.dataset.dynamicBound = "0";
+                  modalBody.innerHTML = result.data.form_html;
+                  var newForm = modalBody.querySelector("form");
+                  if (newForm) {
+                    bindAcidenteForm(newForm);
+                  }
+                  attachDynamicHandlers(modalBody);
+                }
+                return;
+              }
+
+              if (result.data.action === "create") {
+                var tbody = document.querySelector("table tbody");
+                if (tbody && result.data.row_html) {
+                  var emptyRow = tbody.querySelector("td.text-muted");
+                  if (emptyRow) {
+                    emptyRow.parentElement.remove();
+                  }
+                  tbody.insertAdjacentHTML("afterbegin", result.data.row_html);
+                }
+
+                if (result.data.edit_modal_html) {
+                  var modalsContainer = document.querySelector("[data-acidente-modals]");
+                  if (modalsContainer) {
+                    modalsContainer.insertAdjacentHTML("beforeend", result.data.edit_modal_html);
+                    var editForm = modalsContainer.querySelector(
+                      "#editModal-" + result.data.row_id + " form"
+                    );
+                    if (editForm) {
+                      bindAcidenteForm(editForm);
+                      var editBody = editForm.closest("[data-acidente-modal-body]");
+                      attachDynamicHandlers(editBody);
+                    }
+                  }
+                }
+
+                if (modalBody && result.data.form_html) {
+                  modalBody.dataset.dynamicBound = "0";
+                  modalBody.innerHTML = result.data.form_html;
+                  var resetForm = modalBody.querySelector("form");
+                  if (resetForm) {
+                    bindAcidenteForm(resetForm);
+                  }
+                  attachDynamicHandlers(modalBody);
+                }
+
+                var modalEl = document.getElementById("createModal");
+                if (modalEl && window.bootstrap) {
+                  var instance = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
+                  instance.hide();
+                }
+                return;
+              }
+
+              if (result.data.action === "update") {
+                if (result.data.row_html) {
+                  var rowEl = document.getElementById("acidente-row-" + result.data.row_id);
+                  if (rowEl) {
+                    rowEl.outerHTML = result.data.row_html;
+                  }
+                }
+                var editModalEl = document.getElementById("editModal-" + rowId);
+                if (editModalEl && window.bootstrap) {
+                  var instance = bootstrap.Modal.getInstance(editModalEl) || bootstrap.Modal.getOrCreateInstance(editModalEl);
+                  instance.hide();
+                }
+              }
+            })
+            .catch(function () {
+              form.submit();
+            });
+        });
+      }
+
+      function initAcidenteForms() {
+        document.querySelectorAll("[data-acidente-modal-body]").forEach(function (modalBody) {
+          var form = modalBody.querySelector("form");
+          if (form) {
+            bindAcidenteForm(form);
+          }
+          attachDynamicHandlers(modalBody);
+        });
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initAcidenteForms);
+      } else {
+        initAcidenteForms();
+      }
+    })();
+  </script>
+{% endblock %}

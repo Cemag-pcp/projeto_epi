@@ -1,0 +1,45 @@
+<tr id="unidade-produto-row-{{ unidade.pk }}">
+  <td>{{ unidade.nome|default:"-" }}</td>
+  <td>{{ unidade.sigla|default:"-" }}</td>
+  <td class="text-end">
+    {% if perms.produtos.change_unidadeproduto or perms.produtos.delete_unidadeproduto %}
+      {% if perms.produtos.change_unidadeproduto %}
+        <button
+          class="btn btn-outline-primary btn-icon"
+          type="button"
+          data-bs-toggle="modal"
+          data-bs-target="#editModal-{{ unidade.pk }}"
+          title="Editar"
+          aria-label="Editar"
+        >
+          <i class="bi bi-pencil"></i>
+        </button>
+      {% endif %}
+      {% if perms.produtos.delete_unidadeproduto %}
+        <form
+          class="d-inline js-unidade-produto-delete"
+          id="unidade-produto-delete-{{ unidade.pk }}"
+          method="post"
+          action="{% url 'produtos:unidades_delete' unidade.pk %}"
+        >
+          {% csrf_token %}
+        </form>
+        <button
+          class="btn btn-outline-danger btn-icon js-unidade-produto-delete-trigger"
+          type="button"
+          data-bs-toggle="modal"
+          data-bs-target="#unidadeProdutoDeleteModal"
+          data-form-id="unidade-produto-delete-{{ unidade.pk }}"
+          data-nome="{{ unidade.nome|escapejs }}"
+          title="Excluir"
+          aria-label="Excluir"
+        >
+          <i class="bi bi-trash"></i>
+        </button>
+      {% endif %}
+    {% else %}
+      <span class="text-muted">-</span>
+    {% endif %}
+  </td>
+</tr>
+

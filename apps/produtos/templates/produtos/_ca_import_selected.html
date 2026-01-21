@@ -10,8 +10,10 @@
             data-ca-import-button
             data-ca-nome="{% firstof selected.NomeEquipamento selected.DescricaoEquipamento '' %}"
             data-ca-referencia="{{ selected.Referencia|default_if_none:''|escape }}"
-            data-ca-fornecedor="{{ selected.RazaoSocial|default_if_none:''|escape }}"
+            data-ca-fabricante="{{ selected.RazaoSocial|default_if_none:''|escape }}"
+            data-ca-cnpj="{{ selected.CNPJ|default_if_none:''|escape }}"
             data-ca-registro="{{ selected.RegistroCA|default_if_none:''|escape }}"
+            data-ca-validade="{{ selected.DataValidade|date:'Y-m-d' }}"
           >
             Importar produto
           </button>
@@ -22,7 +24,7 @@
               <tr>
                 <th>Produto</th>
                 <th>Descricao</th>
-                <th>Fornecedor</th>
+                <th>Fabricante</th>
                 <th>CA</th>
                 <th>Vencimento</th>
               </tr>
@@ -59,7 +61,17 @@
           <div class="row g-2">
             <div class="col-12 col-md-6">
               <div class="text-muted small">Situacao</div>
-              <div class="fw-semibold">{{ selected.Situacao|default:"-" }}</div>
+              {% with situacao=selected.Situacao|default_if_none:""|upper %}
+                {% if situacao == "VALIDO" or situacao == "VÁLIDO" %}
+                  <span class="badge text-bg-success">VALIDO</span>
+                {% elif situacao == "VENCIDO" or situacao == "VENCIDA" %}
+                  <span class="badge text-bg-danger">VENCIDO</span>
+                {% elif situacao %}
+                  <span class="badge text-bg-secondary">{{ selected.Situacao }}</span>
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              {% endwith %}
             </div>
             <div class="col-12 col-md-6">
               <div class="text-muted small">NR Processo</div>

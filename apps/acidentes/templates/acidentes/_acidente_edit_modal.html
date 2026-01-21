@@ -1,0 +1,19 @@
+<div
+  class="modal fade"
+  id="editModal-{{ acidente.pk }}"
+  tabindex="-1"
+  aria-labelledby="editModalLabel-{{ acidente.pk }}"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editModalLabel-{{ acidente.pk }}">Editar acidente #{{ acidente.pk }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body" data-acidente-modal-body data-row-id="{{ acidente.pk }}">
+        {% include "acidentes/_acidente_form.html" with form=form form_action=update_url %}
+      </div>
+    </div>
+  </div>
+</div>

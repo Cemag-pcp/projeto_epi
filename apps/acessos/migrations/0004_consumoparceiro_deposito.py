@@ -5,6 +5,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
     dependencies = [
         ("acessos", "0003_consumoparceiro_assinatura"),
+        ("depositos", "0001_initial"),
     ]
 
     operations = [
@@ -20,4 +21,3 @@ class Migration(migrations.Migration):
             ),
         ),
     ]
-
