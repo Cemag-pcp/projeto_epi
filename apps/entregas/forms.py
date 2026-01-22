@@ -6,6 +6,7 @@ from apps.depositos.models import Deposito
 from apps.estoque.models import Estoque
 from apps.funcionarios.models import Funcionario, FuncionarioProduto
 from apps.produtos.models import ProdutoFornecedor
+from apps.tipos_funcionario.models import TipoFuncionarioProduto
 from .models import Entrega
 
 
@@ -36,7 +37,7 @@ class EntregaForm(BootstrapModelForm):
         self.fields["deposito"].queryset = depositos
         self.fields["produto_fornecedor"].queryset = produtos_fornecedor
         self.fields["produto_fornecedor"].label_from_instance = (
-            lambda obj: f"{obj.produto} | CA {obj.ca or '-'} | {obj.fornecedor}"
+            lambda obj: f"{obj.produto} | CA {obj.produto.ca or '-'} | {obj.fornecedor}"
         )
         self.fields["produto_fornecedor"].widget.attrs.update({"class": "form-select"})
         self.fields["produto_fornecedor"].widget.attrs["disabled"] = True
@@ -46,29 +47,43 @@ class EntregaForm(BootstrapModelForm):
         if self.data:
             funcionario_id = self.data.get("funcionario")
             if funcionario_id and tenant is not None:
-                produtos_fornecedor = ProdutoFornecedor.objects.filter(
-                    company=tenant,
-                    funcionarios_disponiveis__funcionario_id=funcionario_id,
-                    produto__ativo=True,
-                ).select_related("produto", "fornecedor")
-                tipo_id = (
-                    Funcionario.objects.filter(company=tenant, pk=funcionario_id)
-                    .values_list("tipo_id", flat=True)
-                    .first()
+                restrictions_exist = (
+                    FuncionarioProduto.objects.filter(company=tenant).exists()
+                    or TipoFuncionarioProduto.objects.filter(company=tenant).exists()
                 )
-                if tipo_id:
+                if not restrictions_exist:
+                    produtos_fornecedor = (
+                        ProdutoFornecedor.objects.filter(company=tenant, produto__ativo=True)
+                        .select_related("produto", "fornecedor")
+                        .order_by("produto__nome", "fornecedor__nome")
+                    )
+                    self.fields["produto_fornecedor"].queryset = produtos_fornecedor
+                    self.fields["produto_fornecedor"].widget.attrs.pop("disabled", None)
+                else:
                     produtos_fornecedor = ProdutoFornecedor.objects.filter(
                         company=tenant,
+                        funcionarios_disponiveis__funcionario_id=funcionario_id,
+                        funcionarios_disponiveis__ativo=True,
                         produto__ativo=True,
-                    ).filter(
-                        Q(funcionarios_disponiveis__funcionario_id=funcionario_id)
-                        | Q(tipos_funcionario_disponiveis__tipo_funcionario_id=tipo_id)
-                    ).select_related("produto", "fornecedor").distinct()
-                if produtos_fornecedor.exists():
-                    self.fields["produto_fornecedor"].queryset = produtos_fornecedor.order_by(
-                        "produto__nome", "fornecedor__nome"
+                    ).select_related("produto", "fornecedor")
+                    tipo_id = (
+                        Funcionario.objects.filter(company=tenant, pk=funcionario_id)
+                        .values_list("tipo_id", flat=True)
+                        .first()
                     )
-                    self.fields["produto_fornecedor"].widget.attrs.pop("disabled", None)
+                    if tipo_id:
+                        produtos_fornecedor = ProdutoFornecedor.objects.filter(
+                            company=tenant,
+                            produto__ativo=True,
+                        ).filter(
+                            Q(funcionarios_disponiveis__funcionario_id=funcionario_id)
+                            | Q(tipos_funcionario_disponiveis__tipo_funcionario_id=tipo_id)
+                        ).select_related("produto", "fornecedor").distinct()
+                    if produtos_fornecedor.exists():
+                        self.fields["produto_fornecedor"].queryset = produtos_fornecedor.order_by(
+                            "produto__nome", "fornecedor__nome"
+                        )
+                        self.fields["produto_fornecedor"].widget.attrs.pop("disabled", None)
             produto_fornecedor_id = self.data.get("produto_fornecedor")
             if produto_fornecedor_id and tenant is not None:
                 produto_id = (
@@ -98,7 +113,7 @@ class EntregaForm(BootstrapModelForm):
         produto_fornecedor = self.cleaned_data.get("produto_fornecedor")
         if produto_fornecedor:
             instance.produto = produto_fornecedor.produto
-            instance.ca = produto_fornecedor.ca or ""
+            instance.ca = (produto_fornecedor.produto.ca or "").strip()
         if commit:
             instance.save()
         return instance

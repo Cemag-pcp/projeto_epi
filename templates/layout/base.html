@@ -41,6 +41,10 @@
         border-color: var(--bs-danger);
         box-shadow: 0 0 0 0.25rem rgba(var(--bs-danger-rgb), 0.25);
       }
+      .choices.is-invalid .choices__list--dropdown,
+      .choices.is-invalid .choices__list--dropdown .choices__list {
+        border-color: var(--bs-danger);
+      }
     </style>
   </head>
   <body class="bg-light">
@@ -112,13 +116,37 @@
     <script src="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/scripts/choices.min.js"></script>
     <script>
       (function () {
+        function shouldEnhance(selectEl) {
+          if (!selectEl) return false;
+          if (selectEl.dataset.noChoices === "1") return false;
+          if (selectEl.dataset.choicesDisabled === "1") return false;
+          if (selectEl.hasAttribute("data-no-choices")) return false;
+          if (selectEl.classList && selectEl.classList.contains("no-choices")) return false;
+          if (selectEl.classList && selectEl.classList.contains("d-none")) return false;
+          if (selectEl.hasAttribute("hidden")) return false;
+          if (String(selectEl.getAttribute("aria-hidden") || "").toLowerCase() === "true") return false;
+          return true;
+        }
+
         function initSelect(selectEl) {
-          if (!selectEl || selectEl.dataset.choicesBound === "1") return;
+          if (!shouldEnhance(selectEl) || selectEl.dataset.choicesBound === "1") return;
           selectEl.dataset.choicesBound = "1";
+          // Guarda um snapshot das opções antes do Choices alterar o <select>.
+          // Usado para "refresh" sem perder opções que o Choices remove do DOM.
+          selectEl._choicesSnapshot = Array.from(selectEl.options).map(function (opt) {
+            return {
+              value: opt.value,
+              label: opt.text,
+              selected: opt.selected,
+              disabled: opt.disabled,
+            };
+          });
           var instance = new Choices(selectEl, {
             searchEnabled: true,
             shouldSort: false,
             itemSelectText: "",
+            noResultsText: "Nenhum resultado encontrado",
+            noChoicesText: "Nenhuma opcao disponivel",
             allowHTML: false,
             placeholder: true,
             placeholderValue: "Selecione",
@@ -134,7 +162,7 @@
         }
 
         function enhance(root) {
-          (root || document).querySelectorAll("select[data-choices]").forEach(function (selectEl) {
+          (root || document).querySelectorAll("select").forEach(function (selectEl) {
             initSelect(selectEl);
           });
         }
@@ -146,7 +174,8 @@
             initSelect(selectEl);
             return;
           }
-          var choices = Array.from(selectEl.options).map(function (opt) {
+          var snapshot = Array.isArray(selectEl._choicesSnapshot) ? selectEl._choicesSnapshot : [];
+          var current = Array.from(selectEl.options).map(function (opt) {
             return {
               value: opt.value,
               label: opt.text,
@@ -154,15 +183,60 @@
               disabled: opt.disabled,
             };
           });
+
+          var mergedMap = new Map();
+          snapshot.forEach(function (item) {
+            mergedMap.set(String(item.value), {
+              value: item.value,
+              label: item.label,
+              selected: false,
+              disabled: Boolean(item.disabled),
+            });
+          });
+          current.forEach(function (item) {
+            var key = String(item.value);
+            if (!mergedMap.has(key)) {
+              mergedMap.set(key, {
+                value: item.value,
+                label: item.label,
+                selected: false,
+                disabled: Boolean(item.disabled),
+              });
+              return;
+            }
+            var existing = mergedMap.get(key);
+            if (existing) {
+              if (item.label) existing.label = item.label;
+              existing.disabled = Boolean(item.disabled);
+            }
+          });
+
+          if (selectEl.multiple) {
+            var selectedValues = new Set(
+              current.filter(function (item) { return Boolean(item.selected); }).map(function (item) { return String(item.value); })
+            );
+            mergedMap.forEach(function (item, key) {
+              item.selected = selectedValues.has(key);
+            });
+          } else {
+            var selectedValue = String(selectEl.value || "");
+            mergedMap.forEach(function (item, key) {
+              item.selected = key === selectedValue;
+            });
+          }
+
+          var mergedChoices = Array.from(mergedMap.values());
+          selectEl._choicesSnapshot = mergedChoices;
+
           instance.clearChoices();
-          instance.setChoices(choices, "value", "label", true);
+          instance.setChoices(mergedChoices, "value", "label", true);
         }
 
         window.clarusChoices = { enhance: enhance, refresh: refresh };
 
         function validateRequiredChoices(form) {
           var ok = true;
-          var selects = form.querySelectorAll("select[data-choices][required]");
+          var selects = form.querySelectorAll("select[required]");
           selects.forEach(function (selectEl) {
             var wrapper = selectEl._choicesInstance ? selectEl._choicesInstance.containerOuter.element : null;
             if (!wrapper) return;
@@ -202,7 +276,7 @@
             mutations.forEach(function (mutation) {
               mutation.addedNodes.forEach(function (node) {
                 if (node.nodeType !== 1) return;
-                if (node.matches && node.matches("select[data-choices]")) {
+                if (node.matches && node.matches("select")) {
                   initSelect(node);
                   return;
                 }
@@ -375,6 +449,191 @@
             }, delay);
           }
         };
+      })();
+    </script>
+    <script>
+      (function () {
+        function mountAndShowServerToasts() {
+          if (!window.bootstrap || !bootstrap.Toast) {
+            return;
+          }
+          var container = document.getElementById("toast-container");
+          if (!container) {
+            return;
+          }
+          var toasts = document.querySelectorAll(".js-toast");
+          toasts.forEach(function (toastEl) {
+            if (!toastEl || toastEl.dataset.mounted === "1") {
+              return;
+            }
+            toastEl.dataset.mounted = "1";
+            container.appendChild(toastEl);
+            var instance = bootstrap.Toast.getOrCreateInstance(toastEl);
+            instance.show();
+          });
+        }
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", mountAndShowServerToasts);
+        } else {
+          mountAndShowServerToasts();
+        }
+      })();
+    </script>
+    <script>
+      (function () {
+        function isVisible(el) {
+          if (!el) return false;
+          if (el.tagName === "SELECT" && el._choicesInstance && el._choicesInstance.containerOuter) {
+            var wrapper = el._choicesInstance.containerOuter.element;
+            if (wrapper) {
+              if (wrapper.offsetParent !== null) return true;
+              return Boolean(wrapper.getClientRects && wrapper.getClientRects().length);
+            }
+          }
+          if (el.offsetParent !== null) return true;
+          return Boolean(el.getClientRects && el.getClientRects().length);
+        }
+
+        function getLabelText(el) {
+          if (!el) return "";
+          var id = el.getAttribute("id");
+          if (id && window.CSS && CSS.escape) {
+            var label = document.querySelector("label[for='" + CSS.escape(id) + "']");
+            if (label) {
+              return (label.textContent || "").replace(/\*/g, "").trim();
+            }
+          }
+          return (el.getAttribute("aria-label") || el.getAttribute("name") || "").trim();
+        }
+
+        function collectInvalidRequired(scope) {
+          var root = scope || document;
+          var fields = Array.from(root.querySelectorAll("input, select, textarea"));
+          var invalid = [];
+          var radioSeen = {};
+
+          fields.forEach(function (field) {
+            if (!field || field.disabled) return;
+            if (!field.hasAttribute("required")) return;
+            if (!isVisible(field)) return;
+
+            if (field.type === "radio") {
+              var name = field.getAttribute("name") || "";
+              if (!name || radioSeen[name]) return;
+              radioSeen[name] = true;
+              var checked = root.querySelector("input[type='radio'][name='" + name.replace(/'/g, "\\'") + "']:checked");
+              if (!checked) {
+                invalid.push(field);
+              }
+              return;
+            }
+
+            if (!field.checkValidity()) {
+              invalid.push(field);
+            }
+          });
+
+          return invalid;
+        }
+
+        function buildMessage(invalidFields) {
+          if (!invalidFields || !invalidFields.length) return "";
+          var labels = invalidFields
+            .map(getLabelText)
+            .filter(Boolean)
+            .filter(function (value, index, arr) { return arr.indexOf(value) === index; });
+          if (!labels.length) {
+            return "Preencha os campos obrigatorios destacados.";
+          }
+          var shown = labels.slice(0, 4);
+          var rest = labels.length - shown.length;
+          return "Preencha: " + shown.join(", ") + (rest > 0 ? " e mais " + rest + "." : ".");
+        }
+
+        window.clarusRequiredValidation = {
+          collectInvalidRequired: collectInvalidRequired,
+          buildMessage: buildMessage,
+        };
+
+        document.addEventListener(
+          "submit",
+          function (event) {
+            var form = event.target;
+            if (!form || !form.matches || !form.matches("form")) return;
+            if (form.noValidate || form.hasAttribute("novalidate")) return;
+            if (form.dataset.skipRequiredToast === "1") return;
+
+            var invalid = collectInvalidRequired(form);
+            if (!invalid.length) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            invalid.forEach(function (field) {
+              if (!field) return;
+              field.classList.add("is-invalid");
+              if (field.tagName === "SELECT" && field._choicesInstance && field._choicesInstance.containerOuter) {
+                var wrapper = field._choicesInstance.containerOuter.element;
+                if (wrapper) {
+                  wrapper.classList.add("is-invalid");
+                }
+              }
+              if (field.type === "radio") {
+                var wrapper = field.closest(".mb-3") || field.closest(".form-check") || field.parentElement;
+                if (wrapper) {
+                  wrapper.classList.add("is-invalid");
+                }
+              }
+            });
+            if (window.clarusToast) {
+              window.clarusToast(buildMessage(invalid), "danger", { delay: 6000 });
+            }
+
+            var first = invalid[0];
+            try {
+              first.focus({ preventScroll: true });
+            } catch (e) {}
+            try {
+              first.scrollIntoView({ block: "center", behavior: "smooth" });
+            } catch (e) {}
+
+            if (!form.dataset.requiredInvalidBound) {
+              form.dataset.requiredInvalidBound = "1";
+              form.addEventListener("input", function (e) {
+                var target = e.target;
+                if (!target || !target.classList) return;
+                target.classList.remove("is-invalid");
+                if (target.tagName === "SELECT" && target._choicesInstance && target._choicesInstance.containerOuter) {
+                  var wrapper = target._choicesInstance.containerOuter.element;
+                  if (wrapper) {
+                    wrapper.classList.remove("is-invalid");
+                  }
+                }
+                var wrapper = target.closest(".is-invalid");
+                if (wrapper && (wrapper.classList.contains("mb-3") || wrapper.classList.contains("form-check"))) {
+                  wrapper.classList.remove("is-invalid");
+                }
+              });
+              form.addEventListener("change", function (e) {
+                var target = e.target;
+                if (!target || !target.classList) return;
+                target.classList.remove("is-invalid");
+                if (target.tagName === "SELECT" && target._choicesInstance && target._choicesInstance.containerOuter) {
+                  var wrapper = target._choicesInstance.containerOuter.element;
+                  if (wrapper) {
+                    wrapper.classList.remove("is-invalid");
+                  }
+                }
+                var wrapper = target.closest(".is-invalid");
+                if (wrapper && (wrapper.classList.contains("mb-3") || wrapper.classList.contains("form-check"))) {
+                  wrapper.classList.remove("is-invalid");
+                }
+              });
+            }
+          },
+          true
+        );
       })();
     </script>
   </body>

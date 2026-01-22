@@ -1,6 +1,13 @@
 <tr id="acidente-row-{{ acidente.pk }}">
   <td>{{ acidente.funcionario }}</td>
   <td>{{ acidente.data_ocorrencia|date:"d/m/Y H:i" }}</td>
+  <td>
+    {% if acidente.caso_encerrado %}
+      <span class="badge text-bg-success">Encerrado</span>
+    {% else %}
+      <span class="badge text-bg-secondary">Em andamento</span>
+    {% endif %}
+  </td>
   <td>{{ acidente.get_tipo_local_display }}</td>
   <td>{{ acidente.cidade_uf }}</td>
   <td class="text-end">
@@ -16,4 +23,3 @@
     </button>
   </td>
 </tr>
-

@@ -1,6 +1,6 @@
 <tr id="tipo-produto-row-{{ vinculo.pk }}">
   <td>{{ vinculo.tipo_funcionario }}</td>
-  <td>{{ vinculo.produto_fornecedor.produto }} | CA {{ vinculo.produto_fornecedor.ca|default:"-" }}</td>
+  <td>{{ vinculo.produto_fornecedor.produto }} | CA {{ vinculo.produto_fornecedor.produto.ca|default:"-" }}</td>
   <td>{{ vinculo.produto_fornecedor.fornecedor|default:"-" }}</td>
   <td class="text-end">
     {% if perms.tipos_funcionario.change_tipofuncionarioproduto %}

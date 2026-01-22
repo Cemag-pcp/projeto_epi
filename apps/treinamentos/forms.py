@@ -7,7 +7,13 @@ from apps.funcionarios.models import Funcionario
 from apps.produtos.models import Produto
 from apps.setores.models import Setor
 from apps.tipos_funcionario.models import TipoFuncionario
-from .models import DocumentoTemplate, Treinamento, Turma, TurmaAula
+from .models import DocumentoTemplate, Instrutor, Treinamento, Turma, TurmaAula
+
+
+class InstrutorForm(BootstrapModelForm):
+    class Meta:
+        model = Instrutor
+        fields = ["nome", "documento", "email", "telefone", "ativo"]
 
 
 class TreinamentoForm(BootstrapModelForm):
@@ -66,6 +72,14 @@ class TurmaForm(BootstrapModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         company = getattr(self.instance, "company", None)
+        instrutor = self.fields.get("instrutor")
+        if instrutor:
+            if not getattr(self.instance, "pk", None):
+                instrutor.required = True
+            if company:
+                instrutor.queryset = Instrutor.objects.filter(company=company, ativo=True)
+            else:
+                instrutor.queryset = Instrutor.objects.filter(ativo=True)
         qtd_aulas = self.fields.get("qtd_aulas")
         if qtd_aulas:
             qtd_aulas.widget.attrs.setdefault("min", "1")

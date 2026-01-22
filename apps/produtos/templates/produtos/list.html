@@ -174,6 +174,76 @@
             });
         }
 
+        function getCookie(name) {
+          var value = "; " + document.cookie;
+          var parts = value.split("; " + name + "=");
+          if (parts.length === 2) {
+            return parts.pop().split(";").shift();
+          }
+          return "";
+        }
+
+        function fetchCaDetails(ca) {
+          if (!caStatusBadge) {
+            return Promise.resolve(null);
+          }
+          var url = caStatusBadge.getAttribute("data-ca-import-url") || "";
+          if (!url) {
+            return Promise.resolve(null);
+          }
+          return fetch(url + "?ca=" + encodeURIComponent(ca) + "&validos=0&offset=0", {
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          })
+            .then(function (response) {
+              return response.json();
+            })
+            .then(function (data) {
+              if (!data || !data.ok) {
+                return null;
+              }
+              if (data.selected) {
+                return data.selected;
+              }
+              var results = data.results || [];
+              return results.length ? results[0] : null;
+            })
+            .catch(function () {
+              return null;
+            });
+        }
+
+        function ensureFabricante(nome, cnpj) {
+          if (!caStatusBadge || !nome) {
+            return Promise.resolve(null);
+          }
+          var url = caStatusBadge.getAttribute("data-ca-fabricante-url") || "";
+          if (!url) {
+            return Promise.resolve(null);
+          }
+          var body = new URLSearchParams();
+          body.set("nome", nome);
+          if (cnpj) {
+            body.set("cnpj", cnpj);
+          }
+          return fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+              "X-CSRFToken": getCookie("csrftoken"),
+              "X-Requested-With": "XMLHttpRequest",
+            },
+            body: body.toString(),
+          })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+              if (data && data.ok) {
+                return { id: data.id, nome: data.nome };
+              }
+              return null;
+            })
+            .catch(function () { return null; });
+        }
+
         function ensureCaValid() {
           if (!caInput || isReadOnly) {
             return Promise.resolve(true);
@@ -183,6 +253,12 @@
             setCaStatus(null, "");
             caInput.setCustomValidity("");
             caInput.classList.remove("is-invalid", "is-valid");
+            if (fabricanteDisplay) {
+              fabricanteDisplay.value = "";
+            }
+            if (fabricanteSelect) {
+              fabricanteSelect.value = "";
+            }
             if (vencimentoInput) {
               // Mantem valor manual se usuario ja informou.
             }
@@ -195,11 +271,13 @@
           return fetchCaStatus(ca).then(function (result) {
             caInput.dataset.checkedValue = ca;
             caInput.dataset.caStatus = result ? result.status || "" : "";
+            var validResult = true;
             if (!result) {
               setCaStatus("unknown", "Falha ao consultar base de CAs.");
               caInput.setCustomValidity("");
               caInput.classList.remove("is-invalid");
-              return true;
+              validResult = true;
+              return validResult;
             }
             if (vencimentoInput && result.data_validade && !(vencimentoInput.value || "").trim()) {
               vencimentoInput.value = result.data_validade;
@@ -209,25 +287,66 @@
               caInput.setCustomValidity("");
               caInput.classList.remove("is-invalid");
               caInput.classList.add("is-valid");
-              return true;
+              validResult = true;
             }
-            if (result.status === "expired") {
+            else if (result.status === "expired") {
               setCaStatus("expired", "Venceu em " + (result.data_validade_display || "-"));
               caInput.setCustomValidity("CA vencido.");
               caInput.classList.remove("is-valid");
               caInput.classList.add("is-invalid");
-              return false;
+              validResult = false;
             }
-            if (result.status === "not_found") {
+            else if (result.status === "not_found") {
               setCaStatus("not_found", "Nao encontrado no schema public.");
               caInput.setCustomValidity("");
               caInput.classList.remove("is-invalid", "is-valid");
-              return true;
+              validResult = true;
             }
-            setCaStatus("unknown", "Sem validade na base.");
-            caInput.setCustomValidity("");
-            caInput.classList.remove("is-invalid", "is-valid");
-            return true;
+            else {
+              setCaStatus("unknown", "Sem validade na base.");
+              caInput.setCustomValidity("");
+              caInput.classList.remove("is-invalid", "is-valid");
+              validResult = true;
+            }
+
+            if (!fabricanteDisplay || caInput.dataset.fabricanteForCa === ca) {
+              return validResult;
+            }
+            if (result.found !== true) {
+              return validResult;
+            }
+
+            return fetchCaDetails(ca).then(function (details) {
+              if (!details) {
+                return validResult;
+              }
+              var nomeFabricante = details.RazaoSocial || "";
+              var cnpj = details.CNPJ || "";
+              if (fabricanteDisplay && nomeFabricante) {
+                fabricanteDisplay.value = nomeFabricante;
+              }
+              caInput.dataset.fabricanteForCa = ca;
+
+              if (!fabricanteSelect || !nomeFabricante) {
+                return validResult;
+              }
+              return ensureFabricante(nomeFabricante, cnpj).then(function (info) {
+                if (!info) {
+                  return validResult;
+                }
+                var existing = Array.from(fabricanteSelect.options).find(function (option) {
+                  return String(option.value) === String(info.id);
+                });
+                if (!existing) {
+                  var newOption = document.createElement("option");
+                  newOption.value = String(info.id);
+                  newOption.textContent = info.nome;
+                  fabricanteSelect.appendChild(newOption);
+                }
+                fabricanteSelect.value = String(info.id);
+                return validResult;
+              });
+            });
           });
         }
 
@@ -440,21 +559,32 @@
         }
 
         function validateTab(tabPane) {
-          var fields = tabPane.querySelectorAll("input, select, textarea");
-          for (var i = 0; i < fields.length; i++) {
-            var field = fields[i];
-            if (field.disabled) {
-              continue;
-            }
-            if (!field.hasAttribute("required")) {
-              continue;
-            }
-            if (!field.checkValidity()) {
-              field.reportValidity();
-              return false;
-            }
+          if (!tabPane) {
+            return true;
           }
-          return true;
+          var helper = window.clarusRequiredValidation;
+          var invalid = helper && helper.collectInvalidRequired ? helper.collectInvalidRequired(tabPane) : [];
+          if (!invalid.length) {
+            return true;
+          }
+
+          var first = invalid[0];
+          showTabForElement(first);
+          if (form) {
+            invalid.forEach(function (field) {
+              if (field && field.classList) {
+                field.classList.add("is-invalid");
+              }
+            });
+          }
+          showToast(helper && helper.buildMessage ? helper.buildMessage(invalid) : "Preencha os campos obrigatorios.", "danger");
+          try {
+            first.focus({ preventScroll: true });
+          } catch (e) {}
+          try {
+            first.scrollIntoView({ block: "center", behavior: "smooth" });
+          } catch (e) {}
+          return false;
         }
 
         modal.querySelectorAll("[data-tab-next]").forEach(function (button) {
@@ -505,6 +635,29 @@
               return;
             }
             event.preventDefault();
+
+            var helper = window.clarusRequiredValidation;
+            if (helper && helper.collectInvalidRequired) {
+              var invalid = helper.collectInvalidRequired(form);
+              if (invalid.length) {
+                var first = invalid[0];
+                showTabForElement(first);
+                invalid.forEach(function (field) {
+                  if (field && field.classList) {
+                    field.classList.add("is-invalid");
+                  }
+                });
+                showToast(helper.buildMessage ? helper.buildMessage(invalid) : "Preencha os campos obrigatorios.", "danger");
+                try {
+                  first.focus({ preventScroll: true });
+                } catch (e) {}
+                try {
+                  first.scrollIntoView({ block: "center", behavior: "smooth" });
+                } catch (e) {}
+                return;
+              }
+            }
+
             if (caInput && !caInput.checkValidity()) {
               showTabForElement(caInput);
               showToast("Verifique o CA antes de salvar.");
@@ -553,6 +706,8 @@
                     }
                     return;
                   }
+
+                  showToast("Salvo com sucesso.", "success");
 
                   if (result.data.action === "create") {
                     var tbody = document.querySelector("[data-produto-rows]");
@@ -759,31 +914,6 @@
             loadProdutoHistorico(produtoId, params);
           }
         });
-
-        if (isReadOnly) {
-          var fields = modal.querySelectorAll("input, select, textarea, button");
-          fields.forEach(function (field) {
-            if (field.classList.contains("btn-close")) {
-              return;
-            }
-            if (field.type === "button" && field.getAttribute("data-bs-dismiss") === "modal") {
-              return;
-            }
-            if (field.matches("[data-tab-next], [data-tab-prev], [data-fornecedor-add], [data-anexo-add], [data-fornecedor-remove], [data-anexo-remove]")) {
-              field.disabled = true;
-              field.classList.add("d-none");
-              return;
-            }
-            if (field.type === "submit") {
-              field.disabled = true;
-              field.classList.add("d-none");
-              return;
-            }
-            if (field.tagName === "INPUT" || field.tagName === "SELECT" || field.tagName === "TEXTAREA") {
-              field.disabled = true;
-            }
-          });
-        }
       }
 
       function initProdutoHistoricoModal() {

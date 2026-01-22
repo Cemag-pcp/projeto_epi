@@ -27,6 +27,7 @@
         <tr>
           <th scope="col">Funcionario</th>
           <th scope="col">Data</th>
+          <th scope="col">Status</th>
           <th scope="col">Tipo do local</th>
           <th scope="col">Cidade/UF</th>
           <th scope="col" class="text-end">Acoes</th>
@@ -37,7 +38,7 @@
           {% include "acidentes/_acidente_row.html" with acidente=acidente %}
         {% empty %}
           <tr>
-            <td colspan="5" class="text-muted text-center py-4">Sem registros</td>
+            <td colspan="6" class="text-muted text-center py-4">Sem registros</td>
           </tr>
         {% endfor %}
       </tbody>
@@ -64,7 +65,7 @@
 
   <div data-acidente-modals>
     {% for row in edit_rows %}
-      {% include "acidentes/_acidente_edit_modal.html" with acidente=row.object form=row.form update_url=row.update_url %}
+      {% include "acidentes/_acidente_edit_modal.html" with acidente=row.object form=row.form update_url=row.update_url fatos_formset=row.fatos_formset anexos_formset=row.anexos_formset %}
     {% endfor %}
   </div>
 
@@ -376,6 +377,9 @@
               }
 
               if (result.data.action === "create") {
+                if (window.clarusToast) {
+                  window.clarusToast("Criado com sucesso.", "success");
+                }
                 var tbody = document.querySelector("table tbody");
                 if (tbody && result.data.row_html) {
                   var emptyRow = tbody.querySelector("td.text-muted");
@@ -419,6 +423,9 @@
               }
 
               if (result.data.action === "update") {
+                if (window.clarusToast) {
+                  window.clarusToast("Atualizado com sucesso.", "success");
+                }
                 if (result.data.row_html) {
                   var rowEl = document.getElementById("acidente-row-" + result.data.row_id);
                   if (rowEl) {

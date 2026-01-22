@@ -25,5 +25,5 @@ class TipoFuncionarioProdutoForm(BootstrapModelForm):
         self.fields["tipo_funcionario"].queryset = tipos.order_by("nome")
         self.fields["produto_fornecedor"].queryset = produtos.order_by("produto__nome", "fornecedor__nome")
         self.fields["produto_fornecedor"].label_from_instance = (
-            lambda obj: f"{obj.produto} | CA {obj.ca or '-'} | {obj.fornecedor}"
+            lambda obj: f"{obj.produto} | CA {getattr(obj.produto, 'ca', '') or '-'} | {obj.fornecedor}"
         )

@@ -10,6 +10,23 @@ urlpatterns = [
     path("treinamentos/novo/", views.TreinamentoCreateView.as_view(), name="create"),
     path("treinamentos/<int:pk>/editar/", views.TreinamentoUpdateView.as_view(), name="update"),
     path("treinamentos/<int:pk>/toggle/", views.TreinamentoToggleActiveView.as_view(), name="toggle"),
+    path("treinamentos/instrutores/", views.InstrutorListView.as_view(), name="instrutores_list"),
+    path("treinamentos/instrutores/novo/", views.InstrutorCreateView.as_view(), name="instrutores_create"),
+    path(
+        "treinamentos/instrutores/<int:pk>/editar/",
+        views.InstrutorUpdateView.as_view(),
+        name="instrutores_update",
+    ),
+    path(
+        "treinamentos/instrutores/<int:pk>/toggle/",
+        views.InstrutorToggleActiveView.as_view(),
+        name="instrutores_toggle_active",
+    ),
+    path(
+        "treinamentos/instrutores/<int:pk>/excluir/",
+        views.InstrutorDeleteView.as_view(),
+        name="instrutores_delete",
+    ),
     path("treinamentos/documentos/", views.DocumentoTemplateListView.as_view(), name="documentos_list"),
     path("treinamentos/documentos/novo/", views.DocumentoTemplateCreateView.as_view(), name="documentos_create"),
     path("treinamentos/documentos/<int:pk>/editar/", views.DocumentoTemplateUpdateView.as_view(), name="documentos_update"),

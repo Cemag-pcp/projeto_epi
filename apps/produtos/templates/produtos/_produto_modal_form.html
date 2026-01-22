@@ -71,7 +71,13 @@
                     <div class="invalid-feedback d-block">{{ error }}</div>
                   {% endfor %}
                   <div class="d-flex flex-wrap align-items-center gap-2 mt-1" data-ca-feedback>
-                    <span class="badge d-none" data-ca-status data-ca-status-url="{% url 'produtos:ca_status_api' %}"></span>
+                    <span
+                      class="badge d-none"
+                      data-ca-status
+                      data-ca-status-url="{% url 'produtos:ca_status_api' %}"
+                      data-ca-import-url="{% url 'produtos:ca_import_api' %}"
+                      data-ca-fabricante-url="{% url 'produtos:ca_import_fabricante' %}"
+                    ></span>
                     <span class="text-muted small d-none" data-ca-status-text></span>
                   </div>
                 </div>

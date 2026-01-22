@@ -1,0 +1,75 @@
+<tr id="instrutor-row-{{ instrutor.pk }}">
+  <td>{{ instrutor.nome|default:"-" }}</td>
+  <td>{{ instrutor.documento|default:"-" }}</td>
+  <td>{{ instrutor.email|default:"-" }}</td>
+  <td>
+    <span class="badge {% if instrutor.ativo %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %}">
+      {{ instrutor.ativo|yesno:"Ativo,Inativo" }}
+    </span>
+  </td>
+  <td class="text-end">
+    {% if perms.treinamentos.change_instrutor %}
+      <button
+        class="btn btn-outline-primary btn-icon"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#editModal-{{ instrutor.pk }}"
+        title="Editar"
+        aria-label="Editar"
+      >
+        <i class="bi bi-pencil"></i>
+      </button>
+      <form
+        class="d-inline js-instrutor-toggle"
+        id="instrutor-toggle-{{ instrutor.pk }}"
+        method="post"
+        action="{% url 'treinamentos:instrutores_toggle_active' instrutor.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn {% if instrutor.ativo %}btn-outline-danger{% else %}btn-outline-success{% endif %} btn-icon js-instrutor-toggle-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#instrutorToggleModal"
+        data-form-id="instrutor-toggle-{{ instrutor.pk }}"
+        data-nome="{{ instrutor.nome|escapejs }}"
+        data-ativo="{{ instrutor.ativo|yesno:'1,0' }}"
+        title="{% if instrutor.ativo %}Desativar{% else %}Ativar{% endif %}"
+        aria-label="{% if instrutor.ativo %}Desativar{% else %}Ativar{% endif %}"
+      >
+        {% if instrutor.ativo %}
+          <i class="bi bi-person-x"></i>
+        {% else %}
+          <i class="bi bi-person-check"></i>
+        {% endif %}
+      </button>
+    {% endif %}
+    {% if perms.treinamentos.delete_instrutor %}
+      <form
+        class="d-inline js-instrutor-delete"
+        id="instrutor-delete-{{ instrutor.pk }}"
+        method="post"
+        action="{% url 'treinamentos:instrutores_delete' instrutor.pk %}"
+      >
+        {% csrf_token %}
+      </form>
+      <button
+        class="btn btn-outline-dark btn-icon js-instrutor-delete-trigger"
+        type="button"
+        data-bs-toggle="modal"
+        data-bs-target="#instrutorDeleteModal"
+        data-form-id="instrutor-delete-{{ instrutor.pk }}"
+        data-nome="{{ instrutor.nome|escapejs }}"
+        title="Excluir"
+        aria-label="Excluir"
+      >
+        <i class="bi bi-trash"></i>
+      </button>
+    {% endif %}
+    {% if not perms.treinamentos.change_instrutor and not perms.treinamentos.delete_instrutor %}
+      <span class="text-muted">-</span>
+    {% endif %}
+  </td>
+</tr>
+

@@ -53,6 +53,8 @@ class ProdutoListView(BaseTenantListView):
     title = "Produtos"
     headers = [
         "CA",
+        "Validade",
+        "Status CA",
         "Codigo",
         "Descricao",
         "Referencia",
@@ -64,6 +66,8 @@ class ProdutoListView(BaseTenantListView):
     ]
     row_fields = [
         "ca",
+        "data_vencimento_ca",
+        "ca_status",
         "codigo",
         "nome",
         "referencia",
@@ -121,6 +125,7 @@ class ProdutoListView(BaseTenantListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["today"] = timezone.localdate()
         if context.get("can_add"):
             context["create_form"] = ProdutoForm(tenant=self.request.tenant)
         else:

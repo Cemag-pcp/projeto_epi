@@ -400,6 +400,7 @@ class AcidenteTrabalho(TenantModel):
         blank=True,
         related_name="acidentes_analise_participantes",
     )
+    caso_encerrado = models.BooleanField(default=False, verbose_name="Caso encerrado")
 
     class Meta:
         ordering = ["-data_ocorrencia"]

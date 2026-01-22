@@ -4,6 +4,20 @@ from django.utils import timezone
 from apps.core.models import TenantModel
 
 
+class Instrutor(TenantModel):
+    nome = models.CharField(max_length=200)
+    documento = models.CharField(max_length=50, blank=True)
+    email = models.EmailField(blank=True)
+    telefone = models.CharField(max_length=40, blank=True)
+    ativo = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["nome"]
+
+    def __str__(self):
+        return self.nome
+
+
 class Treinamento(TenantModel):
     TIPO_CHOICES = [
         ("epi", "EPI"),
@@ -63,7 +77,7 @@ class Turma(TenantModel):
     qtd_aulas = models.PositiveIntegerField(default=1)
     finalizada = models.BooleanField(default=False)
     instrutor = models.ForeignKey(
-        "funcionarios.Funcionario",
+        Instrutor,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

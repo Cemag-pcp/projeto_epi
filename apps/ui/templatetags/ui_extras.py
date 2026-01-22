@@ -132,6 +132,13 @@ def sidebar_menu(context):
                     "perm": "treinamentos.view_treinamento",
                 },
                 {
+                    "label": "Instrutores",
+                    "icon": "bi-person-video3",
+                    "url_name": "treinamentos:instrutores_list",
+                    "prefixes": ["/treinamentos/instrutores/"],
+                    "perm": "treinamentos.view_instrutor",
+                },
+                {
                     "label": "Agenda",
                     "icon": "bi-calendar-event",
                     "url_name": "treinamentos:agenda",

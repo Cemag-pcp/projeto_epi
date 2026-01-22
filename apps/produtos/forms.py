@@ -64,6 +64,18 @@ class ProdutoForm(BootstrapModelForm):
 
     def clean_ca(self):
         ca = (self.cleaned_data.get("ca") or "").strip()
+        if not ca:
+            return ca
+        if getattr(self.instance, "company_id", None):
+            qs = Produto.objects.filter(company_id=self.instance.company_id)
+        elif self.tenant is not None:
+            qs = Produto.objects.filter(company=self.tenant)
+        else:
+            qs = Produto.objects.none()
+        if getattr(self.instance, "pk", None):
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.filter(ca__iexact=ca).exists():
+            raise forms.ValidationError("CA ja cadastrado.")
         return ca
 
     def clean_codigo(self):

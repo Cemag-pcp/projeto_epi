@@ -279,7 +279,7 @@ class FuncionarioProdutoForm(BootstrapModelForm):
             .order_by("produto__nome", "fornecedor__nome")
         )
         self.fields["produto_fornecedor"].label_from_instance = (
-            lambda obj: f"{obj.produto} | CA {obj.ca or '-'} | {obj.fornecedor}"
+            lambda obj: f"{obj.produto} | CA {obj.produto.ca or '-'} | {obj.fornecedor}"
         )
 
     class Meta:

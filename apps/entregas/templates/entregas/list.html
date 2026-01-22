@@ -691,13 +691,31 @@
           if (!produtoField || !depositoField) {
             return;
           }
+          function setSelectDisabled(selectEl, disabled) {
+            if (!selectEl) return;
+            selectEl.disabled = !!disabled;
+            var instance = selectEl._choicesInstance;
+            if (instance) {
+              if (disabled) {
+                instance.disable();
+              } else {
+                instance.enable();
+              }
+            }
+          }
+          function refreshChoices(selectEl) {
+            if (window.clarusChoices && window.clarusChoices.refresh) {
+              window.clarusChoices.refresh(selectEl);
+            }
+          }
           function resetDepositos(message) {
             depositoField.innerHTML = "";
             var option = document.createElement("option");
             option.value = "";
             option.textContent = message || "Selecione um produto";
             depositoField.appendChild(option);
-            depositoField.disabled = true;
+            setSelectDisabled(depositoField, true);
+            refreshChoices(depositoField);
           }
           function populateDepositos(items) {
             depositoField.innerHTML = "";
@@ -711,7 +729,8 @@
               opt.textContent = item.nome;
               depositoField.appendChild(opt);
             });
-            depositoField.disabled = false;
+            setSelectDisabled(depositoField, false);
+            refreshChoices(depositoField);
           }
           resetDepositos();
           produtoField.addEventListener("change", function () {
@@ -754,20 +773,39 @@
           if (!funcionarioField || !produtoField) {
             return;
           }
+          function setSelectDisabled(selectEl, disabled) {
+            if (!selectEl) return;
+            selectEl.disabled = !!disabled;
+            var instance = selectEl._choicesInstance;
+            if (instance) {
+              if (disabled) {
+                instance.disable();
+              } else {
+                instance.enable();
+              }
+            }
+          }
+          function refreshChoices(selectEl) {
+            if (window.clarusChoices && window.clarusChoices.refresh) {
+              window.clarusChoices.refresh(selectEl);
+            }
+          }
           function resetProdutos(message) {
             produtoField.innerHTML = "";
             var option = document.createElement("option");
             option.value = "";
             option.textContent = message || "Selecione um funcionario";
             produtoField.appendChild(option);
-            produtoField.disabled = true;
+            setSelectDisabled(produtoField, true);
+            refreshChoices(produtoField);
             if (depositoField) {
               depositoField.innerHTML = "";
               var depoOpt = document.createElement("option");
               depoOpt.value = "";
               depoOpt.textContent = "Selecione um produto";
               depositoField.appendChild(depoOpt);
-              depositoField.disabled = true;
+              setSelectDisabled(depositoField, true);
+              refreshChoices(depositoField);
             }
           }
           function populateProdutos(items) {
@@ -782,7 +820,8 @@
               opt.textContent = item.label;
               produtoField.appendChild(opt);
             });
-            produtoField.disabled = false;
+            setSelectDisabled(produtoField, false);
+            refreshChoices(produtoField);
           }
           resetProdutos();
           funcionarioField.addEventListener("change", function () {

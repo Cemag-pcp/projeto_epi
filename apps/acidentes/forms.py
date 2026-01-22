@@ -94,6 +94,7 @@ class AcidenteTrabalhoForm(BootstrapModelForm):
             "analise_coordenador",
             "analise_envolvidos",
             "analise_participantes",
+            "caso_encerrado",
         ]
         widgets = {
             "data_ocorrencia": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
@@ -106,6 +107,8 @@ class AcidenteTrabalhoForm(BootstrapModelForm):
 
     def __init__(self, *args, tenant=None, planta_id=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and not self.is_bound:
+            self.initial["houve_afastamento"] = "1" if self.instance.houve_afastamento else "0"
         User = get_user_model()
         funcionarios = Funcionario.objects.all()
         agentes = AgenteCausador.objects.none()

@@ -109,8 +109,6 @@
     {% include "produtos/_ca_import_selected.html" with selected=selected %}
   </div>
 
-  <div class="alert alert-success d-none" data-ca-import-success>Produto importado com sucesso.</div>
-
   {% include "produtos/_produto_modal_form.html" with modal_id="createModal" modal_label_id="createModalLabel" modal_title="Novo produto" form=create_form form_action=create_produto_url prefix="create" fornecedores=None anexos=None %}
 
   <script>
@@ -277,6 +275,27 @@
           if (window.clarusToast) {
             window.clarusToast(message, level || "danger");
           }
+        }
+
+        function markInvalidFields(fields) {
+          (fields || []).forEach(function (field) {
+            if (!field) return;
+            if (field.classList) {
+              field.classList.add("is-invalid");
+            }
+            if (field.tagName === "SELECT" && field._choicesInstance && field._choicesInstance.containerOuter) {
+              var wrapper = field._choicesInstance.containerOuter.element;
+              if (wrapper) {
+                wrapper.classList.add("is-invalid");
+              }
+            }
+            if (field.type === "radio") {
+              var wrap = field.closest(".mb-3") || field.closest(".form-check") || field.parentElement;
+              if (wrap && wrap.classList) {
+                wrap.classList.add("is-invalid");
+              }
+            }
+          });
         }
 
         function focusFirstError() {
@@ -590,21 +609,25 @@
         }
 
         function validateTab(tabPane) {
-          var fields = tabPane.querySelectorAll("input, select, textarea");
-          for (var i = 0; i < fields.length; i++) {
-            var field = fields[i];
-            if (field.disabled) {
-              continue;
-            }
-            if (!field.hasAttribute("required")) {
-              continue;
-            }
-            if (!field.checkValidity()) {
-              field.reportValidity();
-              return false;
-            }
+          if (!tabPane) {
+            return true;
           }
-          return true;
+          var helper = window.clarusRequiredValidation;
+          var invalid = helper && helper.collectInvalidRequired ? helper.collectInvalidRequired(tabPane) : [];
+          if (!invalid.length) {
+            return true;
+          }
+          markInvalidFields(invalid);
+          var first = invalid[0];
+          showTabForElement(first);
+          showToast(helper && helper.buildMessage ? helper.buildMessage(invalid) : "Preencha os campos obrigatorios.", "danger");
+          try {
+            first.focus({ preventScroll: true });
+          } catch (e) {}
+          try {
+            first.scrollIntoView({ block: "center", behavior: "smooth" });
+          } catch (e) {}
+          return false;
         }
 
         modal.querySelectorAll("[data-tab-next]").forEach(function (button) {
@@ -651,9 +674,28 @@
           form.dataset.bound = "1";
           form.addEventListener("submit", function (event) {
             event.preventDefault();
+
+            var helper = window.clarusRequiredValidation;
+            if (helper && helper.collectInvalidRequired) {
+              var invalid = helper.collectInvalidRequired(form);
+              if (invalid.length) {
+                markInvalidFields(invalid);
+                var first = invalid[0];
+                showTabForElement(first);
+                showToast(helper.buildMessage ? helper.buildMessage(invalid) : "Preencha os campos obrigatorios.", "danger");
+                try {
+                  first.focus({ preventScroll: true });
+                } catch (e) {}
+                try {
+                  first.scrollIntoView({ block: "center", behavior: "smooth" });
+                } catch (e) {}
+                return;
+              }
+            }
+
             if (caInput && !caInput.checkValidity()) {
               showTabForElement(caInput);
-              showToast("Verifique o CA antes de salvar.");
+              showToast("Verifique o CA antes de salvar.", "warning");
               return;
             }
             if (rowsContainer) {
@@ -700,6 +742,8 @@
                     }
                     return;
                   }
+
+                  showToast("Salvo com sucesso.", "success");
                   if (window.bootstrap) {
                     var modalInstance = bootstrap.Modal.getInstance(modal);
                     if (modalInstance) {
@@ -764,6 +808,12 @@
           if (fabricanteDisplay) {
             fabricanteDisplay.value = data.fabricanteNome || "";
           }
+        }
+
+        if (window.clarusChoices && window.clarusChoices.refresh) {
+          modal.querySelectorAll("select").forEach(function (selectEl) {
+            window.clarusChoices.refresh(selectEl);
+          });
         }
 
         var firstTab = modal.querySelector("[data-produto-tabs] .nav-link");

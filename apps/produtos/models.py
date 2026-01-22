@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
+from django.db.models.functions import Lower
 from django.utils import timezone
 
 from apps.core.models import TenantModel
@@ -62,6 +63,13 @@ class Produto(TenantModel):
         quantidade = self.periodicidade_quantidade or 0
         return f"{quantidade} {self.periodicidade}"
 
+    def ca_status(self):
+        if not (self.ca or "").strip():
+            return "Sem CA"
+        if not self.data_vencimento_ca:
+            return "Sem validade"
+        return "Vencido" if self.data_vencimento_ca < timezone.localdate() else "Valido"
+
     def clean(self):
         if self.controle_epi:
             if not self.ca:
@@ -76,9 +84,16 @@ class Produto(TenantModel):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["company", "codigo"],
+                Lower("codigo"),
+                "company",
                 condition=~Q(codigo=""),
-                name="produtos_produto_company_codigo_uniq",
+                name="produtos_produto_company_codigo_ci_uniq",
+            ),
+            models.UniqueConstraint(
+                Lower("ca"),
+                "company",
+                condition=~Q(ca=""),
+                name="produtos_produto_company_ca_ci_uniq",
             )
         ]
 

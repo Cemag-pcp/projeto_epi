@@ -208,6 +208,15 @@ class EntregaCreateView(BaseTenantCreateView):
         return items, None
 
     def _is_produto_permitido(self, funcionario_id, produto_fornecedor):
+        # Se nenhuma regra de disponibilizacao foi configurada ainda,
+        # permite todos os produtos (evita tela vazia para empresas novas).
+        restrictions_exist = (
+            FuncionarioProduto.objects.filter(company=self.request.tenant).exists()
+            or TipoFuncionarioProduto.objects.filter(company=self.request.tenant).exists()
+        )
+        if not restrictions_exist:
+            return True, None
+
         funcionario = Funcionario.objects.filter(
             company=self.request.tenant,
             pk=funcionario_id,
@@ -218,6 +227,7 @@ class EntregaCreateView(BaseTenantCreateView):
             company=self.request.tenant,
             funcionario_id=funcionario_id,
             produto_fornecedor_id=produto_fornecedor.pk,
+            ativo=True,
         ).exists()
         permitido_tipo = False
         if funcionario.tipo_id:
@@ -346,10 +356,11 @@ class EntregaCreateView(BaseTenantCreateView):
                 errors.append(f"Item {idx}: nao existe estoque para este produto no deposito informado.")
                 continue
             key = (produto_fornecedor.produto_id, int(deposito_id))
+            produto_ca = (produto_fornecedor.produto.ca or "").strip()
             required_map[key] = {
                 "estoque": estoque,
                 "quantidade": required_map.get(key, {}).get("quantidade", Decimal("0")) + quantidade,
-                "produto_label": f"{produto_fornecedor.produto} | CA {produto_fornecedor.ca or '-'}",
+                "produto_label": f"{produto_fornecedor.produto} | CA {produto_ca or '-'}",
                 "deposito_label": estoque.deposito.nome if estoque.deposito_id else "-",
             }
             created.append(
@@ -358,7 +369,7 @@ class EntregaCreateView(BaseTenantCreateView):
                     "deposito_id": deposito_id,
                     "produto": produto_fornecedor.produto,
                     "quantidade": quantidade,
-                    "ca": produto_fornecedor.ca or "",
+                    "ca": produto_ca,
                     "observacao": item.get("observacao") or "",
                 }
             )
@@ -551,7 +562,7 @@ class EntregaCreateView(BaseTenantCreateView):
                         "message": message,
                         "confirm_items": [
                             {
-                                "produto": f"{produto_fornecedor.produto} | CA {produto_fornecedor.ca or '-'}",
+                                "produto": f"{produto_fornecedor.produto} | CA {(produto_fornecedor.produto.ca or '').strip() or '-'}",
                                 "deposito": deposito.nome if deposito else "-",
                                 "quantidade": str(quantidade),
                                 "estoque": str(estoque.quantidade),
@@ -680,10 +691,31 @@ class EntregaProdutosView(PermissionRequiredMixin, View):
         ).select_related("tipo").first()
         if not funcionario:
             return JsonResponse({"ok": False, "produtos": []})
+
+        restrictions_exist = (
+            FuncionarioProduto.objects.filter(company=request.tenant).exists()
+            or TipoFuncionarioProduto.objects.filter(company=request.tenant).exists()
+        )
+        if not restrictions_exist:
+            produtos = (
+                ProdutoFornecedor.objects.filter(company=request.tenant, produto__ativo=True)
+                .select_related("produto", "fornecedor")
+                .order_by("produto__nome")
+            )
+            items = [
+                {
+                    "id": item.pk,
+                    "label": f"{item.produto} | CA {item.produto.ca or '-'} | {item.fornecedor}",
+                }
+                for item in produtos
+            ]
+            return JsonResponse({"ok": True, "produtos": items})
+
         funcionario_ids = FuncionarioProduto.objects.filter(
             company=request.tenant,
             funcionario_id=funcionario.pk,
             produto_fornecedor__produto__ativo=True,
+            ativo=True,
         ).values_list("produto_fornecedor_id", flat=True)
         tipo_ids = []
         if funcionario.tipo_id:
@@ -703,7 +735,7 @@ class EntregaProdutosView(PermissionRequiredMixin, View):
         items = [
             {
                 "id": item.pk,
-                "label": f"{item.produto} | CA {item.ca or '-'} | {item.fornecedor}",
+                "label": f"{item.produto} | CA {item.produto.ca or '-'} | {item.fornecedor}",
             }
             for item in produtos
         ]
@@ -757,8 +789,6 @@ class EntregaDetailView(PermissionRequiredMixin, View):
                 company=request.tenant,
                 produto=produto,
             )
-            if item.ca:
-                produto_fornecedor = produto_fornecedor.filter(ca=item.ca)
             produto_fornecedor = produto_fornecedor.select_related("fornecedor").order_by("pk").first()
             valor_unitario = produto_fornecedor.valor if produto_fornecedor else None
             total_item = None
@@ -909,7 +939,7 @@ class EntregaSolicitacaoCreateView(EntregaCreateView):
                     "deposito_id": deposito_id,
                     "produto": produto_fornecedor.produto,
                     "quantidade": quantidade,
-                    "ca": produto_fornecedor.ca or "",
+                    "ca": (produto_fornecedor.produto.ca or "").strip(),
                     "observacao": item.get("observacao") or "",
                 }
             )
@@ -1018,14 +1048,12 @@ class EntregaItensView(PermissionRequiredMixin, View):
                 company=request.tenant,
                 produto=item.produto,
             )
-            if item.ca:
-                produto_fornecedor = produto_fornecedor.filter(ca=item.ca)
             produto_fornecedor = produto_fornecedor.select_related("fornecedor").order_by("pk").first()
             produto_fornecedor_id = produto_fornecedor.pk if produto_fornecedor else ""
             produto_label = "-"
             if produto_fornecedor:
                 produto_label = (
-                    f"{produto_fornecedor.produto} | CA {produto_fornecedor.ca or '-'} | "
+                    f"{produto_fornecedor.produto} | CA {produto_fornecedor.produto.ca or '-'} | "
                     f"{produto_fornecedor.fornecedor}"
                 )
             items_payload.append(

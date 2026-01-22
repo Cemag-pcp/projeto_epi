@@ -16,9 +16,10 @@ from django.template.loader import render_to_string
 
 from apps.core.views import BaseTenantCreateView, BaseTenantListView, BaseTenantUpdateView
 from apps.funcionarios.models import Funcionario
-from .forms import DocumentoTemplateForm, TreinamentoForm, TurmaForm
+from .forms import DocumentoTemplateForm, InstrutorForm, TreinamentoForm, TurmaForm
 from .models import (
     DocumentoTemplate,
+    Instrutor,
     Treinamento,
     TreinamentoCertificado,
     TreinamentoPendencia,
@@ -240,6 +241,174 @@ class TreinamentoToggleActiveView(PermissionRequiredMixin, View):
             )
             return JsonResponse({"ok": True, "row_id": treinamento.pk, "row_html": row_html})
         return HttpResponseRedirect(reverse("treinamentos:list"))
+
+
+class InstrutorListView(BaseTenantListView):
+    model = Instrutor
+    form_class = InstrutorForm
+    template_name = "treinamentos/instrutores_list.html"
+    title = "Instrutores"
+    subtitle = "Cadastre instrutores para vincular nas turmas."
+    headers = ["Nome", "Documento", "Email", "Ativo"]
+    row_fields = ["nome", "documento", "email", "ativo"]
+    filter_definitions = [
+        {"name": "nome", "label": "Nome", "lookup": "icontains", "type": "text"},
+        {
+            "name": "ativo",
+            "label": "Ativo",
+            "lookup": "exact_bool",
+            "type": "select",
+            "options": [("", "Todos"), ("1", "Ativo"), ("0", "Inativo")],
+        },
+    ]
+    create_url_name = "treinamentos:instrutores_create"
+    update_url_name = "treinamentos:instrutores_update"
+
+
+class InstrutorCreateView(BaseTenantCreateView):
+    model = Instrutor
+    form_class = InstrutorForm
+    success_url_name = "treinamentos:instrutores_list"
+
+    def form_valid(self, form):
+        nome = (form.cleaned_data.get("nome") or "").strip()
+        if (
+            Instrutor.objects.filter(company=self.request.tenant, nome__iexact=nome)
+            .exclude(pk=form.instance.pk)
+            .exists()
+        ):
+            form.add_error("nome", "Instrutor ja cadastrado.")
+            return self.form_invalid(form)
+        response = super().form_valid(form)
+        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            row_html = render_to_string(
+                "treinamentos/_instrutor_row.html",
+                {"instrutor": self.object},
+                request=self.request,
+            )
+            edit_modal_html = render_to_string(
+                "treinamentos/_instrutor_edit_modal.html",
+                {
+                    "instrutor": self.object,
+                    "form": InstrutorForm(instance=self.object),
+                    "update_url": reverse("treinamentos:instrutores_update", args=[self.object.pk]),
+                },
+                request=self.request,
+            )
+            form_html = render_to_string(
+                "components/_form.html",
+                {"form": InstrutorForm(), "form_action": reverse("treinamentos:instrutores_create")},
+                request=self.request,
+            )
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "action": "create",
+                    "row_id": self.object.pk,
+                    "row_html": row_html,
+                    "edit_modal_html": edit_modal_html,
+                    "form_html": form_html,
+                }
+            )
+        return response
+
+    def form_invalid(self, form):
+        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            form_html = render_to_string(
+                "components/_form.html",
+                {"form": form, "form_action": reverse("treinamentos:instrutores_create")},
+                request=self.request,
+            )
+            return JsonResponse({"ok": False, "form_html": form_html}, status=400)
+        return super().form_invalid(form)
+
+
+class InstrutorUpdateView(BaseTenantUpdateView):
+    model = Instrutor
+    form_class = InstrutorForm
+    success_url_name = "treinamentos:instrutores_list"
+
+    def form_valid(self, form):
+        nome = (form.cleaned_data.get("nome") or "").strip()
+        if (
+            Instrutor.objects.filter(company=self.request.tenant, nome__iexact=nome)
+            .exclude(pk=form.instance.pk)
+            .exists()
+        ):
+            form.add_error("nome", "Instrutor ja cadastrado.")
+            return self.form_invalid(form)
+        response = super().form_valid(form)
+        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            row_html = render_to_string(
+                "treinamentos/_instrutor_row.html",
+                {"instrutor": self.object},
+                request=self.request,
+            )
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "action": "update",
+                    "row_id": self.object.pk,
+                    "row_html": row_html,
+                }
+            )
+        return response
+
+    def form_invalid(self, form):
+        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            form_html = render_to_string(
+                "components/_form.html",
+                {
+                    "form": form,
+                    "form_action": reverse("treinamentos:instrutores_update", args=[self.get_object().pk]),
+                },
+                request=self.request,
+            )
+            return JsonResponse(
+                {"ok": False, "form_html": form_html, "row_id": self.get_object().pk},
+                status=400,
+            )
+        return super().form_invalid(form)
+
+
+class InstrutorToggleActiveView(PermissionRequiredMixin, View):
+    permission_required = "treinamentos.change_instrutor"
+
+    def post(self, request, pk):
+        instrutor = Instrutor.objects.filter(pk=pk, company=request.tenant).first()
+        if not instrutor:
+            return JsonResponse({"ok": False}, status=404)
+        instrutor.ativo = not instrutor.ativo
+        instrutor.updated_by = request.user
+        instrutor.save(update_fields=["ativo", "updated_by"])
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            row_html = render_to_string(
+                "treinamentos/_instrutor_row.html",
+                {"instrutor": instrutor},
+                request=request,
+            )
+            return JsonResponse({"ok": True, "row_id": instrutor.pk, "row_html": row_html})
+        return HttpResponseRedirect(reverse("treinamentos:instrutores_list"))
+
+
+class InstrutorDeleteView(PermissionRequiredMixin, View):
+    permission_required = "treinamentos.delete_instrutor"
+
+    def post(self, request, pk):
+        instrutor = Instrutor.objects.filter(pk=pk, company=request.tenant).first()
+        if not instrutor:
+            return JsonResponse({"ok": False}, status=404)
+        turmas = list(
+            Turma.objects.filter(company=request.tenant, instrutor=instrutor)
+            .values_list("id", flat=True)
+            .order_by("-id")[:20]
+        )
+        if turmas:
+            return JsonResponse({"ok": False, "blocked": True, "turmas": turmas, "row_id": instrutor.pk}, status=400)
+        instrutor.delete()
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"ok": True, "row_id": pk})
+        return HttpResponseRedirect(reverse("treinamentos:instrutores_list"))
 
 
 class DocumentoTemplateListView(BaseTenantListView):

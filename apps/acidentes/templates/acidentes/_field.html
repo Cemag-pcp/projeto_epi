@@ -1,3 +1,5 @@
+{% load ui_extras %}
+
 {% if field.field.widget.input_type == "checkbox" %}
   <div class="form-check mb-3">
     {{ field }}
@@ -13,6 +15,82 @@
       {% endfor %}
     {% endif %}
   </div>
+{% elif field.field.widget.input_type == "file" %}
+  {% with file_obj=field.form.instance|get_attr:field.name %}
+  {% with media_url=MEDIA_URL|default:"/media/" %}
+  <div class="mb-3">
+    <label class="form-label" for="{{ field.id_for_label }}">
+      {{ field.label }}{% if field.field.required %}<span class="text-danger"> *</span>{% endif %}
+    </label>
+
+    {% if file_obj and file_obj.name %}
+      {% with file_url=media_url|add:file_obj.name file_name=file_obj.name %}
+        {% with lower_name=file_name|lower %}
+          <div class="border rounded bg-white p-2 d-flex gap-2 align-items-start">
+            <div class="flex-shrink-0">
+              {% if ".png" in lower_name or ".jpg" in lower_name or ".jpeg" in lower_name or ".webp" in lower_name or ".gif" in lower_name %}
+                <img
+                  src="{{ file_url }}"
+                  alt="Preview"
+                  class="rounded border"
+                  style="width: 110px; height: 82px; object-fit: cover;"
+                >
+              {% else %}
+                <div
+                  class="rounded border d-flex align-items-center justify-content-center bg-light"
+                  style="width: 110px; height: 82px;"
+                >
+                  <i class="bi bi-paperclip fs-3 text-muted"></i>
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="flex-grow-1">
+              <div class="small text-muted">Arquivo atual</div>
+              <div class="fw-semibold text-truncate" style="max-width: 100%;">{{ file_name|default:"-" }}</div>
+              <div class="mt-2 d-flex flex-wrap gap-2">
+                <a class="btn btn-sm btn-outline-secondary" href="{{ file_url }}" target="_blank" rel="noopener">
+                  <i class="bi bi-box-arrow-up-right"></i> Abrir
+                </a>
+                <div class="form-check d-flex align-items-center gap-2 mb-0">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    name="{{ field.html_name }}-clear"
+                    id="{{ field.id_for_label }}-clear"
+                  >
+                  <label class="form-check-label small" for="{{ field.id_for_label }}-clear">Remover arquivo</label>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endwith %}
+      {% endwith %}
+    {% endif %}
+
+    <div class="{% if file_obj and file_obj.name %}mt-2{% endif %}">
+      <input
+        type="file"
+        name="{{ field.html_name }}"
+        id="{{ field.id_for_label }}"
+        class="form-control"
+        {% if field.field.required %}
+          {% if not file_obj or not file_obj.name %}required{% endif %}
+        {% endif %}
+      >
+      <div class="form-text">
+        {% if file_obj and file_obj.name %}Selecione um arquivo para substituir (ou marque "Remover arquivo").{% else %}Selecione um arquivo.{% endif %}
+      </div>
+    </div>
+
+    {% if field.errors %}
+      {% for error in field.errors %}
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      {% endfor %}
+    {% endif %}
+  </div>
+  {% endwith %}
+  {% endwith %}
 {% else %}
   <div class="mb-3">
     <label class="form-label" for="{{ field.id_for_label }}">

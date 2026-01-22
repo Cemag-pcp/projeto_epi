@@ -1,6 +1,30 @@
 {% load l10n %}
 <tr id="produto-row-{{ produto.pk }}">
-  <td>{{ produto.ca|default:"-" }}</td>
+  <td>
+    {% if produto.ca %}
+      <span class="me-1 text-success" title="CA informado" aria-label="CA informado">
+        <i class="bi bi-check-circle-fill"></i>
+      </span>
+      {{ produto.ca }}
+    {% else %}
+      <span class="me-1 text-danger" title="Sem CA" aria-label="Sem CA">
+        <i class="bi bi-x-circle-fill"></i>
+      </span>
+      <span class="text-muted">-</span>
+    {% endif %}
+  </td>
+  <td>{{ produto.data_vencimento_ca|date:"d/m/Y"|default:"-" }}</td>
+  <td>
+    {% if not produto.ca %}
+      <span class="badge bg-danger-subtle text-danger">Sem CA</span>
+    {% elif not produto.data_vencimento_ca %}
+      <span class="badge bg-warning-subtle text-warning">Sem validade</span>
+    {% elif produto.data_vencimento_ca < today %}
+      <span class="badge bg-danger-subtle text-danger">Vencido</span>
+    {% else %}
+      <span class="badge bg-success-subtle text-success">Valido</span>
+    {% endif %}
+  </td>
   <td>{{ produto.codigo|default:"-" }}</td>
   <td>{{ produto.nome }}</td>
   <td>{{ produto.referencia|default:"-" }}</td>
