@@ -173,9 +173,10 @@
                     <div class="invalid-feedback d-block">{{ error }}</div>
                   {% endfor %}
                 </div>
-
+              </div>
+              <div class="row g-1 mt-1">
                 <div class="col-12 col-sm-6 col-lg-4">
-                  <div class="form-check pt-2">
+                  <div class="form-check">
                     {{ form.monitora_uso }}
                     <label class="form-check-label" for="{{ form.monitora_uso.id_for_label }}">{{ form.monitora_uso.label }}{% if form.monitora_uso.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
                     {% for error in form.monitora_uso.errors %}
@@ -184,7 +185,7 @@
                   </div>
                 </div>
                 <div class="col-12 col-sm-6 col-lg-4">
-                  <div class="form-check pt-2">
+                  <div class="form-check">
                     {{ form.troca_funcionario }}
                     <label class="form-check-label" for="{{ form.troca_funcionario.id_for_label }}">{{ form.troca_funcionario.label }}{% if form.troca_funcionario.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
                     {% for error in form.troca_funcionario.errors %}
@@ -193,7 +194,7 @@
                   </div>
                 </div>
                 <div class="col-12 col-sm-6 col-lg-4">
-                  <div class="form-check pt-2">
+                  <div class="form-check">
                     {{ form.obrigar_entrega }}
                     <label class="form-check-label" for="{{ form.obrigar_entrega.id_for_label }}">{{ form.obrigar_entrega.label }}{% if form.obrigar_entrega.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
                     {% for error in form.obrigar_entrega.errors %}
@@ -202,7 +203,7 @@
                   </div>
                 </div>
                 <div class="col-12 col-sm-6 col-lg-4">
-                  <div class="form-check pt-2">
+                  <div class="form-check">
                     {{ form.controle_epi }}
                     <label class="form-check-label" for="{{ form.controle_epi.id_for_label }}">{{ form.controle_epi.label }}{% if form.controle_epi.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
                     {% for error in form.controle_epi.errors %}
@@ -211,7 +212,7 @@
                   </div>
                 </div>
                 <div class="col-12 col-sm-6 col-lg-4">
-                  <div class="form-check pt-2">
+                  <div class="form-check">
                     {{ form.ativo }}
                     <label class="form-check-label" for="{{ form.ativo.id_for_label }}">{{ form.ativo.label }}{% if form.ativo.field.required %}<span class="text-danger"> *</span>{% endif %}</label>
                     {% for error in form.ativo.errors %}
