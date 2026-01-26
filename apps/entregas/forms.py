@@ -15,6 +15,11 @@ class EntregaForm(BootstrapModelForm):
         label="Produto / CA",
         queryset=ProdutoFornecedor.objects.none(),
     )
+    grade = forms.ChoiceField(
+        label="Grade",
+        required=False,
+        choices=[],
+    )
 
     class Meta:
         model = Entrega
@@ -41,6 +46,9 @@ class EntregaForm(BootstrapModelForm):
         )
         self.fields["produto_fornecedor"].widget.attrs.update({"class": "form-select"})
         self.fields["produto_fornecedor"].widget.attrs["disabled"] = True
+        self.fields["grade"].widget.attrs.update({"class": "form-select"})
+        self.fields["grade"].widget.attrs["disabled"] = True
+        self.fields["grade"].choices = [("", "Selecione um produto")]
         self.fields["deposito"].widget.attrs["disabled"] = True
         self.fields["quantidade"].widget.attrs.update({"min": "0.01", "step": "0.01"})
 
@@ -91,6 +99,18 @@ class EntregaForm(BootstrapModelForm):
                     .values_list("produto_id", flat=True)
                     .first()
                 )
+                produto_fornecedor = ProdutoFornecedor.objects.filter(
+                    company=tenant,
+                    pk=produto_fornecedor_id,
+                ).select_related("produto").first()
+                if produto_fornecedor and produto_fornecedor.produto:
+                    grades = produto_fornecedor.produto.grade_opcoes()
+                    if grades:
+                        self.fields["grade"].choices = [("", "Selecione")] + [(g, g) for g in grades]
+                        self.fields["grade"].widget.attrs.pop("disabled", None)
+                    else:
+                        self.fields["grade"].choices = [("", "Sem Grade")]
+                        self.fields["grade"].widget.attrs["disabled"] = True
                 if produto_id:
                     depositos_filters = {
                         "company": tenant,

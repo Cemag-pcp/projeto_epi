@@ -23,27 +23,28 @@
 
   <div class="table-responsive">
     <table class="table table-hover align-middle">
-      <thead class="table-light">
-        <tr>
-          <th scope="col">Funcionario</th>
-          <th scope="col">Data</th>
-          <th scope="col">Status</th>
-          <th scope="col">Tipo do local</th>
-          <th scope="col">Cidade/UF</th>
-          <th scope="col" class="text-end">Acoes</th>
-        </tr>
-      </thead>
+       <thead class="table-light">
+         <tr>
+           <th scope="col">Funcionario</th>
+           <th scope="col">Planta</th>
+           <th scope="col">Data</th>
+           <th scope="col">Status</th>
+           <th scope="col">Tipo do local</th>
+           <th scope="col">Cidade/UF</th>
+           <th scope="col" class="text-end">Acoes</th>
+         </tr>
+       </thead>
       <tbody>
         {% for acidente in object_list %}
           {% include "acidentes/_acidente_row.html" with acidente=acidente %}
-        {% empty %}
-          <tr>
-            <td colspan="6" class="text-muted text-center py-4">Sem registros</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+         {% empty %}
+           <tr>
+             <td colspan="7" class="text-muted text-center py-4">Sem registros</td>
+           </tr>
+         {% endfor %}
+       </tbody>
+     </table>
+   </div>
 
   {% include "components/_pagination.html" with page_obj=page_obj %}
 

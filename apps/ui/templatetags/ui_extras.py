@@ -162,6 +162,13 @@ def sidebar_menu(context):
                     "perm": "funcionarios.view_funcionario",
                 },
                 {
+                    "label": "Fichas de EPI",
+                    "icon": "bi-file-earmark-text",
+                    "url_name": "funcionarios:fichas_epi",
+                    "prefixes": ["/funcionarios/fichas-epi/"],
+                    "perm": "funcionarios.view_funcionario",
+                },
+                {
                     "label": "Advertencias",
                     "icon": "bi-exclamation-triangle",
                     "url_name": "funcionarios:advertencias_list",
@@ -297,6 +304,13 @@ def sidebar_menu(context):
                     "url_name": "fornecedores:list",
                     "prefixes": ["/fornecedores/"],
                     "perm": "fornecedores.view_fornecedor",
+                },
+                {
+                    "label": "Grades",
+                    "icon": "bi-list-ol",
+                    "url_name": "produtos:grades_list",
+                    "prefixes": ["/produtos/grades/"],
+                    "perm": "produtos.view_gradeproduto",
                 },
                 {
                     "label": "Centro de Custo",

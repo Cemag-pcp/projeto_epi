@@ -30,7 +30,7 @@
   </div>
 
   {% if create_form %}
-    {% include "produtos/_produto_modal_form.html" with modal_id="createModal" modal_label_id="createModalLabel" modal_title="Novo produto" form=create_form form_action=create_url prefix="create" fornecedores=None anexos=None %}
+    {% include "produtos/_produto_modal_form.html" with modal_id="createModal" modal_label_id="createModalLabel" modal_title="Novo produto" form=create_form form_action=create_url prefix="create" fornecedores=None anexos=None grades_disponiveis=grades_disponiveis produto_grades=None %}
   {% endif %}
 
   <div data-produto-modals>
@@ -411,9 +411,93 @@
         var addButton = modal.querySelector("[data-fornecedor-add]");
         var rowsContainer = modal.querySelector("[data-fornecedor-rows]");
         var template = modal.querySelector("[data-fornecedor-template]");
+        var gradeSelect = modal.querySelector("[data-grade-select]");
+        var gradeAddButton = modal.querySelector("[data-grade-add]");
+        var gradeRowsContainer = modal.querySelector("[data-grade-rows]");
+        var gradeTemplate = modal.querySelector("[data-grade-template]");
         var addAnexoButton = modal.querySelector("[data-anexo-add]");
         var anexosContainer = modal.querySelector("[data-anexo-rows]");
         var anexoTemplate = modal.querySelector("[data-anexo-template]");
+
+        function syncGradeIndices() {
+          if (!gradeRowsContainer) {
+            return;
+          }
+          var rows = gradeRowsContainer.querySelectorAll("[data-grade-row]");
+          rows.forEach(function (row, index) {
+            row.dataset.index = String(index);
+            var fields = row.querySelectorAll("[data-field]");
+            fields.forEach(function (field) {
+              field.name = "grades[" + index + "][" + field.dataset.field + "]";
+            });
+          });
+          var empty = gradeRowsContainer.querySelector("[data-grade-empty]");
+          if (empty) {
+            empty.classList.toggle("d-none", rows.length > 0);
+          }
+        }
+
+        function addGradeRow(gradeId, gradeNome) {
+          if (!gradeTemplate || !gradeRowsContainer) {
+            return;
+          }
+          if (!gradeId) {
+            showToast("Selecione uma grade.", "danger");
+            return;
+          }
+          var existing = gradeRowsContainer.querySelector("[data-grade-row][data-grade-id='" + String(gradeId) + "']");
+          if (existing) {
+            showToast("Grade ja adicionada.", "warning");
+            return;
+          }
+          var fragment = document.importNode(gradeTemplate.content, true);
+          var row = fragment.querySelector("[data-grade-row]");
+          if (!row) {
+            return;
+          }
+          row.dataset.gradeId = String(gradeId);
+          var label = row.querySelector("[data-grade-nome]");
+          if (label) {
+            label.textContent = gradeNome || "-";
+          }
+          var input = row.querySelector("input[data-field='grade_id']");
+          if (input) {
+            input.value = String(gradeId);
+          }
+          if (isReadOnly) {
+            var removeBtn = row.querySelector("[data-grade-remove]");
+            if (removeBtn) {
+              removeBtn.disabled = true;
+            }
+          }
+          gradeRowsContainer.appendChild(fragment);
+          syncGradeIndices();
+        }
+
+        if (gradeAddButton && !isReadOnly) {
+          gradeAddButton.addEventListener("click", function () {
+            if (!gradeSelect) {
+              return;
+            }
+            var opt = gradeSelect.options[gradeSelect.selectedIndex];
+            addGradeRow(gradeSelect.value, opt ? opt.text : "");
+          });
+        }
+
+        if (gradeRowsContainer && !isReadOnly) {
+          gradeRowsContainer.addEventListener("click", function (event) {
+            var removeButton = event.target.closest("[data-grade-remove]");
+            if (!removeButton) {
+              return;
+            }
+            var row = removeButton.closest("[data-grade-row]");
+            if (row) {
+              row.remove();
+              syncGradeIndices();
+            }
+          });
+          syncGradeIndices();
+        }
 
         function syncRowIndices() {
           if (!rowsContainer) {

@@ -16,6 +16,7 @@ from .models import (
     Turno,
 )
 from apps.produtos.models import ProdutoFornecedor
+from apps.produtos.services import ensure_produtofornecedor_placeholders
 
 
 class FuncionarioForm(BootstrapModelForm):
@@ -269,6 +270,7 @@ class FuncionarioProdutoForm(BootstrapModelForm):
         super().__init__(*args, **kwargs)
         if tenant is None:
             return
+        ensure_produtofornecedor_placeholders(tenant)
         self.fields["funcionario"].queryset = Funcionario.objects.filter(
             company=tenant,
             ativo=True,

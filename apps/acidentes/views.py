@@ -73,8 +73,8 @@ class AcidenteTrabalhoListView(BaseTenantListView):
     paginate_by = 10
     title = "Acidente do trabalho"
     subtitle = "Registros e investigacao de acidentes."
-    headers = ["Funcionario", "Data", "Tipo do local", "Cidade/UF"]
-    row_fields = ["funcionario", "data_ocorrencia", "get_tipo_local_display", "cidade_uf"]
+    headers = ["Funcionario", "Planta", "Data", "Tipo do local", "Cidade/UF"]
+    row_fields = ["funcionario", "funcionario__planta", "data_ocorrencia", "get_tipo_local_display", "cidade_uf"]
     filter_definitions = [
         {"name": "funcionario__nome", "label": "Funcionario", "lookup": "icontains", "type": "text"},
         {"name": "estado", "label": "Estado", "lookup": "exact", "type": "select", "options": AcidenteTrabalho.ESTADO_CHOICES},
@@ -83,7 +83,7 @@ class AcidenteTrabalhoListView(BaseTenantListView):
     create_url_name = "acidentes:create"
 
     def get_queryset(self):
-        qs = super().get_queryset().select_related("funcionario")
+        qs = super().get_queryset().select_related("funcionario", "funcionario__planta")
         planta_id = self.request.session.get("planta_id")
         if planta_id:
             qs = qs.filter(funcionario__planta_id=planta_id)

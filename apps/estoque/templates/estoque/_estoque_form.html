@@ -26,7 +26,7 @@
       </div>
     </div>
 
-    <div class="col-12 col-md-8">
+    <div class="col-12 col-md-6">
       <div class="mb-3">
         <label class="form-label" for="{{ form.deposito.id_for_label }}">{{ form.deposito.label }}</label>
         {{ form.deposito }}
@@ -38,7 +38,19 @@
       </div>
     </div>
 
-    <div class="col-12 col-md-4">
+    <div class="col-12 col-md-3">
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.grade.id_for_label }}">{{ form.grade.label }}</label>
+        {{ form.grade }}
+        {% if form.grade.errors %}
+          {% for error in form.grade.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-12 col-md-3">
       <div class="mb-3">
         <label class="form-label" for="{{ form.quantidade.id_for_label }}">{{ form.quantidade.label }}</label>
         {{ form.quantidade }}
@@ -62,4 +74,3 @@
     </div>
   {% endif %}
 </form>
-

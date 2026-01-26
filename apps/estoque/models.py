@@ -7,12 +7,13 @@ from apps.core.models import TenantModel
 
 class Estoque(TenantModel):
     produto = models.ForeignKey("produtos.Produto", on_delete=models.CASCADE)
+    grade = models.CharField(max_length=50, blank=True)
     deposito = models.ForeignKey("depositos.Deposito", on_delete=models.CASCADE)
     quantidade = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ("produto", "deposito")
+        unique_together = ("produto", "grade", "deposito")
 
     def __str__(self):
         return f"{self.produto} - {self.deposito}"
@@ -72,6 +73,7 @@ class MovimentacaoEstoque(TenantModel):
                 destino, _ = Estoque.objects.select_for_update().get_or_create(
                     company=self.company,
                     produto=origem.produto,
+                    grade=origem.grade,
                     deposito=self.deposito_destino,
                     defaults={"quantidade": 0},
                 )

@@ -86,11 +86,6 @@
                   {% if item.local %} • {{ item.local }}{% endif %}
                   {% if item.instrutor %} • {{ item.instrutor }}{% endif %}
                 </div>
-                <div class="mt-2">
-                  <a class="btn btn-sm btn-outline-secondary" href="{% url 'treinamentos:turmas_update' item.id %}">
-                    Ver turma
-                  </a>
-                </div>
               </div>
             {% endfor %}
           </div>

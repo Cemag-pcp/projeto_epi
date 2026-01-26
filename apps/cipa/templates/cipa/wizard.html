@@ -1,0 +1,454 @@
+{% extends "layout/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+  <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
+    <div>
+      <h1 class="h4 mb-1">{{ title }}</h1>
+      <p class="text-muted mb-0">
+        Este é um wizard para a criação de um mandato de CIPA e seu processo de eleição. Siga os passos e lembre-se que a
+        qualquer momento você poderá salvar e fechar a configuração.
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary" href="{% url 'cipa:list' %}">Voltar</a>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-lg-3">
+      <div class="list-group">
+        {% for s in steps %}
+          <a
+            class="list-group-item list-group-item-action d-flex align-items-center justify-content-between {% if s.active %}active{% endif %}"
+            href="{{ s.url }}"
+          >
+            <span class="d-flex align-items-center gap-2">
+              <span class="badge {% if s.active %}text-bg-light{% else %}text-bg-secondary{% endif %}">{{ s.number }}</span>
+              <span>{{ s.title }}</span>
+            </span>
+            {% if s.completed %}
+              <i class="bi bi-check2"></i>
+            {% endif %}
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-9">
+      <div class="card">
+        <div class="card-header bg-white">
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="fw-semibold">{{ step }}º passo: {{ step_title }}</div>
+            <div class="text-muted small">Rascunho: {{ eleicao.pk }}</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger py-2">
+                {% for error in form.non_field_errors %}
+                  <div>{{ error }}</div>
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            {% if step == 1 %}
+              <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label" for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
+                  {{ form.nome }}
+                  {% for error in form.nome.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label" for="{{ form.escopo.id_for_label }}">{{ form.escopo.label }}</label>
+                  {{ form.escopo }}
+                  {% for error in form.escopo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label" for="{{ form.planta.id_for_label }}">{{ form.planta.label }}</label>
+                  {{ form.planta }}
+                  <div class="form-text">Se escopo for Global, a planta fica vazia.</div>
+                  {% for error in form.planta.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="form-label" for="{{ form.qt_colaboradores.id_for_label }}">{{ form.qt_colaboradores.label }}</label>
+                  {{ form.qt_colaboradores }}
+                  {% for error in form.qt_colaboradores.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="form-label" for="{{ form.qt_efetivos.id_for_label }}">{{ form.qt_efetivos.label }}</label>
+                  {{ form.qt_efetivos }}
+                  {% for error in form.qt_efetivos.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="form-label" for="{{ form.qt_suplentes.id_for_label }}">{{ form.qt_suplentes.label }}</label>
+                  {{ form.qt_suplentes }}
+                  {% for error in form.qt_suplentes.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="form-label" for="{{ form.grau_risco.id_for_label }}">{{ form.grau_risco.label }}</label>
+                  {{ form.grau_risco }}
+                  <div class="form-text">De 1 a 4.</div>
+                  {% for error in form.grau_risco.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+              </div>
+            {% elif step == 2 %}
+              <div class="mb-3 form-check">
+                {{ form.eleicao_extraordinaria }}
+                <label class="form-check-label" for="{{ form.eleicao_extraordinaria.id_for_label }}">{{ form.eleicao_extraordinaria.label }}</label>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-12 col-md-6">
+                  <label class="form-label" for="{{ form.data_fim_ultimo_mandato.id_for_label }}">{{ form.data_fim_ultimo_mandato.label }}</label>
+                  {{ form.data_fim_ultimo_mandato }}
+                  {% for error in form.data_fim_ultimo_mandato.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="col-12">
+                  <div class="alert alert-info py-2 mb-0">
+                    Clique em “Preencher datas” para sugerir automaticamente as datas (você pode ajustar manualmente depois).
+                  </div>
+                </div>
+                <div class="col-12">
+                  <button class="btn btn-outline-secondary btn-sm" type="button" data-fill-all>Preencher datas</button>
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <div class="d-flex align-items-end gap-2">
+                    <div class="flex-grow-1">
+                      <label class="form-label" for="{{ form.mandato_inicio.id_for_label }}">Data de início do mandato</label>
+                      {{ form.mandato_inicio }}
+                      {% for error in form.mandato_inicio.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <div class="d-flex align-items-end gap-2">
+                    <div class="flex-grow-1">
+                      <label class="form-label" for="{{ form.mandato_fim.id_for_label }}">Data de fim do mandato</label>
+                      {{ form.mandato_fim }}
+                      {% for error in form.mandato_fim.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <div class="d-flex align-items-end gap-2">
+                    <div class="flex-grow-1">
+                      <label class="form-label" for="{{ form.data_eleicao.id_for_label }}">Data da eleição</label>
+                      {{ form.data_eleicao }}
+                      {% for error in form.data_eleicao.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <div class="d-flex align-items-end gap-2">
+                    <div class="flex-grow-1">
+                      <label class="form-label" for="{{ form.data_divulgacao_candidatos.id_for_label }}">Data da divulgação dos candidatos</label>
+                      {{ form.data_divulgacao_candidatos }}
+                      {% for error in form.data_divulgacao_candidatos.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <div class="d-flex align-items-end gap-2">
+                    <div class="flex-grow-1">
+                      <label class="form-label" for="{{ form.data_abertura_candidaturas.id_for_label }}">Data da abertura das candidaturas</label>
+                      {{ form.data_abertura_candidaturas }}
+                      {% for error in form.data_abertura_candidaturas.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <div class="d-flex align-items-end gap-2">
+                    <div class="flex-grow-1">
+                      <label class="form-label" for="{{ form.data_comunicacao_sindicato.id_for_label }}">Data da comunicação com o sindicato</label>
+                      {{ form.data_comunicacao_sindicato }}
+                      {% for error in form.data_comunicacao_sindicato.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <div class="d-flex align-items-end gap-2">
+                    <div class="flex-grow-1">
+                      <label class="form-label" for="{{ form.data_inicio_processo_eleitoral.id_for_label }}">Data de início do processo eleitoral</label>
+                      {{ form.data_inicio_processo_eleitoral }}
+                      {% for error in form.data_inicio_processo_eleitoral.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% elif step == 3 %}
+              <div class="row g-3">
+                <div class="col-12 col-md-6">
+                  <label class="form-label" for="{{ form.data_comunicacao_sindicato.id_for_label }}">{{ form.data_comunicacao_sindicato.label }}</label>
+                  {{ form.data_comunicacao_sindicato }}
+                </div>
+                <div class="col-12">
+                  <label class="form-label" for="{{ form.observacoes.id_for_label }}">Observações</label>
+                  {{ form.observacoes }}
+                </div>
+              </div>
+            {% elif step == 4 %}
+              <div class="row g-3">
+                <div class="col-12 col-md-6">
+                  <label class="form-label" for="{{ form.data_abertura_candidaturas.id_for_label }}">{{ form.data_abertura_candidaturas.label }}</label>
+                  {{ form.data_abertura_candidaturas }}
+                </div>
+                <div class="col-12">
+                  <div class="form-check">
+                    {{ form.candidatura_publica_ativa }}
+                    <label class="form-check-label" for="{{ form.candidatura_publica_ativa.id_for_label }}">{{ form.candidatura_publica_ativa.label }}</label>
+                  </div>
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Link público para candidatura</label>
+                  <div class="input-group">
+                    <input
+                      class="form-control"
+                      type="text"
+                      readonly
+                      value="{{ request.scheme }}://{{ request.get_host }}{% url 'cipa:candidatura_publica' token=eleicao.candidatura_publica_token %}"
+                    >
+                    <button class="btn btn-outline-secondary" type="button" data-copy-link>Copiar</button>
+                    <button class="btn btn-outline-danger" type="submit" name="regenerate_token" value="1">Gerar novo</button>
+                  </div>
+                  <div class="form-text">O link funciona somente se “Candidatura pública ativa” estiver marcado.</div>
+                </div>
+              </div>
+            {% elif step == 5 %}
+              <div class="row g-3">
+                <div class="col-12 col-md-6">
+                  <label class="form-label" for="{{ form.data_divulgacao_candidatos.id_for_label }}">{{ form.data_divulgacao_candidatos.label }}</label>
+                  {{ form.data_divulgacao_candidatos }}
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label" for="{{ form.data_divulgacao.id_for_label }}">{{ form.data_divulgacao.label }}</label>
+                  {{ form.data_divulgacao }}
+                </div>
+                <div class="col-12">
+                  <label class="form-label" for="{{ form.observacoes.id_for_label }}">Observações</label>
+                  {{ form.observacoes }}
+                </div>
+
+                <div class="col-12">
+                  <hr class="my-2">
+                </div>
+
+                <div class="col-12">
+                  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div>
+                      <div class="fw-semibold">Votação</div>
+                      <div class="text-muted small">
+                        Status: {{ eleicao.get_status_display }}
+                        {% if eleicao.votacao_publica_ativa %} • Aceitando votos{% endif %}
+                      </div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                      {% if eleicao.status != "encerrada" %}
+                        {% if eleicao.status == "votacao" and eleicao.votacao_publica_ativa %}
+                          <button class="btn btn-outline-danger btn-sm" type="submit" name="close_voting" value="1">Fechar eleição</button>
+                        {% else %}
+                          <button class="btn btn-outline-success btn-sm" type="submit" name="open_voting" value="1">Abrir para votação</button>
+                        {% endif %}
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label">Link público para votação</label>
+                  <div class="input-group">
+                    <input
+                      class="form-control"
+                      type="text"
+                      readonly
+                      value="{{ request.scheme }}://{{ request.get_host }}{% url 'cipa:votacao_publica' token=eleicao.votacao_publica_token %}"
+                    >
+                    <button class="btn btn-outline-secondary" type="button" data-copy-vote-link>Copiar</button>
+                    <button class="btn btn-outline-danger" type="submit" name="regenerate_voting_token" value="1">Gerar novo</button>
+                  </div>
+                  <div class="form-text">O link funciona somente quando a eleição estiver “aberta para votação”.</div>
+                </div>
+
+                {% if result %}
+                  <div class="col-12">
+                    <div class="card">
+                      <div class="card-header bg-white d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <div class="fw-semibold">Resultado</div>
+                        <div class="text-muted small">
+                          Total: {{ result.total }} • Candidato: {{ result.candidato }} • Branco: {{ result.branco }} • Nulo: {{ result.nulo }}
+                        </div>
+                      </div>
+                      <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                          <thead class="table-light">
+                            <tr>
+                              <th>Candidato</th>
+                              <th class="text-end">Votos</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for row in result.rows %}
+                              <tr>
+                                <td>
+                                  {% if row.candidato.numero %}<span class="text-muted">#{{ row.candidato.numero }}</span>{% endif %}
+                                  {{ row.candidato.funcionario }}
+                                </td>
+                                <td class="text-end">{{ row.votos }}</td>
+                              </tr>
+                            {% empty %}
+                              <tr>
+                                <td colspan="2" class="text-muted text-center py-4">Sem votos computados.</td>
+                              </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                {% endif %}
+              </div>
+            {% endif %}
+
+            <hr class="my-4">
+            <div class="d-flex flex-wrap gap-2 justify-content-end">
+              <button class="btn btn-outline-secondary" type="submit" name="save_close" value="1">Salvar e fechar</button>
+              <button class="btn btn-primary" type="submit" name="save_next" value="1">Salvar e continuar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if step == 2 %}
+    <script>
+      (function () {
+        function toISO(d) {
+          var y = d.getFullYear();
+          var m = String(d.getMonth() + 1).padStart(2, "0");
+          var day = String(d.getDate()).padStart(2, "0");
+          return y + "-" + m + "-" + day;
+        }
+
+        function addDays(base, days) {
+          var d = new Date(base.getTime());
+          d.setDate(d.getDate() + days);
+          return d;
+        }
+
+        function parseISO(value) {
+          if (!value) return null;
+          var parts = String(value).split("-");
+          if (parts.length !== 3) return null;
+          return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        }
+
+        var baseInput = document.getElementById("{{ form.data_fim_ultimo_mandato.id_for_label }}");
+        var inputs = {
+          mandato_inicio: document.getElementById("{{ form.mandato_inicio.id_for_label }}"),
+          mandato_fim: document.getElementById("{{ form.mandato_fim.id_for_label }}"),
+          data_eleicao: document.getElementById("{{ form.data_eleicao.id_for_label }}"),
+          data_divulgacao_candidatos: document.getElementById("{{ form.data_divulgacao_candidatos.id_for_label }}"),
+          data_abertura_candidaturas: document.getElementById("{{ form.data_abertura_candidaturas.id_for_label }}"),
+          data_comunicacao_sindicato: document.getElementById("{{ form.data_comunicacao_sindicato.id_for_label }}"),
+          data_inicio_processo_eleitoral: document.getElementById("{{ form.data_inicio_processo_eleitoral.id_for_label }}"),
+        };
+
+        // Offsets (dias) a partir do fim do último mandato (ajuste conforme necessário).
+        var offsets = {
+          mandato_inicio: 1,
+          data_eleicao: -30,
+          data_divulgacao_candidatos: -37,
+          data_abertura_candidaturas: -45,
+          data_comunicacao_sindicato: -60,
+          data_inicio_processo_eleitoral: -90,
+        };
+
+        function fillOne(key) {
+          var base = parseISO(baseInput && baseInput.value);
+          if (!base) return;
+
+          if (key === "mandato_fim") {
+            var inicio = inputs.mandato_inicio && inputs.mandato_inicio.value ? parseISO(inputs.mandato_inicio.value) : addDays(base, offsets.mandato_inicio);
+            inputs.mandato_inicio.value = toISO(inicio);
+            inputs.mandato_fim.value = toISO(addDays(inicio, 364));
+            return;
+          }
+
+          var days = offsets[key];
+          if (typeof days !== "number") return;
+          var computed = addDays(base, days);
+          if (inputs[key]) inputs[key].value = toISO(computed);
+        }
+
+        function fillOneIfEmpty(key) {
+          if (key === "mandato_fim") {
+            if (inputs.mandato_inicio && inputs.mandato_inicio.value && inputs.mandato_fim && inputs.mandato_fim.value) return;
+            fillOne("mandato_fim");
+            return;
+          }
+          if (inputs[key] && inputs[key].value) return;
+          fillOne(key);
+        }
+
+        function fillAll() {
+          Object.keys(offsets).forEach(fillOne);
+          fillOne("mandato_fim");
+        }
+
+        function fillAllIfEmpty() {
+          Object.keys(offsets).forEach(fillOneIfEmpty);
+          fillOneIfEmpty("mandato_fim");
+        }
+
+        document.querySelectorAll("[data-fill]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            fillOne(btn.getAttribute("data-fill"));
+          });
+        });
+        var btnAll = document.querySelector("[data-fill-all]");
+        if (btnAll) btnAll.addEventListener("click", fillAll);
+        if (baseInput) baseInput.addEventListener("change", fillAllIfEmpty);
+      })();
+    </script>
+  {% endif %}
+
+  {% if step == 4 %}
+    <script>
+      (function () {
+        var btn = document.querySelector("[data-copy-link]");
+        if (!btn) return;
+        btn.addEventListener("click", function () {
+          var input = btn.closest(".input-group").querySelector("input");
+          if (!input) return;
+          input.select();
+          try {
+            document.execCommand("copy");
+          } catch (e) {}
+        });
+      })();
+    </script>
+  {% endif %}
+
+  {% if step == 5 %}
+    <script>
+      (function () {
+        var btn = document.querySelector("[data-copy-vote-link]");
+        if (!btn) return;
+        btn.addEventListener("click", function () {
+          var input = btn.closest(".input-group").querySelector("input");
+          if (!input) return;
+          input.select();
+          try {
+            document.execCommand("copy");
+          } catch (e) {}
+        });
+      })();
+    </script>
+  {% endif %}
+{% endblock %}

@@ -29,13 +29,18 @@
               </button>
             </li>
             <li class="nav-item" role="presentation">
+              <button class="nav-link" id="tab-grade-{{ prefix }}" data-bs-toggle="tab" data-bs-target="#tab-grade-pane-{{ prefix }}" type="button" role="tab" aria-controls="tab-grade-pane-{{ prefix }}" aria-selected="false">
+                3. Grade
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
               <button class="nav-link" id="tab-fornecedores-{{ prefix }}" data-bs-toggle="tab" data-bs-target="#tab-fornecedores-pane-{{ prefix }}" type="button" role="tab" aria-controls="tab-fornecedores-pane-{{ prefix }}" aria-selected="false">
-                3. Fornecedores
+                4. Fornecedores
               </button>
             </li>
             <li class="nav-item" role="presentation">
               <button class="nav-link" id="tab-anexos-{{ prefix }}" data-bs-toggle="tab" data-bs-target="#tab-anexos-pane-{{ prefix }}" type="button" role="tab" aria-controls="tab-anexos-pane-{{ prefix }}" aria-selected="false">
-                4. Anexos
+                5. Anexos
               </button>
             </li>
           </ul>
@@ -259,6 +264,100 @@
               </div>
               <div class="d-flex gap-2 justify-content-end mt-3">
                 <button class="btn btn-outline-secondary" type="button" data-tab-prev="#tab-info-pane-{{ prefix }}">Voltar</button>
+                <button class="btn btn-primary" type="button" data-tab-next="#tab-grade-pane-{{ prefix }}">Continuar</button>
+              </div>
+            </div>
+
+            <div class="tab-pane fade" id="tab-grade-pane-{{ prefix }}" role="tabpanel" aria-labelledby="tab-grade-{{ prefix }}" tabindex="0">
+              <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-2">
+                <div class="fw-semibold">Grades do produto</div>
+              </div>
+
+              <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-8">
+                  <label class="form-label" for="grade-select-{{ prefix }}">Grade</label>
+                  <select class="form-select" id="grade-select-{{ prefix }}" data-grade-select {% if read_only %}disabled{% endif %}>
+                    <option value="">Selecione</option>
+                    {% if grades_disponiveis %}
+                      {% for grade in grades_disponiveis %}
+                        <option value="{{ grade.pk }}">{{ grade.nome }}</option>
+                      {% endfor %}
+                    {% endif %}
+                  </select>
+                  <div class="form-text">Selecione uma grade e clique em Adicionar.</div>
+                </div>
+                <div class="col-12 col-md-4 d-flex justify-content-md-end">
+                  <button
+                    class="btn btn-outline-primary"
+                    type="button"
+                    data-grade-add
+                    {% if read_only %}disabled{% endif %}
+                  >
+                    Adicionar
+                  </button>
+                </div>
+              </div>
+
+              <div class="table-responsive mt-3">
+                <table class="table table-sm align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Resumo</th>
+                      <th class="text-end">Acoes</th>
+                    </tr>
+                  </thead>
+                  <tbody data-grade-rows>
+                    {% if produto_grades %}
+                      {% for vinculo in produto_grades %}
+                        <tr data-grade-row data-grade-id="{{ vinculo.grade_id }}">
+                          <td>
+                            <span data-grade-nome>{{ vinculo.grade.nome }}</span>
+                            <input type="hidden" data-field="grade_id" value="{{ vinculo.grade_id }}">
+                          </td>
+                          <td class="text-end">
+                            <button
+                              class="btn btn-outline-danger btn-icon"
+                              type="button"
+                              data-grade-remove
+                              title="Remover"
+                              aria-label="Remover"
+                              {% if read_only %}disabled{% endif %}
+                            >
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    {% endif %}
+                    <tr data-grade-empty{% if produto_grades %} class="d-none"{% endif %}>
+                      <td colspan="2" class="text-muted text-center py-3">Nenhuma grade adicionada</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <template data-grade-template>
+                <tr data-grade-row>
+                  <td>
+                    <span data-grade-nome></span>
+                    <input type="hidden" data-field="grade_id" value="">
+                  </td>
+                  <td class="text-end">
+                    <button
+                      class="btn btn-outline-danger btn-icon"
+                      type="button"
+                      data-grade-remove
+                      title="Remover"
+                      aria-label="Remover"
+                    >
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              </template>
+
+              <div class="d-flex gap-2 justify-content-end mt-3">
+                <button class="btn btn-outline-secondary" type="button" data-tab-prev="#tab-outros-pane-{{ prefix }}">Voltar</button>
                 <button class="btn btn-primary" type="button" data-tab-next="#tab-fornecedores-pane-{{ prefix }}">Continuar</button>
               </div>
             </div>
@@ -433,7 +532,7 @@
                 </tr>
               </template>
               <div class="d-flex gap-2 justify-content-end mt-3">
-                <button class="btn btn-outline-secondary" type="button" data-tab-prev="#tab-outros-pane-{{ prefix }}">Voltar</button>
+                <button class="btn btn-outline-secondary" type="button" data-tab-prev="#tab-grade-pane-{{ prefix }}">Voltar</button>
                 <button class="btn btn-primary" type="button" data-tab-next="#tab-anexos-pane-{{ prefix }}">Continuar</button>
               </div>
             </div>

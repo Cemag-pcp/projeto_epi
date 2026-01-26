@@ -1,0 +1,63 @@
+{% extends "layout/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+  {% include "components/_alerts.html" %}
+
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+    <div>
+      <h1 class="h4 mb-1">{{ title }}</h1>
+      {% if subtitle %}<p class="text-muted mb-0">{{ subtitle }}</p>{% endif %}
+    </div>
+    {% if create_url %}
+      <a class="btn btn-primary" href="{{ create_url }}">Novo</a>
+    {% endif %}
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th scope="col">Nome</th>
+          <th scope="col">Escopo</th>
+          <th scope="col">Planta</th>
+          <th scope="col">Status</th>
+          <th scope="col">Mandato</th>
+          <th scope="col">Eleição</th>
+          <th scope="col" class="text-end">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for eleicao in object_list %}
+          <tr>
+            <td>{{ eleicao.nome|default:"(sem nome)" }}</td>
+            <td>{{ eleicao.get_escopo_display }}</td>
+            <td>{{ eleicao.planta|default:"-" }}</td>
+            <td>{{ eleicao.get_status_display }}</td>
+            <td>
+              {% if eleicao.mandato_inicio and eleicao.mandato_fim %}
+                {{ eleicao.mandato_inicio|date:"d/m/Y" }} – {{ eleicao.mandato_fim|date:"d/m/Y" }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>{{ eleicao.data_eleicao|date:"d/m/Y"|default:"-" }}</td>
+            <td class="text-end">
+              <a class="btn btn-outline-primary btn-icon" href="{% url 'cipa:wizard' pk=eleicao.pk step=eleicao.wizard_step|default:1 %}" title="Configurar">
+                <i class="bi bi-sliders"></i>
+              </a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="7" class="text-muted text-center py-4">Sem registros</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% include "components/_pagination.html" with page_obj=page_obj %}
+{% endblock %}
+

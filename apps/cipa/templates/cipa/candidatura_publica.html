@@ -1,0 +1,44 @@
+{% extends "layout/public.html" %}
+
+{% block title %}Candidatura CIPA{% endblock %}
+
+{% block content %}
+  {% include "components/_alerts.html" %}
+
+  <div class="mb-3">
+    <h1 class="h4 mb-1">Inscrição de candidatura</h1>
+    <div class="text-muted">{{ eleicao.nome|default:"Eleição CIPA" }}</div>
+  </div>
+
+  {% if inactive %}
+    <div class="alert alert-warning">Candidatura pública não está ativa para esta eleição.</div>
+  {% else %}
+    <div class="card">
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger py-2">
+              {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.funcionario.id_for_label }}">{{ form.funcionario.label }}</label>
+            {{ form.funcionario }}
+            {% for error in form.funcionario.errors %}
+              <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="d-flex gap-2 justify-content-end">
+            <button class="btn btn-primary" type="submit">Enviar candidatura</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}

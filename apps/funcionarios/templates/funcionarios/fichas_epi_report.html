@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="pt-br">
+  {% load static %}
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Fichas de EPI</title>
+    <style>
+      @page { size: A4 landscape; margin: 12mm; }
+      @media print { .no-print { display: none !important; } .pagebreak { page-break-after: always; } }
+
+      th { font-weight: 700; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border: 1px solid #000; padding: 4px 6px; vertical-align: middle; }
+
+      .container { margin: 16px; }
+      .report-title { text-align: center; font-weight: 700; margin-bottom: 12px; line-height: 1.25; }
+      .signature-img { max-height: 28px; max-width: 120px; width: auto; height: auto; display: block; margin: 0 auto; }
+      .signature-footer { font-size: 10px; margin-top: 2px; line-height: 1.1; white-space: nowrap; text-align: center; }
+      .text-end { text-align: right; }
+      .text-center { text-align: center; }
+      .join-top-0 > :not(caption) > *:first-child > * { border-top: 0; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="no-print mb-3">
+        <div>
+          <div><strong>Fichas de EPI</strong></div>
+          <div>{{ empresa_nome }} • Gerado em {{ gerado_em|date:"d/m/Y H:i" }}</div>
+        </div>
+        <div>
+          <button type="button" onclick="window.close()">Fechar</button>
+          <button type="button" onclick="window.print()">Imprimir / Salvar PDF</button>
+        </div>
+      </div>
+
+      {% for ficha in fichas %}
+        <div>
+          <div class="report-title">
+            <div>{{ ficha.funcionario.nome }}</div>
+            <div>Ficha de EPI</div>
+            <div>{{ empresa_nome }}</div>
+          </div>
+
+          <div class="table-responsive mb-0">
+            <table class="table table-sm table-bordered align-middle mb-0">
+              <tbody>
+                <tr class="table-light">
+                  <th>Nome do Trabalhador</th>
+                  <th>Função</th>
+                  <th>Matrícula</th>
+                  <th>Data de admissão</th>
+                </tr>
+                <tr>
+                  <td>{{ ficha.funcionario.nome }}</td>
+                  <td>{{ ficha.funcionario.cargo|default:"-" }}</td>
+                  <td>{{ ficha.funcionario.registro|default:"-" }}</td>
+                  <td>{% if ficha.funcionario.data_admissao %}{{ ficha.funcionario.data_admissao|date:"d/m/Y" }}{% else %}-{% endif %}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="border border-top-0 p-3 declaracao">
+              <p class="mb-0 small">
+                DECLARO ter recebido o(s) Equipamento(s) de Proteção Individual - EPI's., abaixo especificado(s) nos termos do artigo 166 e 167 da CLT, com redação dada pela Lei Federal nº
+                6.514/77, objetivando a proteção da incolumidade física, bem como a neutralização de possíveis agentes insalubres conforme o art. 191, inciso II, da norma jurídica mencionada,
+                e ainda, o treinamento para o uso correto do(s) mesmo(s). COMPROMETO-ME a utilizá-los sempre para os fins a que se destinam, estando ciente que o não uso incorrerá contra
+                a minha pessoa em ato faltoso, sujeitando-me as penalidades legais. RESPONSABILIZO-ME por sua guarda, conservação, uso correto, e a devolução ao SESMT em qualquer
+                estado que se encontre o equipamento, indenizando a empresa no caso de perda, extravio ou danos por uso incorreto (art. 462, parágrafo 1º, da CLT), e, a comunicação ao
+                superior hierárquico ou Técnico em Segurança do Trabalho caso ocorra qualquer alteração que o torne impróprio para o uso, sendo possível a retirada ou troca de EPI sempre
+                que necessário.
+              </p>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered align-middle mb-0 join-top-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Entrega</th>
+                  <th>Devolução</th>
+                  <th class="text-end">Qtde.</th>
+                  <th>Equipamento</th>
+                  <th>CA</th>
+                  <th>Motivo</th>
+                  <th>Assinatura</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for mov in ficha.movimentos %}
+                  <tr>
+                    <td>{% if mov.entrega_em %}{{ mov.entrega_em|date:"d/m/Y" }}{% else %}-{% endif %}</td>
+                    <td>{% if mov.devolucao_em %}{{ mov.devolucao_em|date:"d/m/Y" }}{% else %}-{% endif %}</td>
+                    <td class="text-end">{{ mov.quantidade|floatformat:2 }}</td>
+                    <td>{{ mov.equipamento }}</td>
+                    <td>{{ mov.ca|default:"-" }}</td>
+                    <td>{{ mov.motivo|default:"-" }}</td>
+                    <td class="text-center">
+                      {% if mov.assinatura_url %}
+                        <img class="signature-img" src="{{ mov.assinatura_url }}" alt="Assinatura">
+                      {% else %}
+                        <span class="small text-muted">{{ mov.validacao_label|default:"-" }}</span>
+                      {% endif %}
+                      {% if mov.validacao_em %}
+                        {% if mov.validacao_tipo == "assinatura" %}
+                          <div class="signature-footer">Assinado em {{ mov.validacao_em|date:"d/m/Y H:i" }}</div>
+                        {% else %}
+                          <div class="signature-footer">Validado em {{ mov.validacao_em|date:"d/m/Y H:i" }}</div>
+                        {% endif %}
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="7" class="text-muted text-center py-3">Nenhum registro.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {% if not forloop.last %}
+          <div class="pagebreak my-4"></div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    {% if auto_print %}
+      <script>
+        window.addEventListener("load", function () {
+          window.print();
+        });
+      </script>
+    {% endif %}
+  </body>
+</html>

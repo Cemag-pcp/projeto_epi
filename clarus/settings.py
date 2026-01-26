@@ -44,6 +44,7 @@ TENANT_APPS = (
     "apps.relatorios",
     "apps.acessos",
     "apps.acidentes",
+    "apps.cipa",
 )
 
 INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]

@@ -1,3 +1,5 @@
+import re
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
@@ -14,11 +16,37 @@ def validate_attachment_size(value):
         raise ValidationError("Arquivo excede o limite de 3MB.")
 
 
+class GradeProduto(TenantModel):
+    nome = models.CharField(max_length=50)
+    ativo = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["nome"]
+        constraints = [
+            models.UniqueConstraint(
+                Lower("nome"),
+                "company",
+                condition=~Q(nome=""),
+                name="produtos_gradeproduto_company_nome_ci_uniq",
+            )
+        ]
+
+    def __str__(self):
+        return self.nome
+
+
 class Produto(TenantModel):
     nome = models.CharField(max_length=200)
     foto = models.ImageField(upload_to="produtos/fotos/", null=True, blank=True)
     codigo = models.CharField(max_length=80)
     ca = models.CharField(max_length=50, blank=True)
+    grade = models.CharField(max_length=200, blank=True)
+    grades = models.ManyToManyField(
+        GradeProduto,
+        through="ProdutoGrade",
+        related_name="produtos",
+        blank=True,
+    )
     data_vencimento_ca = models.DateField(null=True, blank=True)
     referencia = models.CharField(max_length=120, blank=True)
     periodicidade_quantidade = models.PositiveIntegerField(default=1, verbose_name="Quantidade")
@@ -70,6 +98,39 @@ class Produto(TenantModel):
             return "Sem validade"
         return "Vencido" if self.data_vencimento_ca < timezone.localdate() else "Valido"
 
+    def grade_opcoes(self):
+        items = []
+        seen = set()
+
+        try:
+            for nome in self.grades.filter(ativo=True).order_by("nome").values_list("nome", flat=True):
+                value = (nome or "").strip()
+                if not value:
+                    continue
+                key = value.lower()
+                if key in seen:
+                    continue
+                seen.add(key)
+                items.append(value)
+        except Exception:
+            # Evita quebrar chamadas em ambientes/migrations onde o relacionamento ainda nao existe.
+            pass
+
+        raw = (self.grade or "").strip()
+        if not raw:
+            return items
+        parts = re.split(r"[,\n;/]+", raw)
+        for part in parts:
+            value = (part or "").strip()
+            if not value:
+                continue
+            key = value.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            items.append(value)
+        return items
+
     def clean(self):
         if self.controle_epi:
             if not self.ca:
@@ -113,6 +174,17 @@ class ProdutoFornecedor(TenantModel):
 
     def __str__(self):
         return f"{self.produto} - {self.fornecedor}"
+
+
+class ProdutoGrade(TenantModel):
+    produto = models.ForeignKey(Produto, on_delete=models.CASCADE, related_name="produto_grades")
+    grade = models.ForeignKey(GradeProduto, on_delete=models.PROTECT, related_name="produto_grades")
+
+    class Meta:
+        unique_together = ("produto", "grade")
+
+    def __str__(self):
+        return f"{self.produto} - {self.grade}"
 
 
 class ProdutoAnexo(TenantModel):

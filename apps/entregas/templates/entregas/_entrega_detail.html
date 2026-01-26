@@ -2,6 +2,8 @@
   <h5 class="mb-1">Detalhes da Entrega : {{ entrega.pk|stringformat:"06d" }}</h5>
 </div>
 
+<div class="alert alert-danger d-none" data-entrega-devolucao-error></div>
+
 <div class="row g-3 mb-4">
   <div class="col-md-6">
     <div><strong>Funcionario:</strong> {{ entrega.funcionario.registro|default:"-" }} - {{ entrega.funcionario.nome }}</div>
@@ -71,9 +73,18 @@
           <td>{{ item.epi }}</td>
           <td>{{ item.periodicidade|default:"-" }}</td>
           <td>{% if item.data_troca %}{{ item.data_troca|date:"d/m/Y" }}{% else %}-{% endif %}</td>
+          <td>{% if item.devolvida_em %}{{ item.devolvida_em|date:"d/m/Y H:i" }}{% else %}-{% endif %}</td>
           <td>-</td>
-          <td>-</td>
-          <td>Nao</td>
+          <td>
+            {% if item.devolvido %}
+              <div>Sim</div>
+            {% else %}
+              <div>Nao</div>
+            {% endif %}
+            <div class="small text-muted">
+              {{ item.devolvida_quantidade|floatformat:2 }}/{{ item.quantidade|floatformat:2 }}
+            </div>
+          </td>
           <td>-</td>
           <td>-</td>
         </tr>

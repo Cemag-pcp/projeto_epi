@@ -4,7 +4,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db import transaction
-from django.db.models import Avg
+from django.db.models import Avg, Prefetch, Q
 from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.template.loader import render_to_string
@@ -12,7 +12,6 @@ from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.views import View
 from django.core.paginator import InvalidPage, Paginator
-from django.db.models import Q
 
 from django_tenants.utils import schema_context
 
@@ -21,6 +20,7 @@ from apps.caepi.models import CaEPI
 from apps.fornecedores.models import Fornecedor
 from .forms import (
     FamiliaProdutoForm,
+    GradeProdutoForm,
     LocalizacaoProdutoForm,
     LocalRetiradaForm,
     PeriodicidadeForm,
@@ -32,10 +32,12 @@ from .forms import (
 from .models import (
     FamiliaProduto,
     Fabricante,
+    GradeProduto,
     LocalizacaoProduto,
     LocalRetirada,
     Periodicidade,
     Produto,
+    ProdutoGrade,
     ProdutoAnexo,
     ProdutoFornecedor,
     SubfamiliaProduto,
@@ -102,7 +104,10 @@ class ProdutoListView(BaseTenantListView):
         )
         modals_html = render_to_string(
             "produtos/_produto_modals.html",
-            {"edit_rows": context.get("edit_rows", [])},
+            {
+                "edit_rows": context.get("edit_rows", []),
+                "grades_disponiveis": context.get("grades_disponiveis"),
+            },
             request=request,
         )
         pagination_html = render_to_string(
@@ -121,11 +126,23 @@ class ProdutoListView(BaseTenantListView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        return queryset.annotate(valor_medio=Avg("fornecedores_rel__valor"))
+        return (
+            queryset.annotate(valor_medio=Avg("fornecedores_rel__valor"))
+            .prefetch_related(
+                Prefetch(
+                    "produto_grades",
+                    queryset=ProdutoGrade.objects.select_related("grade").order_by("grade__nome"),
+                )
+            )
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["today"] = timezone.localdate()
+        context["grades_disponiveis"] = GradeProduto.objects.filter(
+            company=self.request.tenant,
+            ativo=True,
+        ).order_by("nome")
         if context.get("can_add"):
             context["create_form"] = ProdutoForm(tenant=self.request.tenant)
         else:
@@ -216,6 +233,39 @@ class ProdutoFornecedorAnexoMixin:
         if fornecedores_to_create:
             ProdutoFornecedor.objects.bulk_create(fornecedores_to_create)
 
+    def _save_grades(self, produto, errors, replace=False):
+        grades_data = self._parse_indexed_data("grades", self.request.POST)
+        to_create = []
+        seen = set()
+        for index in sorted(grades_data.keys()):
+            fields = grades_data[index]
+            cleaned = {key: (value or "").strip() for key, value in fields.items()}
+            grade_id = cleaned.get("grade_id")
+            if not grade_id:
+                continue
+            if grade_id in seen:
+                continue
+            seen.add(grade_id)
+            grade = GradeProduto.objects.filter(company=self.request.tenant, pk=grade_id, ativo=True).first()
+            if not grade:
+                errors.append(f"Grade invalida na linha {index + 1}.")
+                continue
+            to_create.append(
+                ProdutoGrade(
+                    company=self.request.tenant,
+                    produto=produto,
+                    grade=grade,
+                    created_by=self.request.user,
+                    updated_by=self.request.user,
+                )
+            )
+        if errors:
+            return
+        if replace:
+            ProdutoGrade.objects.filter(company=self.request.tenant, produto=produto).delete()
+        if to_create:
+            ProdutoGrade.objects.bulk_create(to_create, ignore_conflicts=True)
+
     def _save_anexos(self, produto, errors, replace=False):
         anexos_data = self._parse_indexed_data("anexos", self.request.POST)
         indices = set(anexos_data.keys())
@@ -291,6 +341,7 @@ class ProdutoCreateView(ProdutoFornecedorAnexoMixin, BaseTenantCreateView):
                 self._assign_tenant_fields(form)
                 self.object = form.save()
                 self._save_fornecedores(self.object, errors)
+                self._save_grades(self.object, errors)
                 self._save_anexos(self.object, errors)
                 if errors:
                     raise ValueError("produto_create_errors")
@@ -311,6 +362,11 @@ class ProdutoCreateView(ProdutoFornecedorAnexoMixin, BaseTenantCreateView):
                 {"produto": produto},
                 request=self.request,
             )
+            produto_grades = ProdutoGrade.objects.filter(
+                company=self.request.tenant,
+                produto=produto,
+            ).select_related("grade").order_by("grade__nome")
+            grades_disponiveis = GradeProduto.objects.filter(company=self.request.tenant, ativo=True).order_by("nome")
             edit_modal_html = render_to_string(
                 "produtos/_produto_modal_form.html",
                 {
@@ -322,6 +378,8 @@ class ProdutoCreateView(ProdutoFornecedorAnexoMixin, BaseTenantCreateView):
                     "prefix": f"edit-{produto.pk}",
                     "fornecedores": produto.fornecedores_rel.all(),
                     "anexos": produto.anexos.all(),
+                    "grades_disponiveis": grades_disponiveis,
+                    "produto_grades": produto_grades,
                 },
                 request=self.request,
             )
@@ -336,6 +394,8 @@ class ProdutoCreateView(ProdutoFornecedorAnexoMixin, BaseTenantCreateView):
                     "prefix": "create",
                     "fornecedores": None,
                     "anexos": None,
+                    "grades_disponiveis": grades_disponiveis,
+                    "produto_grades": None,
                 },
                 request=self.request,
             )
@@ -353,6 +413,7 @@ class ProdutoCreateView(ProdutoFornecedorAnexoMixin, BaseTenantCreateView):
 
     def form_invalid(self, form):
         if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            grades_disponiveis = GradeProduto.objects.filter(company=self.request.tenant, ativo=True).order_by("nome")
             modal_html = render_to_string(
                 "produtos/_produto_modal_form.html",
                 {
@@ -364,6 +425,8 @@ class ProdutoCreateView(ProdutoFornecedorAnexoMixin, BaseTenantCreateView):
                     "prefix": "create",
                     "fornecedores": None,
                     "anexos": None,
+                    "grades_disponiveis": grades_disponiveis,
+                    "produto_grades": None,
                     },
                 request=self.request,
             )
@@ -388,6 +451,7 @@ class ProdutoUpdateView(ProdutoFornecedorAnexoMixin, BaseTenantUpdateView):
                 self._assign_tenant_fields(form)
                 self.object = form.save()
                 self._save_fornecedores(self.object, errors, replace=True)
+                self._save_grades(self.object, errors, replace=True)
                 self._save_anexos(self.object, errors, replace=True)
                 if errors:
                     raise ValueError("produto_update_errors")
@@ -403,6 +467,11 @@ class ProdutoUpdateView(ProdutoFornecedorAnexoMixin, BaseTenantUpdateView):
             return self.form_invalid(form)
         if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
             produto = self._get_annotated_produto(self.object.pk)
+            produto_grades = ProdutoGrade.objects.filter(
+                company=self.request.tenant,
+                produto=produto,
+            ).select_related("grade").order_by("grade__nome")
+            grades_disponiveis = GradeProduto.objects.filter(company=self.request.tenant, ativo=True).order_by("nome")
             row_html = render_to_string(
                 "produtos/_produto_row.html",
                 {"produto": produto},
@@ -419,6 +488,8 @@ class ProdutoUpdateView(ProdutoFornecedorAnexoMixin, BaseTenantUpdateView):
                     "prefix": f"edit-{produto.pk}",
                     "fornecedores": produto.fornecedores_rel.all(),
                     "anexos": produto.anexos.all(),
+                    "grades_disponiveis": grades_disponiveis,
+                    "produto_grades": produto_grades,
                 },
                 request=self.request,
             )
@@ -436,6 +507,11 @@ class ProdutoUpdateView(ProdutoFornecedorAnexoMixin, BaseTenantUpdateView):
     def form_invalid(self, form):
         if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
             produto = form.instance
+            grades_disponiveis = GradeProduto.objects.filter(company=self.request.tenant, ativo=True).order_by("nome")
+            produto_grades = ProdutoGrade.objects.filter(
+                company=self.request.tenant,
+                produto=produto,
+            ).select_related("grade").order_by("grade__nome")
             modal_html = render_to_string(
                 "produtos/_produto_modal_form.html",
                 {
@@ -447,6 +523,8 @@ class ProdutoUpdateView(ProdutoFornecedorAnexoMixin, BaseTenantUpdateView):
                     "prefix": f"edit-{produto.pk}",
                     "fornecedores": produto.fornecedores_rel.all(),
                     "anexos": produto.anexos.all(),
+                    "grades_disponiveis": grades_disponiveis,
+                    "produto_grades": produto_grades,
                 },
                 request=self.request,
             )
@@ -730,6 +808,168 @@ class UnidadeProdutoDeleteView(PermissionRequiredMixin, View):
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return JsonResponse({"ok": True, "row_id": pk})
         return HttpResponseRedirect(reverse("produtos:unidades_list"))
+
+
+class GradeProdutoListView(BaseTenantListView):
+    model = GradeProduto
+    template_name = "produtos/grades_list.html"
+    form_class = GradeProdutoForm
+    title = "Grades"
+    headers = ["Nome", "Ativo"]
+    row_fields = ["nome", "ativo"]
+    filter_definitions = [
+        {"name": "nome", "label": "Nome", "lookup": "icontains", "type": "text"},
+        {
+            "name": "ativo",
+            "label": "Ativo",
+            "lookup": "exact_bool",
+            "type": "select",
+            "options": [("", "Todos"), ("1", "Ativo"), ("0", "Inativo")],
+        },
+    ]
+    create_url_name = "produtos:grades_create"
+    update_url_name = "produtos:grades_update"
+
+
+class GradeProdutoCreateView(BaseTenantCreateView):
+    model = GradeProduto
+    form_class = GradeProdutoForm
+    success_url_name = "produtos:grades_list"
+
+    def form_valid(self, form):
+        nome = (form.cleaned_data.get("nome") or "").strip()
+        if nome and GradeProduto.objects.filter(company=self.request.tenant, nome__iexact=nome).exists():
+            form.add_error("nome", "Grade ja cadastrada.")
+            return self.form_invalid(form)
+        response = super().form_valid(form)
+        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            row_html = render_to_string(
+                "produtos/_grade_produto_row.html",
+                {"grade": self.object},
+                request=self.request,
+            )
+            edit_modal_html = render_to_string(
+                "produtos/_grade_produto_edit_modal.html",
+                {
+                    "grade": self.object,
+                    "form": GradeProdutoForm(instance=self.object),
+                    "update_url": reverse("produtos:grades_update", args=[self.object.pk]),
+                },
+                request=self.request,
+            )
+            form_html = render_to_string(
+                "components/_form.html",
+                {"form": GradeProdutoForm(), "form_action": reverse("produtos:grades_create")},
+                request=self.request,
+            )
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "action": "create",
+                    "row_id": self.object.pk,
+                    "row_html": row_html,
+                    "edit_modal_html": edit_modal_html,
+                    "form_html": form_html,
+                }
+            )
+        return response
+
+    def form_invalid(self, form):
+        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            form_html = render_to_string(
+                "components/_form.html",
+                {"form": form, "form_action": reverse("produtos:grades_create")},
+                request=self.request,
+            )
+            return JsonResponse({"ok": False, "form_html": form_html}, status=400)
+        return super().form_invalid(form)
+
+
+class GradeProdutoUpdateView(BaseTenantUpdateView):
+    model = GradeProduto
+    form_class = GradeProdutoForm
+    success_url_name = "produtos:grades_list"
+
+    def form_valid(self, form):
+        nome = (form.cleaned_data.get("nome") or "").strip()
+        if (
+            nome
+            and GradeProduto.objects.filter(company=self.request.tenant, nome__iexact=nome)
+            .exclude(pk=form.instance.pk)
+            .exists()
+        ):
+            form.add_error("nome", "Grade ja cadastrada.")
+            return self.form_invalid(form)
+        response = super().form_valid(form)
+        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            row_html = render_to_string(
+                "produtos/_grade_produto_row.html",
+                {"grade": self.object},
+                request=self.request,
+            )
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "action": "update",
+                    "row_id": self.object.pk,
+                    "row_html": row_html,
+                }
+            )
+        return response
+
+    def form_invalid(self, form):
+        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            form_html = render_to_string(
+                "components/_form.html",
+                {
+                    "form": form,
+                    "form_action": reverse("produtos:grades_update", args=[self.get_object().pk]),
+                },
+                request=self.request,
+            )
+            return JsonResponse(
+                {"ok": False, "form_html": form_html, "row_id": self.get_object().pk},
+                status=400,
+            )
+        return super().form_invalid(form)
+
+
+class GradeProdutoToggleActiveView(PermissionRequiredMixin, View):
+    permission_required = "produtos.change_gradeproduto"
+
+    def post(self, request, pk):
+        grade = GradeProduto.objects.filter(pk=pk, company=request.tenant).first()
+        if not grade:
+            return JsonResponse({"ok": False}, status=404)
+        grade.ativo = not grade.ativo
+        grade.updated_by = request.user
+        grade.save(update_fields=["ativo", "updated_by"])
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            row_html = render_to_string(
+                "produtos/_grade_produto_row.html",
+                {"grade": grade},
+                request=request,
+            )
+            return JsonResponse({"ok": True, "row_id": grade.pk, "row_html": row_html})
+        return HttpResponseRedirect(reverse("produtos:grades_list"))
+
+
+class GradeProdutoDeleteView(PermissionRequiredMixin, View):
+    permission_required = "produtos.delete_gradeproduto"
+
+    def post(self, request, pk):
+        grade = GradeProduto.objects.filter(pk=pk, company=request.tenant).first()
+        if not grade:
+            return JsonResponse({"ok": False}, status=404)
+        if ProdutoGrade.objects.filter(company=request.tenant, grade=grade).exists():
+            message = "Grade em uso por um produto."
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return JsonResponse({"ok": False, "message": message}, status=400)
+            return HttpResponseRedirect(reverse("produtos:grades_list"))
+        grade.delete()
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"ok": True, "row_id": pk})
+        return HttpResponseRedirect(reverse("produtos:grades_list"))
 
 
 class FamiliaProdutoListView(BaseTenantListView):
@@ -2052,5 +2292,6 @@ class CaImportView(PermissionRequiredMixin, View):
             "next_offset": next_offset,
             "create_form": ProdutoForm(tenant=request.tenant),
             "create_produto_url": reverse("produtos:create"),
+            "grades_disponiveis": GradeProduto.objects.filter(company=request.tenant, ativo=True).order_by("nome"),
         }
         return render(request, self.template_name, context)

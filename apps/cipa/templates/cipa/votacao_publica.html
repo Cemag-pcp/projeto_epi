@@ -1,0 +1,118 @@
+{% extends "layout/public.html" %}
+
+{% block title %}Votação CIPA{% endblock %}
+
+{% block content %}
+  {% include "components/_alerts.html" %}
+
+  <div class="mb-3">
+    <h1 class="h4 mb-1">Votação</h1>
+    <div class="text-muted">{{ eleicao.nome|default:"Eleição CIPA" }}</div>
+  </div>
+
+  {% if inactive %}
+    <div class="alert alert-warning">A votação não está aberta para esta eleição.</div>
+  {% elif closed %}
+    <div class="alert alert-success">Votação encerrada. Resultado computado abaixo.</div>
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="d-flex flex-wrap gap-2">
+          <div><span class="fw-semibold">Total:</span> {{ result.total }}</div>
+          <div><span class="fw-semibold">Candidato:</span> {{ result.candidato }}</div>
+          <div><span class="fw-semibold">Branco:</span> {{ result.branco }}</div>
+          <div><span class="fw-semibold">Nulo:</span> {{ result.nulo }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Candidato</th>
+              <th class="text-end">Votos</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in result.rows %}
+              <tr>
+                <td>
+                  {% if row.candidato.numero %}<span class="text-muted">#{{ row.candidato.numero }}</span>{% endif %}
+                  {{ row.candidato.funcionario }}
+                </td>
+                <td class="text-end">{{ row.votos }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="2" class="text-muted text-center py-4">Sem votos computados.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="card">
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger py-2">
+              {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.eleitor.id_for_label }}">{{ form.eleitor.label }}</label>
+            {{ form.eleitor }}
+            {% for error in form.eleitor.errors %}
+              <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="row g-3">
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}</label>
+              {{ form.tipo }}
+              {% for error in form.tipo.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
+            </div>
+            <div class="col-12 col-md-8">
+              <label class="form-label" for="{{ form.candidato.id_for_label }}">{{ form.candidato.label }}</label>
+              {{ form.candidato }}
+              {% for error in form.candidato.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="d-flex gap-2 justify-content-end mt-3">
+            <button class="btn btn-primary" type="submit">Confirmar voto</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        var tipo = document.getElementById("{{ form.tipo.id_for_label }}");
+        var candidato = document.getElementById("{{ form.candidato.id_for_label }}");
+        function sync() {
+          if (!tipo || !candidato) return;
+          var isCandidate = tipo.value === "candidato";
+          candidato.disabled = !isCandidate;
+          if (!isCandidate) candidato.value = "";
+        }
+        if (tipo) tipo.addEventListener("change", sync);
+        sync();
+      })();
+    </script>
+  {% endif %}
+{% endblock %}
+

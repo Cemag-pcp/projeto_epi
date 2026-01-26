@@ -1,6 +1,6 @@
 {% for row in edit_rows %}
   {% with pk_str=row.object.pk|stringformat:"s" %}
-    {% include "produtos/_produto_modal_form.html" with modal_id="editModal-"|add:pk_str modal_label_id="editModalLabel-"|add:pk_str modal_title="Editar" form=row.form form_action=row.update_url prefix="edit-"|add:pk_str fornecedores=row.object.fornecedores_rel.all anexos=row.object.anexos.all %}
-    {% include "produtos/_produto_modal_form.html" with modal_id="viewModal-"|add:pk_str modal_label_id="viewModalLabel-"|add:pk_str modal_title="Visualizar" form=row.form form_action=row.update_url prefix="view-"|add:pk_str fornecedores=row.object.fornecedores_rel.all anexos=row.object.anexos.all read_only=True %}
+    {% include "produtos/_produto_modal_form.html" with modal_id="editModal-"|add:pk_str modal_label_id="editModalLabel-"|add:pk_str modal_title="Editar" form=row.form form_action=row.update_url prefix="edit-"|add:pk_str fornecedores=row.object.fornecedores_rel.all anexos=row.object.anexos.all grades_disponiveis=grades_disponiveis produto_grades=row.object.produto_grades.all %}
+    {% include "produtos/_produto_modal_form.html" with modal_id="viewModal-"|add:pk_str modal_label_id="viewModalLabel-"|add:pk_str modal_title="Visualizar" form=row.form form_action=row.update_url prefix="view-"|add:pk_str fornecedores=row.object.fornecedores_rel.all anexos=row.object.anexos.all grades_disponiveis=grades_disponiveis produto_grades=row.object.produto_grades.all read_only=True %}
   {% endwith %}
 {% endfor %}

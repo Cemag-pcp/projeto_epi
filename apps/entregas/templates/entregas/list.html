@@ -19,6 +19,11 @@
             Solicitar entrega
           </button>
         {% endif %}
+        {% if can_devolver %}
+          <button class="btn btn-outline-success" type="button" data-bs-toggle="modal" data-bs-target="#devolucaoModal">
+            Devolver
+          </button>
+        {% endif %}
       </div>
     {% endif %}
   </div>
@@ -86,6 +91,7 @@
                     <tr>
                       <th>Funcionario</th>
                       <th>Produto / CA</th>
+                      <th>Grade</th>
                       <th>Deposito</th>
                       <th>Quantidade</th>
                       <th class="text-end">Acoes</th>
@@ -93,7 +99,7 @@
                   </thead>
                   <tbody data-entrega-items>
                     <tr>
-                      <td colspan="5" class="text-muted text-center py-3">Nenhum item adicionado</td>
+                      <td colspan="6" class="text-muted text-center py-3">Nenhum item adicionado</td>
                     </tr>
                   </tbody>
                 </table>
@@ -183,6 +189,120 @@
       </div>
     </div>
   </div>
+
+  {% if can_devolver %}
+    <div class="modal fade" id="devolucaoModal" tabindex="-1" aria-labelledby="devolucaoModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="devolucaoModalLabel">Devolucao de material</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <form id="devolucao-form" action="{{ devolucao_confirmar_url }}" method="post">
+              {% csrf_token %}
+            </form>
+
+            <div class="alert alert-danger d-none" data-devolucao-error></div>
+
+            <div class="row g-3">
+              <div class="col-12 col-md-6">
+                <label class="form-label" for="devolucao-funcionario">Funcionario</label>
+                <select class="form-select" id="devolucao-funcionario">
+                  <option value="">Selecione...</option>
+                  {% for func in devolucao_funcionarios %}
+                    <option value="{{ func.id }}">{{ func.registro|default:"-" }} - {{ func.nome }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label" for="devolucao-item-select">Item recebido</label>
+                <select class="form-select" id="devolucao-item-select" disabled>
+                  <option value="">Selecione o funcionario...</option>
+                </select>
+              </div>
+              <div class="col-12 col-md-3">
+                <label class="form-label" for="devolucao-quantidade">Quantidade</label>
+                <input class="form-control" id="devolucao-quantidade" type="number" min="0.01" step="0.01" disabled>
+                <div class="form-text" data-devolucao-saldo>Saldo: -</div>
+              </div>
+              <div class="col-12 col-md-3">
+                <label class="form-label" for="devolucao-condicao">Condicao</label>
+                <select class="form-select" id="devolucao-condicao" disabled>
+                  {% for value, label in condicao_choices %}
+                    <option value="{{ value }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label" for="devolucao-motivo">Motivo/Obs.</label>
+                <div class="d-flex align-items-center gap-3">
+                  <input class="form-control" id="devolucao-motivo" type="text" disabled>
+                  <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" id="devolucao-volta-estoque" checked disabled>
+                    <label class="form-check-label" for="devolucao-volta-estoque">Volta para estoque</label>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-md-2 d-flex align-items-end">
+                <button class="btn btn-outline-primary w-100" type="button" id="devolucao-add" disabled>
+                  Add
+                </button>
+              </div>
+            </div>
+
+            <hr class="my-4">
+
+            <h6 class="mb-2">Itens recebidos</h6>
+            <div class="table-responsive mb-4">
+              <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Entrega</th>
+                    <th>Data</th>
+                    <th>Produto</th>
+                    <th>Deposito</th>
+                    <th>Grade</th>
+                    <th class="text-end">Saldo</th>
+                  </tr>
+                </thead>
+                <tbody data-devolucao-items>
+                  <tr>
+                    <td colspan="6" class="text-muted text-center py-3">Selecione um funcionario para carregar.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h6 class="mb-2">Resumo da devolucao</h6>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Item</th>
+                    <th class="text-end">Quantidade</th>
+                    <th>Condicao</th>
+                    <th>Motivo</th>
+                    <th>Estoque</th>
+                    <th class="text-end">Acoes</th>
+                  </tr>
+                </thead>
+                <tbody data-devolucao-resumo>
+                  <tr>
+                    <td colspan="6" class="text-muted text-center py-3">Nenhum item adicionado</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Fechar</button>
+            <button class="btn btn-success" type="button" id="devolucao-confirmar" disabled>Confirmar devolucao</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
 
   <div class="modal fade" id="entregaValidacaoModal" tabindex="-1" aria-labelledby="entregaValidacaoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -563,36 +683,39 @@
           bodyEl.appendChild(table);
         }
 
-        function renderItems() {
-          var tbody = modalBody ? modalBody.querySelector("[data-entrega-items]") : null;
-          if (!tbody) {
-            return;
-          }
-          var isReadonly = modalBody && modalBody.dataset.entregaMode === "readonly";
-          if (modalBody) {
-            modalBody.dataset.items = JSON.stringify(items);
-          }
-          if (!items.length) {
-            tbody.innerHTML =
-              '<tr><td colspan="5" class="text-muted text-center py-3">Nenhum item adicionado</td></tr>';
-            return;
-          }
-          tbody.innerHTML = items
-            .map(function (item, index) {
-              return (
-                "<tr>" +
-                "<td>" +
-                item.funcionario_label +
-                "</td>" +
-                "<td>" +
-                item.produto_fornecedor_label +
-                "</td>" +
-                "<td>" +
-                item.deposito_label +
-                "</td>" +
-                "<td>" +
-                item.quantidade +
-                "</td>" +
+          function renderItems() {
+            var tbody = modalBody ? modalBody.querySelector("[data-entrega-items]") : null;
+            if (!tbody) {
+              return;
+            }
+            var isReadonly = modalBody && modalBody.dataset.entregaMode === "readonly";
+            if (modalBody) {
+              modalBody.dataset.items = JSON.stringify(items);
+            }
+            if (!items.length) {
+              tbody.innerHTML =
+              '<tr><td colspan="6" class="text-muted text-center py-3">Nenhum item adicionado</td></tr>';
+              return;
+            }
+            tbody.innerHTML = items
+              .map(function (item, index) {
+                return (
+                  "<tr>" +
+                  "<td>" +
+                  item.funcionario_label +
+                  "</td>" +
+                  "<td>" +
+                  item.produto_fornecedor_label +
+                  "</td>" +
+                  "<td>" +
+                  (item.grade_label || "-") +
+                  "</td>" +
+                  "<td>" +
+                  item.deposito_label +
+                  "</td>" +
+                  "<td>" +
+                  item.quantidade +
+                  "</td>" +
                 '<td class="text-end">' +
                 (isReadonly
                   ? '<span class="text-muted">-</span>'
@@ -656,6 +779,7 @@
             var funcionarioField = form.querySelector("[name='funcionario']");
             var produtoField = form.querySelector("[name='produto_fornecedor']");
             var depositoField = form.querySelector("[name='deposito']");
+            var gradeField = form.querySelector("[name='grade']");
             var quantidadeField = form.querySelector("[name='quantidade']");
             var observacaoField = form.querySelector("[name='observacao']");
             if (!funcionarioField || !produtoField || !depositoField || !quantidadeField) {
@@ -673,6 +797,9 @@
               deposito_id: depositoField.value,
               deposito_label: depositoField.options[depositoField.selectedIndex].text,
               quantidade: quantidadeField.value,
+              grade: gradeField ? gradeField.value : "",
+              grade_label:
+                gradeField && gradeField.value ? gradeField.options[gradeField.selectedIndex].text : "-",
               observacao: observacaoField ? observacaoField.value : "",
             });
             if (quantidadeField) {
@@ -688,6 +815,7 @@
         function bindProdutoChange() {
           var produtoField = form.querySelector("[name='produto_fornecedor']");
           var depositoField = form.querySelector("[name='deposito']");
+          var gradeField = form.querySelector("[name='grade']");
           if (!produtoField || !depositoField) {
             return;
           }
@@ -717,6 +845,18 @@
             setSelectDisabled(depositoField, true);
             refreshChoices(depositoField);
           }
+          function resetGrades(message) {
+            if (!gradeField) {
+              return;
+            }
+            gradeField.innerHTML = "";
+            var option = document.createElement("option");
+            option.value = "";
+            option.textContent = message || "Selecione um produto";
+            gradeField.appendChild(option);
+            setSelectDisabled(gradeField, true);
+            refreshChoices(gradeField);
+          }
           function populateDepositos(items) {
             depositoField.innerHTML = "";
             var placeholder = document.createElement("option");
@@ -732,17 +872,39 @@
             setSelectDisabled(depositoField, false);
             refreshChoices(depositoField);
           }
+          function populateGrades(items) {
+            if (!gradeField) {
+              return;
+            }
+            gradeField.innerHTML = "";
+            var placeholder = document.createElement("option");
+            placeholder.value = "";
+            placeholder.textContent = "Selecione";
+            gradeField.appendChild(placeholder);
+            items.forEach(function (value) {
+              var opt = document.createElement("option");
+              opt.value = value;
+              opt.textContent = value;
+              gradeField.appendChild(opt);
+            });
+            setSelectDisabled(gradeField, false);
+            refreshChoices(gradeField);
+          }
           resetDepositos();
+          resetGrades();
           produtoField.addEventListener("change", function () {
             if (!produtoField.value) {
               resetDepositos();
+              resetGrades();
               return;
             }
             if (!depositosUrl) {
               resetDepositos("Nao foi possivel carregar depositos");
+              resetGrades("Nao foi possivel carregar grades");
               return;
             }
             resetDepositos("Carregando...");
+            resetGrades("Carregando...");
             fetch(depositosUrl + "?produto_fornecedor_id=" + encodeURIComponent(produtoField.value), {
               headers: { "X-Requested-With": "XMLHttpRequest" },
             })
@@ -752,7 +914,13 @@
               .then(function (data) {
                 if (!data || !data.ok) {
                   resetDepositos("Nenhum deposito encontrado");
+                  resetGrades("Sem Grade");
                   return;
+                }
+                if (data.grades && data.grades.length) {
+                  populateGrades(data.grades);
+                } else {
+                  resetGrades("Sem Grade");
                 }
                 if (!data.depositos || !data.depositos.length) {
                   resetDepositos("Nenhum deposito encontrado");
@@ -762,6 +930,7 @@
               })
               .catch(function () {
                 resetDepositos("Erro ao carregar depositos");
+                resetGrades("Erro ao carregar grades");
               });
           });
         }
@@ -770,6 +939,7 @@
           var funcionarioField = form.querySelector("[name='funcionario']");
           var produtoField = form.querySelector("[name='produto_fornecedor']");
           var depositoField = form.querySelector("[name='deposito']");
+          var gradeField = form.querySelector("[name='grade']");
           if (!funcionarioField || !produtoField) {
             return;
           }
@@ -806,6 +976,15 @@
               depositoField.appendChild(depoOpt);
               setSelectDisabled(depositoField, true);
               refreshChoices(depositoField);
+            }
+            if (gradeField) {
+              gradeField.innerHTML = "";
+              var gradeOpt = document.createElement("option");
+              gradeOpt.value = "";
+              gradeOpt.textContent = "Selecione um produto";
+              gradeField.appendChild(gradeOpt);
+              setSelectDisabled(gradeField, true);
+              refreshChoices(gradeField);
             }
           }
           function populateProdutos(items) {
@@ -1230,10 +1409,6 @@
             bootstrap.Modal.getInstance(modalEl).hide();
           }
           removeValidacaoBackdrop();
-          var form = document.querySelector("#createModal form");
-          if (!form || typeof form._submitEntregaComValidacao !== "function") {
-            return;
-          }
           var payload = {};
           var wrappers = modalEl ? modalEl.querySelectorAll("[data-funcionario-validacao]") : [];
           wrappers.forEach(function (wrapper) {
@@ -1249,6 +1424,16 @@
             var input = wrapper.querySelector("input[data-funcionario-validacao-id]");
             payload[id] = input ? input.value || "" : "";
           });
+          if (typeof window.__entregaValidacaoHandler === "function") {
+            var handler = window.__entregaValidacaoHandler;
+            window.__entregaValidacaoHandler = null;
+            handler(payload);
+            return;
+          }
+          var form = document.querySelector("#createModal form");
+          if (!form || typeof form._submitEntregaComValidacao !== "function") {
+            return;
+          }
           form._submitEntregaComValidacao(payload);
         });
       }
@@ -1320,6 +1505,489 @@
                 }
               });
           });
+        });
+      }
+
+      function bindEntregaDevolucao() {
+        var modalBody = document.querySelector("[data-entrega-detail-body]");
+        if (!modalBody || modalBody.dataset.devolucaoBound === "1") {
+          return;
+        }
+        modalBody.dataset.devolucaoBound = "1";
+        modalBody.addEventListener("submit", function (event) {
+          var form = event.target;
+          if (!form || !form.classList || !form.classList.contains("js-entrega-devolver-form")) {
+            return;
+          }
+          event.preventDefault();
+          var url = form.getAttribute("action");
+          if (!url) {
+            return;
+          }
+          var errorEl = modalBody.querySelector("[data-entrega-devolucao-error]");
+          if (errorEl) {
+            errorEl.textContent = "";
+            errorEl.classList.add("d-none");
+          }
+          showEntregaLoading();
+          fetch(url, {
+            method: "POST",
+            body: new FormData(form),
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          })
+            .then(function (response) {
+              return response
+                .json()
+                .then(function (data) {
+                  return { ok: response.ok, data: data };
+                })
+                .catch(function () {
+                  return { ok: response.ok, data: null };
+                });
+            })
+            .then(function (result) {
+              hideEntregaLoading();
+              if (!result.ok || !result.data || !result.data.ok) {
+                var message = (result.data && result.data.message) || "Erro ao registrar devolucao.";
+                if (errorEl) {
+                  errorEl.textContent = message;
+                  errorEl.classList.remove("d-none");
+                  return;
+                }
+                window.alert(message);
+                return;
+              }
+              modalBody.innerHTML = result.data.html;
+            })
+            .catch(function () {
+              hideEntregaLoading();
+              if (errorEl) {
+                errorEl.textContent = "Erro ao registrar devolucao.";
+                errorEl.classList.remove("d-none");
+                return;
+              }
+              window.alert("Erro ao registrar devolucao.");
+            });
+        });
+      }
+
+      function bindDevolucaoModal() {
+        var modalEl = document.getElementById("devolucaoModal");
+        if (!modalEl || modalEl.dataset.bound === "1") {
+          return;
+        }
+        modalEl.dataset.bound = "1";
+        modalEl._devolucaoState = {
+          funcionarioId: "",
+          itemsById: {},
+          selected: [],
+        };
+
+        var funcionarioSelect = modalEl.querySelector("#devolucao-funcionario");
+        var itemSelect = modalEl.querySelector("#devolucao-item-select");
+        var qtdInput = modalEl.querySelector("#devolucao-quantidade");
+        var condicaoSelect = modalEl.querySelector("#devolucao-condicao");
+        var motivoInput = modalEl.querySelector("#devolucao-motivo");
+        var voltaEstoqueInput = modalEl.querySelector("#devolucao-volta-estoque");
+        var addBtn = modalEl.querySelector("#devolucao-add");
+        var confirmBtn = modalEl.querySelector("#devolucao-confirmar");
+        var saldoEl = modalEl.querySelector("[data-devolucao-saldo]");
+        var itemsTbody = modalEl.querySelector("[data-devolucao-items]");
+        var resumoTbody = modalEl.querySelector("[data-devolucao-resumo]");
+        var errorEl = modalEl.querySelector("[data-devolucao-error]");
+        var form = modalEl.querySelector("#devolucao-form");
+
+        function setSelectDisabled(selectEl, disabled) {
+          if (!selectEl) return;
+          selectEl.disabled = !!disabled;
+          var instance = selectEl._choicesInstance;
+          if (instance && typeof instance.disable === "function" && typeof instance.enable === "function") {
+            if (disabled) {
+              instance.disable();
+            } else {
+              // Choices pode manter as opcoes como "disabled" se o <select> iniciou desabilitado.
+              // Re-habilita o snapshot para que todas as opcoes fiquem selecionaveis.
+              if (Array.isArray(selectEl._choicesSnapshot)) {
+                selectEl._choicesSnapshot = selectEl._choicesSnapshot.map(function (item) {
+                  return Object.assign({}, item, { disabled: false });
+                });
+              }
+              instance.enable();
+            }
+          }
+        }
+
+        function refreshSelectChoices(selectEl, resetSnapshot) {
+          if (!selectEl) return;
+          if (window.clarusChoices && typeof window.clarusChoices.refresh === "function") {
+            // Para selects dinamicos (ex: itemSelect), zeramos snapshot para nao misturar opcoes antigas.
+            // Para selects estaticos (ex: condicao), nao resetar snapshot (Choices pode remover options do DOM).
+            if (resetSnapshot) {
+              selectEl._choicesSnapshot = [];
+            }
+            window.clarusChoices.refresh(selectEl);
+          }
+        }
+
+        function showError(message) {
+          if (!errorEl) return;
+          errorEl.textContent = message || "Erro.";
+          errorEl.classList.remove("d-none");
+        }
+
+        function clearError() {
+          if (!errorEl) return;
+          errorEl.textContent = "";
+          errorEl.classList.add("d-none");
+        }
+
+        function setControlsEnabled(enabled) {
+          setSelectDisabled(itemSelect, !enabled);
+          if (qtdInput) qtdInput.disabled = !enabled;
+          setSelectDisabled(condicaoSelect, !enabled);
+          // Garante que o dropdown do Choices reflita o estado habilitado.
+          refreshSelectChoices(condicaoSelect, false);
+          if (motivoInput) motivoInput.disabled = !enabled;
+          if (voltaEstoqueInput) voltaEstoqueInput.disabled = !enabled;
+          if (addBtn) addBtn.disabled = !enabled;
+        }
+
+        function updateConfirmEnabled() {
+          var hasItems = modalEl._devolucaoState.selected && modalEl._devolucaoState.selected.length > 0;
+          if (confirmBtn) confirmBtn.disabled = !hasItems;
+        }
+
+        function renderItemsTable(items) {
+          if (!itemsTbody) return;
+          if (!items || !items.length) {
+            itemsTbody.innerHTML = '<tr><td colspan="6" class="text-muted text-center py-3">Nenhum item com saldo.</td></tr>';
+            return;
+          }
+          itemsTbody.innerHTML = "";
+          items.forEach(function (item) {
+            var tr = document.createElement("tr");
+            var dt = item.entregue_em ? new Date(item.entregue_em) : null;
+            var dtLabel = dt ? dt.toLocaleString("pt-BR") : "-";
+            tr.innerHTML =
+              "<td>" + (item.entrega_label || "-") + "</td>" +
+              "<td>" + dtLabel + "</td>" +
+              "<td>" + (item.produto_label || "-") + "</td>" +
+              "<td>" + (item.deposito_label || "-") + "</td>" +
+              "<td>" + (item.grade || "-") + "</td>" +
+              '<td class="text-end">' + (item.saldo || "-") + "</td>";
+            itemsTbody.appendChild(tr);
+          });
+        }
+
+        function renderItemSelect(items) {
+          if (!itemSelect) return;
+          itemSelect.innerHTML = "";
+          if (!items || !items.length) {
+            var opt = document.createElement("option");
+            opt.value = "";
+            opt.textContent = "Nenhum item com saldo...";
+            itemSelect.appendChild(opt);
+            setSelectDisabled(itemSelect, true);
+            refreshSelectChoices(itemSelect, true);
+            return;
+          }
+          var placeholder = document.createElement("option");
+          placeholder.value = "";
+          placeholder.textContent = "Selecione...";
+          itemSelect.appendChild(placeholder);
+          items.forEach(function (item) {
+            var opt = document.createElement("option");
+            opt.value = item.entrega_item_id;
+            opt.textContent =
+              (item.entrega_label || "Entrega") +
+              " | " +
+              (item.produto_label || "-") +
+              " | " +
+              (item.deposito_label || "-") +
+              " | Saldo " +
+              (item.saldo || "-");
+            itemSelect.appendChild(opt);
+          });
+          setSelectDisabled(itemSelect, false);
+          refreshSelectChoices(itemSelect, true);
+        }
+
+        function renderResumo() {
+          if (!resumoTbody) return;
+          var selected = modalEl._devolucaoState.selected || [];
+          if (!selected.length) {
+            resumoTbody.innerHTML = '<tr><td colspan="6" class="text-muted text-center py-3">Nenhum item adicionado</td></tr>';
+            updateConfirmEnabled();
+            return;
+          }
+          resumoTbody.innerHTML = "";
+          selected.forEach(function (row, idx) {
+            var tr = document.createElement("tr");
+            tr.innerHTML =
+              "<td>" + (row.label || "-") + "</td>" +
+              '<td class="text-end">' + (row.quantidade || "-") + "</td>" +
+              "<td>" + (row.condicao_label || row.condicao || "-") + "</td>" +
+              "<td>" + (row.motivo || "-") + "</td>" +
+              "<td>" + (row.volta_para_estoque ? "Sim" : "Nao") + "</td>" +
+              '<td class="text-end"><button class="btn btn-sm btn-outline-danger" type="button" data-devolucao-remove="' + idx + '">Remover</button></td>';
+            resumoTbody.appendChild(tr);
+          });
+          updateConfirmEnabled();
+        }
+
+        function loadItems(funcionarioId) {
+          clearError();
+          modalEl._devolucaoState.funcionarioId = funcionarioId;
+          modalEl._devolucaoState.itemsById = {};
+          modalEl._devolucaoState.selected = [];
+          renderResumo();
+          updateConfirmEnabled();
+          if (saldoEl) saldoEl.textContent = "Saldo: -";
+          if (!funcionarioId) {
+            setControlsEnabled(false);
+            if (itemSelect) {
+              itemSelect.innerHTML = '<option value="">Selecione o funcionario...</option>';
+              setSelectDisabled(itemSelect, true);
+              refreshSelectChoices(itemSelect, true);
+            }
+            if (itemsTbody) {
+              itemsTbody.innerHTML = '<tr><td colspan="6" class="text-muted text-center py-3">Selecione um funcionario para carregar.</td></tr>';
+            }
+            return;
+          }
+          showEntregaLoading();
+          fetch("{{ devolucao_itens_url }}?funcionario_id=" + encodeURIComponent(funcionarioId), {
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          })
+            .then(function (response) {
+              return response
+                .json()
+                .then(function (data) {
+                  return { ok: response.ok, data: data };
+                })
+                .catch(function () {
+                  return { ok: response.ok, data: null };
+                });
+            })
+            .then(function (result) {
+              hideEntregaLoading();
+              if (!result.ok || !result.data || !result.data.ok) {
+                setControlsEnabled(false);
+                showError("Erro ao carregar itens do funcionario.");
+                renderItemsTable([]);
+                renderItemSelect([]);
+                return;
+              }
+              var items = result.data.items || [];
+              items.forEach(function (item) {
+                modalEl._devolucaoState.itemsById[String(item.entrega_item_id)] = item;
+              });
+              renderItemsTable(items);
+              renderItemSelect(items);
+              setControlsEnabled(true);
+              if (qtdInput) qtdInput.value = "";
+              if (motivoInput) motivoInput.value = "";
+              if (voltaEstoqueInput) voltaEstoqueInput.checked = true;
+              if (saldoEl) saldoEl.textContent = "Saldo: -";
+            })
+            .catch(function () {
+              hideEntregaLoading();
+              setControlsEnabled(false);
+              showError("Erro ao carregar itens do funcionario.");
+              renderItemsTable([]);
+              renderItemSelect([]);
+            });
+        }
+
+        function getCondicaoLabel(value) {
+          var map = {
+            {% for value, label in condicao_choices %}
+            "{{ value }}": "{{ label|escapejs }}",
+            {% endfor %}
+          };
+          return map[value] || value || "-";
+        }
+
+        if (funcionarioSelect) {
+          funcionarioSelect.addEventListener("change", function () {
+            loadItems(funcionarioSelect.value);
+          });
+        }
+
+        if (itemSelect) {
+          itemSelect.addEventListener("change", function () {
+            clearError();
+            var itemId = itemSelect.value;
+            var item = modalEl._devolucaoState.itemsById[String(itemId)];
+            if (!item) {
+              if (saldoEl) saldoEl.textContent = "Saldo: -";
+              return;
+            }
+            if (saldoEl) saldoEl.textContent = "Saldo: " + (item.saldo || "-");
+          });
+        }
+
+        if (addBtn) {
+          addBtn.addEventListener("click", function () {
+            clearError();
+            var funcionarioId = modalEl._devolucaoState.funcionarioId;
+            var itemId = itemSelect ? itemSelect.value : "";
+            var item = modalEl._devolucaoState.itemsById[String(itemId)];
+            if (!funcionarioId) {
+              showError("Selecione o funcionario.");
+              return;
+            }
+            if (!itemId || !item) {
+              showError("Selecione um item.");
+              return;
+            }
+            var quantidade = qtdInput ? (qtdInput.value || "").trim() : "";
+            if (!quantidade) {
+              showError("Informe a quantidade.");
+              return;
+            }
+            var condicao = condicaoSelect ? condicaoSelect.value : "";
+            var motivo = motivoInput ? (motivoInput.value || "").trim() : "";
+            var voltaParaEstoque = voltaEstoqueInput ? !!voltaEstoqueInput.checked : true;
+            var saldo = parseFloat(String(item.saldo || "0").replace(",", "."));
+            var qtd = parseFloat(String(quantidade).replace(",", "."));
+            if (!(qtd > 0)) {
+              showError("Quantidade invalida.");
+              return;
+            }
+            if (qtd > saldo) {
+              showError("Quantidade excede o saldo.");
+              return;
+            }
+            modalEl._devolucaoState.selected.push({
+              funcionario_id: funcionarioId,
+              entrega_item_id: item.entrega_item_id,
+              quantidade: String(quantidade),
+              condicao: condicao,
+              condicao_label: getCondicaoLabel(condicao),
+              motivo: motivo,
+              volta_para_estoque: voltaParaEstoque,
+              label: (item.entrega_label || "Entrega") + " | " + (item.produto_label || "-") + " | " + (item.deposito_label || "-") + " | " + (item.grade || "-"),
+              produto_fornecedor_label: (item.produto_label || "-"),
+              deposito_label: (item.deposito_label || "-"),
+            });
+            if (qtdInput) qtdInput.value = "";
+            if (motivoInput) motivoInput.value = "";
+            if (voltaEstoqueInput) voltaEstoqueInput.checked = true;
+            if (itemSelect) itemSelect.value = "";
+            if (saldoEl) saldoEl.textContent = "Saldo: -";
+            renderResumo();
+          });
+        }
+
+        if (resumoTbody) {
+          resumoTbody.addEventListener("click", function (event) {
+            var target = event.target;
+            if (!target || !target.getAttribute) return;
+            var idx = target.getAttribute("data-devolucao-remove");
+            if (idx === null || idx === undefined) return;
+            var index = parseInt(idx, 10);
+            if (isNaN(index)) return;
+            modalEl._devolucaoState.selected.splice(index, 1);
+            renderResumo();
+          });
+        }
+
+        function submitDevolucao(validacaoPayload) {
+          clearError();
+          if (!form) {
+            showError("Formulario nao encontrado.");
+            return;
+          }
+          var selected = modalEl._devolucaoState.selected || [];
+          if (!selected.length) {
+            showError("Adicione ao menos um item.");
+            return;
+          }
+          var formData = new FormData(form);
+          formData.set("itens_payload", JSON.stringify(selected));
+          formData.set("validacao_payload", JSON.stringify(validacaoPayload || {}));
+          showEntregaLoading();
+          fetch(form.action, {
+            method: "POST",
+            body: formData,
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          })
+            .then(function (response) {
+              return response
+                .json()
+                .then(function (data) {
+                  return { ok: response.ok, data: data };
+                })
+                .catch(function () {
+                  return { ok: response.ok, data: null };
+                });
+            })
+            .then(function (result) {
+              hideEntregaLoading();
+              if (result.ok && result.data && result.data.ok) {
+                var instance = bootstrap.Modal.getInstance(modalEl);
+                if (instance) instance.hide();
+                return;
+              }
+              if (result.data && result.data.validate) {
+                var validacaoModal = document.getElementById("entregaValidacaoModal");
+                if (!validacaoModal || !window.bootstrap) {
+                  showError(result.data.message || "Validacao necessaria.");
+                  return;
+                }
+                window.__entregaValidacaoHandler = function (payload) {
+                  submitDevolucao(payload);
+                };
+                var resumoItems = selected.map(function (row) {
+                  return {
+                    funcionario_id: row.funcionario_id,
+                    produto_fornecedor_label: row.produto_fornecedor_label || "-",
+                    deposito_label: row.deposito_label || "-",
+                    quantidade: row.quantidade || "-",
+                  };
+                });
+                var modal = new bootstrap.Modal(validacaoModal, { backdrop: false });
+                ensureValidacaoBackdrop();
+                renderValidacaoModal(validacaoModal, result.data.message, result.data.funcionarios, result.data.invalid, resumoItems, validacaoPayload || {});
+                modal.show();
+                return;
+              }
+              showError((result.data && result.data.message) || "Erro ao confirmar devolucao.");
+            })
+            .catch(function () {
+              hideEntregaLoading();
+              showError("Erro ao confirmar devolucao.");
+            });
+        }
+
+        if (confirmBtn) {
+          confirmBtn.addEventListener("click", function () {
+            submitDevolucao(null);
+          });
+        }
+
+        modalEl.addEventListener("hidden.bs.modal", function () {
+          clearError();
+          modalEl._devolucaoState.funcionarioId = "";
+          modalEl._devolucaoState.itemsById = {};
+          modalEl._devolucaoState.selected = [];
+          if (funcionarioSelect) funcionarioSelect.value = "";
+          setControlsEnabled(false);
+          if (itemSelect) {
+            itemSelect.innerHTML = '<option value="">Selecione o funcionario...</option>';
+            setSelectDisabled(itemSelect, true);
+            refreshSelectChoices(itemSelect, true);
+          }
+          if (qtdInput) qtdInput.value = "";
+          if (motivoInput) motivoInput.value = "";
+          if (voltaEstoqueInput) voltaEstoqueInput.checked = true;
+          if (saldoEl) saldoEl.textContent = "Saldo: -";
+          if (itemsTbody) {
+            itemsTbody.innerHTML = '<tr><td colspan="6" class="text-muted text-center py-3">Selecione um funcionario para carregar.</td></tr>';
+          }
+          renderResumo();
+          updateConfirmEnabled();
         });
       }
 
@@ -1608,6 +2276,8 @@
           bindEntregaValidacaoConfirm();
           bindEntregaCancel();
           bindEntregaDetail();
+          bindDevolucaoModal();
+          bindEntregaDevolucao();
           bindEntregaMotivo();
           bindEntregaSolicitar();
           bindEntregaAtender();
@@ -1621,6 +2291,8 @@
         bindEntregaValidacaoConfirm();
         bindEntregaCancel();
         bindEntregaDetail();
+        bindDevolucaoModal();
+        bindEntregaDevolucao();
         bindEntregaMotivo();
         bindEntregaSolicitar();
         bindEntregaAtender();

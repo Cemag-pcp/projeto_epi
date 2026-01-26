@@ -22,6 +22,7 @@ urlpatterns = [
     path("", include(("apps.accounts.urls", "accounts"), namespace="accounts")),
     path("", include(("apps.relatorios.urls", "relatorios"), namespace="relatorios")),
     path("", include(("apps.acidentes.urls", "acidentes"), namespace="acidentes")),
+    path("", include(("apps.cipa.urls", "cipa"), namespace="cipa")),
 ]
 
 if settings.DEBUG:

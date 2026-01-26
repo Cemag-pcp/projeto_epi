@@ -1,8 +1,11 @@
+from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import EmptyPage, InvalidPage, Paginator
 from django.http import JsonResponse
+from django.template.loader import render_to_string
 from django.urls import reverse_lazy
 from django.utils import timezone
+from django.views import View
 
 from apps.produtos.models import Produto
 from apps.depositos.models import Deposito
@@ -29,10 +32,13 @@ class EstoqueListView(EstoqueModuleRequiredMixin, BaseTenantListView):
     model = Estoque
     template_name = "estoque/list.html"
     title = "Estoque"
-    headers = ["Produto", "Deposito", "Quantidade", "Status"]
-    row_fields = ["produto", "deposito", "quantidade", "status"]
+    headers = ["Produto", "CA", "Codigo", "Grade", "Deposito", "Quantidade", "Status"]
+    row_fields = ["produto", "produto__ca", "produto__codigo", "grade", "deposito", "quantidade", "status"]
     filter_definitions = [
         {"name": "produto__nome", "label": "Produto", "lookup": "icontains", "type": "text"},
+        {"name": "produto__ca", "label": "CA", "lookup": "icontains", "type": "text"},
+        {"name": "produto__codigo", "label": "Codigo", "lookup": "icontains", "type": "text"},
+        {"name": "grade", "label": "Grade", "lookup": "icontains", "type": "text"},
         {"name": "deposito__nome", "label": "Deposito", "lookup": "icontains", "type": "text"},
     ]
     create_url_name = "estoque:create"
@@ -41,7 +47,7 @@ class EstoqueListView(EstoqueModuleRequiredMixin, BaseTenantListView):
         queryset = super().get_queryset().select_related(
             "produto",
             "deposito",
-        ).order_by("produto__nome", "deposito__nome")
+        ).order_by("produto__nome", "grade", "deposito__nome")
         planta_id = self.request.session.get("planta_id")
         if planta_id:
             queryset = queryset.filter(deposito__planta_id=planta_id)
@@ -72,6 +78,20 @@ class EstoqueListView(EstoqueModuleRequiredMixin, BaseTenantListView):
         return context
 
 
+class EstoqueGradesView(PermissionRequiredMixin, EstoqueModuleRequiredMixin, View):
+    permission_required = "estoque.view_estoque"
+
+    def get(self, request, *args, **kwargs):
+        produto_id = request.GET.get("produto_id")
+        if not produto_id:
+            return JsonResponse({"ok": False, "grades": []})
+        produto = Produto.objects.filter(company=request.tenant, pk=produto_id).first()
+        if not produto:
+            return JsonResponse({"ok": False, "grades": []})
+        grades = produto.grade_opcoes()
+        return JsonResponse({"ok": True, "grades": grades})
+
+
 class EstoqueCreateView(EstoqueModuleRequiredMixin, BaseTenantCreateView):
     model = Estoque
     form_class = EstoqueForm
@@ -82,6 +102,53 @@ class EstoqueCreateView(EstoqueModuleRequiredMixin, BaseTenantCreateView):
         kwargs["tenant"] = self.request.tenant
         kwargs["planta_id"] = self.request.session.get("planta_id")
         return kwargs
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            planta_id = self.request.session.get("planta_id")
+            form_html = render_to_string(
+                "estoque/_estoque_form.html",
+                {
+                    "form": EstoqueForm(tenant=self.request.tenant, planta_id=planta_id),
+                    "form_action": reverse_lazy("estoque:create"),
+                    "form_id": "estoque-form",
+                },
+                request=self.request,
+            )
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "message": "Criado com sucesso.",
+                    "form_html": form_html,
+                }
+            )
+        return response
+
+    def form_invalid(self, form):
+        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            message = None
+            non_field = form.non_field_errors()
+            if non_field:
+                message = str(non_field[0])
+            form_html = render_to_string(
+                "estoque/_estoque_form.html",
+                {
+                    "form": form,
+                    "form_action": self.request.path,
+                    "form_id": "estoque-form",
+                },
+                request=self.request,
+            )
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "message": message or "Nao foi possivel salvar o estoque.",
+                    "form_html": form_html,
+                },
+                status=400,
+            )
+        return super().form_invalid(form)
 
 
 class MovimentacaoCreateView(EstoqueModuleRequiredMixin, BaseTenantCreateView):
@@ -219,6 +286,7 @@ class ProdutoExtratoView(EstoqueModuleRequiredMixin, BaseTenantListView):
                 {
                     "mov": mov,
                     "produto": mov.estoque.produto if mov.estoque_id else None,
+                    "grade": (mov.estoque.grade or "").strip() if mov.estoque_id else "",
                     "deposito": mov.estoque.deposito if mov.estoque_id else None,
                     "saldo_anterior": saldo_anterior,
                     "saldo_atual": saldo_atual,

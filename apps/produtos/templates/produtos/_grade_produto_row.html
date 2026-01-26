@@ -1,0 +1,78 @@
+<tr id="grade-produto-row-{{ grade.pk }}">
+  <td>{{ grade.nome|default:"-" }}</td>
+  <td>
+    {% if grade.ativo %}
+      <span class="badge bg-success">Ativo</span>
+    {% else %}
+      <span class="badge bg-secondary">Inativo</span>
+    {% endif %}
+  </td>
+  <td class="text-end">
+    {% if perms.produtos.change_gradeproduto or perms.produtos.delete_gradeproduto %}
+      {% if perms.produtos.change_gradeproduto %}
+        <button
+          class="btn btn-outline-primary btn-icon"
+          type="button"
+          data-bs-toggle="modal"
+          data-bs-target="#editModal-{{ grade.pk }}"
+          title="Editar"
+          aria-label="Editar"
+        >
+          <i class="bi bi-pencil"></i>
+        </button>
+
+        <form
+          class="d-inline js-grade-produto-toggle"
+          id="grade-produto-toggle-{{ grade.pk }}"
+          method="post"
+          action="{% url 'produtos:grades_toggle' grade.pk %}"
+        >
+          {% csrf_token %}
+        </form>
+        <button
+          class="btn btn-outline-primary btn-icon js-grade-produto-toggle-trigger"
+          type="button"
+          data-bs-toggle="modal"
+          data-bs-target="#gradeProdutoToggleModal"
+          data-form-id="grade-produto-toggle-{{ grade.pk }}"
+          data-nome="{{ grade.nome|escapejs }}"
+          data-ativo="{% if grade.ativo %}1{% else %}0{% endif %}"
+          title="{% if grade.ativo %}Desativar{% else %}Ativar{% endif %}"
+          aria-label="{% if grade.ativo %}Desativar{% else %}Ativar{% endif %}"
+        >
+          {% if grade.ativo %}
+            <i class="bi bi-person-x"></i>
+          {% else %}
+            <i class="bi bi-person-check"></i>
+          {% endif %}
+        </button>
+      {% endif %}
+
+      {% if perms.produtos.delete_gradeproduto %}
+        <form
+          class="d-inline js-grade-produto-delete"
+          id="grade-produto-delete-{{ grade.pk }}"
+          method="post"
+          action="{% url 'produtos:grades_delete' grade.pk %}"
+        >
+          {% csrf_token %}
+        </form>
+        <button
+          class="btn btn-outline-danger btn-icon js-grade-produto-delete-trigger"
+          type="button"
+          data-bs-toggle="modal"
+          data-bs-target="#gradeProdutoDeleteModal"
+          data-form-id="grade-produto-delete-{{ grade.pk }}"
+          data-nome="{{ grade.nome|escapejs }}"
+          title="Excluir"
+          aria-label="Excluir"
+        >
+          <i class="bi bi-trash"></i>
+        </button>
+      {% endif %}
+    {% else %}
+      <span class="text-muted">-</span>
+    {% endif %}
+  </td>
+</tr>
+

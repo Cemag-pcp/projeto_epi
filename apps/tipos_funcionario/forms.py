@@ -1,5 +1,6 @@
 from apps.core.forms import BootstrapModelForm
 from apps.produtos.models import ProdutoFornecedor
+from apps.produtos.services import ensure_produtofornecedor_placeholders
 from .models import TipoFuncionario, TipoFuncionarioProduto
 
 
@@ -20,6 +21,7 @@ class TipoFuncionarioProdutoForm(BootstrapModelForm):
         tipos = TipoFuncionario.objects.filter(ativo=True)
         produtos = ProdutoFornecedor.objects.select_related("produto", "fornecedor")
         if tenant is not None:
+            ensure_produtofornecedor_placeholders(tenant)
             tipos = tipos.filter(company=tenant)
             produtos = produtos.filter(company=tenant, produto__ativo=True)
         self.fields["tipo_funcionario"].queryset = tipos.order_by("nome")

@@ -9,6 +9,7 @@ from apps.fornecedores.models import Fornecedor
 from .models import (
     FamiliaProduto,
     Fabricante,
+    GradeProduto,
     LocalizacaoProduto,
     LocalRetirada,
     Periodicidade,
@@ -189,3 +190,9 @@ class UnidadeProdutoForm(BootstrapModelForm):
     class Meta:
         model = UnidadeProduto
         fields = ["nome", "sigla"]
+
+
+class GradeProdutoForm(BootstrapModelForm):
+    class Meta:
+        model = GradeProduto
+        fields = ["nome", "ativo"]

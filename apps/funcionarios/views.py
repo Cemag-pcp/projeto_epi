@@ -3,14 +3,16 @@ import json
 
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.db.models import Sum
 from django.core.paginator import InvalidPage, Paginator
 from django.http import JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.views import View
 
-from apps.entregas.models import EntregaItem
+from apps.entregas.models import Devolucao, DevolucaoItem, Entrega, EntregaItem
 from apps.core.views import (
     BaseTenantCreateView,
     BaseTenantDetailView,
@@ -231,6 +233,144 @@ class FuncionarioCreateView(BaseTenantCreateView):
             return JsonResponse({"ok": False, "form_html": form_html}, status=400)
         return super().form_invalid(form)
 
+
+def _parse_ids(values):
+    ids = []
+    for raw in values:
+        if raw is None:
+            continue
+        for part in str(raw).split(","):
+            part = part.strip()
+            if not part:
+                continue
+            if part.isdigit():
+                ids.append(int(part))
+    return ids
+
+
+class FichasEPIView(PermissionRequiredMixin, View):
+    permission_required = "funcionarios.view_funcionario"
+
+    def get(self, request):
+        planta_id = request.session.get("planta_id")
+        funcionarios = Funcionario.objects.filter(company=request.tenant, ativo=True)
+        if planta_id:
+            funcionarios = funcionarios.filter(planta_id=planta_id)
+        funcionarios = funcionarios.order_by("nome").only("id", "nome", "registro")
+        context = {
+            "funcionarios": funcionarios,
+            "relatorio_url": reverse("funcionarios:fichas_epi_relatorio"),
+        }
+        return render(request, "funcionarios/fichas_epi.html", context)
+
+
+class FichasEPIReportView(PermissionRequiredMixin, View):
+    permission_required = "funcionarios.view_funcionario"
+
+    def get(self, request):
+        funcionario_ids = _parse_ids(request.GET.getlist("funcionario_id") or [request.GET.get("funcionario_id")])
+        if not funcionario_ids:
+            return HttpResponseRedirect(reverse("funcionarios:fichas_epi"))
+
+        only_active = (request.GET.get("only_active") or "1").strip() not in ("0", "false", "off", "")
+        auto_print = (request.GET.get("print") or "").strip() in ("1", "true", "on")
+
+        funcionarios = (
+            Funcionario.objects.filter(company=request.tenant, pk__in=funcionario_ids)
+            .select_related("setor", "cargo", "planta", "centro_custo", "ghe")
+            .order_by("nome")
+        )
+
+        fichas = []
+        for funcionario in funcionarios:
+            itens_qs = (
+                EntregaItem.objects.filter(company=request.tenant, entrega__funcionario_id=funcionario.pk)
+                .exclude(entrega__status="cancelada")
+                .exclude(entrega__entregue_em__isnull=True)
+                .select_related("produto", "deposito", "entrega")
+                .order_by("-entrega__entregue_em", "-entrega_id", "-id")
+            )
+
+            entrega_items = list(itens_qs)
+            if only_active:
+                latest = {}
+                active_items = []
+                for item in entrega_items:
+                    key = (item.produto_id, ((item.grade or "").strip() or "").lower())
+                    if key in latest:
+                        continue
+                    latest[key] = item.pk
+                    active_items.append(item)
+                entrega_items = active_items
+
+            last_devolucao_item_by_entrega_item = {}
+            if entrega_items:
+                entrega_item_ids = [item.pk for item in entrega_items]
+                devolucao_items = (
+                    DevolucaoItem.objects.filter(company=request.tenant, entrega_item_id__in=entrega_item_ids)
+                    .select_related("devolucao")
+                    .order_by("-devolucao__devolvida_em", "-devolucao_id", "-id")
+                )
+                for devolucao_item in devolucao_items:
+                    if devolucao_item.entrega_item_id in last_devolucao_item_by_entrega_item:
+                        continue
+                    last_devolucao_item_by_entrega_item[devolucao_item.entrega_item_id] = devolucao_item
+
+            movimentos = []
+            for entrega_item in entrega_items:
+                last_dev = last_devolucao_item_by_entrega_item.get(entrega_item.pk)
+                entrega = entrega_item.entrega
+                devolucao_em = None
+                motivo_dev = ""
+                if last_dev and last_dev.devolucao_id and last_dev.devolucao:
+                    devolucao_em = last_dev.devolucao.devolvida_em
+                    motivo_dev = (last_dev.motivo or "").strip()
+                ca_label = (entrega_item.ca or "").strip() or (getattr(entrega_item.produto, "ca", "") or "-")
+                assinatura_url = None
+                if entrega and getattr(entrega, "assinatura", None):
+                    try:
+                        assinatura_url = entrega.assinatura.url
+                    except Exception:
+                        assinatura_url = None
+                validacao_tipo = (getattr(entrega, "validacao_recebimento", "") or "nenhum") if entrega else "nenhum"
+                validacao_em = None
+                if entrega and validacao_tipo != "nenhum":
+                    validacao_em = entrega.entregue_em
+                movimentos.append(
+                    {
+                        "entrega_id": entrega_item.entrega_id,
+                        "entrega_em": entrega.entregue_em if entrega else None,
+                        "devolucao_em": devolucao_em,
+                        "quantidade": entrega_item.quantidade,
+                        "equipamento": entrega_item.produto,
+                        "ca": ca_label,
+                        "motivo": motivo_dev,
+                        "assinatura_url": assinatura_url,
+                        "validacao_em": validacao_em,
+                        "validacao_tipo": validacao_tipo,
+                        "validacao_label": (
+                            "Assinatura (nao registrada)"
+                            if entrega and (entrega.validacao_recebimento or "") == "assinatura" and not assinatura_url
+                            else (entrega.get_validacao_recebimento_display() if entrega else "-")
+                        ),
+                    }
+                )
+
+            fichas.append(
+                {
+                    "funcionario": funcionario,
+                    "movimentos": movimentos,
+                }
+            )
+
+        context = {
+            "fichas": fichas,
+            "gerado_em": timezone.now(),
+            "empresa_nome": getattr(request.tenant, "name", "-"),
+            "only_active": only_active,
+            "auto_print": auto_print,
+        }
+        return render(request, "funcionarios/fichas_epi_report.html", context)
 
 class FuncionarioUpdateView(BaseTenantUpdateView):
     model = Funcionario
