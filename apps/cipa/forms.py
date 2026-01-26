@@ -50,6 +50,13 @@ class WizardBaseForm(forms.ModelForm):
 
 class CipaEleicaoProgramacaoForm(WizardBaseForm):
     required_for_next = ["nome", "qt_colaboradores", "qt_efetivos", "qt_suplentes", "grau_risco"]
+    grau_risco = forms.TypedChoiceField(
+        choices=[(1, "1"), (2, "2"), (3, "3"), (4, "4")],
+        coerce=int,
+        widget=forms.RadioSelect,
+        required=True,
+        label="Grau de risco",
+    )
 
     class Meta:
         model = CipaEleicao
@@ -69,8 +76,14 @@ class CipaEleicaoProgramacaoForm(WizardBaseForm):
             "qt_colaboradores": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
             "qt_efetivos": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
             "qt_suplentes": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
-            "grau_risco": forms.NumberInput(attrs={"class": "form-control", "min": 1, "max": 4}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["qt_colaboradores"].required = True
+        self.fields["qt_efetivos"].required = True
+        self.fields["qt_suplentes"].required = True
+        self.fields["grau_risco"].required = True
 
     def validate_for_next(self) -> bool:
         ok = super().validate_for_next()
@@ -82,6 +95,27 @@ class CipaEleicaoProgramacaoForm(WizardBaseForm):
             self.add_error("planta", "Campo obrigatório para avançar.")
             ok = False
         return ok
+
+    def clean_nome(self):
+        nome = (self.cleaned_data.get("nome") or "").strip()
+        if not nome:
+            return nome
+
+        company = None
+        if getattr(self, "instance", None) and self.instance.company_id:
+            company = self.instance.company
+        else:
+            request = getattr(self, "request", None)
+            company = getattr(request, "tenant", None) if request else None
+
+        if company:
+            qs = CipaEleicao.objects.filter(company=company, nome__iexact=nome)
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError("Já existe uma eleição de CIPA com este nome.")
+
+        return nome
 
     def clean(self):
         cleaned = super().clean()
@@ -108,14 +142,14 @@ class CipaEleicaoInicioForm(WizardBaseForm):
         ]
         widgets = {
             "eleicao_extraordinaria": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "data_fim_ultimo_mandato": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
-            "mandato_inicio": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
-            "mandato_fim": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
-            "data_eleicao": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
-            "data_divulgacao_candidatos": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
-            "data_abertura_candidaturas": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
-            "data_comunicacao_sindicato": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
-            "data_inicio_processo_eleitoral": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "data_fim_ultimo_mandato": forms.DateInput(format="%Y-%m-%d", attrs={"class": "form-control", "type": "date"}),
+            "mandato_inicio": forms.DateInput(format="%Y-%m-%d", attrs={"class": "form-control", "type": "date"}),
+            "mandato_fim": forms.DateInput(format="%Y-%m-%d", attrs={"class": "form-control", "type": "date"}),
+            "data_eleicao": forms.DateInput(format="%Y-%m-%d", attrs={"class": "form-control", "type": "date"}),
+            "data_divulgacao_candidatos": forms.DateInput(format="%Y-%m-%d", attrs={"class": "form-control", "type": "date"}),
+            "data_abertura_candidaturas": forms.DateInput(format="%Y-%m-%d", attrs={"class": "form-control", "type": "date"}),
+            "data_comunicacao_sindicato": forms.DateInput(format="%Y-%m-%d", attrs={"class": "form-control", "type": "date"}),
+            "data_inicio_processo_eleitoral": forms.DateInput(format="%Y-%m-%d", attrs={"class": "form-control", "type": "date"}),
         }
 
 
@@ -127,7 +161,7 @@ class CipaEleicaoSindicatoForm(WizardBaseForm):
             "observacoes",
         ]
         widgets = {
-            "data_comunicacao_sindicato": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "data_comunicacao_sindicato": forms.DateInput(format="%Y-%m-%d", attrs={"class": "form-control", "type": "date"}),
             "observacoes": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
         }
 
@@ -140,7 +174,7 @@ class CipaEleicaoCandidaturaForm(WizardBaseForm):
             "candidatura_publica_ativa",
         ]
         widgets = {
-            "data_abertura_candidaturas": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "data_abertura_candidaturas": forms.DateInput(format="%Y-%m-%d", attrs={"class": "form-control", "type": "date"}),
             "candidatura_publica_ativa": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
 
@@ -154,8 +188,8 @@ class CipaEleicaoDivulgacaoForm(WizardBaseForm):
             "observacoes",
         ]
         widgets = {
-            "data_divulgacao_candidatos": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
-            "data_divulgacao": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "data_divulgacao_candidatos": forms.DateInput(format="%Y-%m-%d", attrs={"class": "form-control", "type": "date"}),
+            "data_divulgacao": forms.DateInput(format="%Y-%m-%d", attrs={"class": "form-control", "type": "date"}),
             "observacoes": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
         }
 

@@ -1,6 +1,7 @@
 import uuid
 
 from django.db import models
+from django.db.models.functions import Lower
 from django.core.validators import MaxValueValidator, MinValueValidator
 
 from apps.core.models import TenantModel
@@ -19,6 +20,14 @@ class CipaEleicao(TenantModel):
         ("encerrada", "Encerrada"),
         ("cancelada", "Cancelada"),
     ]
+    
+    WIZARD_STEP_LABELS = {
+        1: "Programação",
+        2: "Início",
+        3: "Comunicação",
+        4: "Candidatura",
+        5: "Divulgação",
+    }
 
     nome = models.CharField(max_length=200)
     escopo = models.CharField(max_length=20, choices=ESCOPO_CHOICES, default="planta")
@@ -71,11 +80,20 @@ class CipaEleicao(TenantModel):
                     | models.Q(escopo="global", planta__isnull=True)
                     | models.Q(escopo="planta", planta__isnull=False)
                 ),
-            )
+            ),
+            models.UniqueConstraint(
+                Lower("nome"),
+                "company",
+                name="cipa_eleicao_unique_company_nome_ci",
+            ),
         ]
 
     def __str__(self):
         return self.nome
+
+    @property
+    def wizard_step_label(self):
+        return self.WIZARD_STEP_LABELS.get(int(self.wizard_step or 1), "-")
 
 
 class CipaCandidato(TenantModel):

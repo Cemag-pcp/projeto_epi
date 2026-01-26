@@ -55,6 +55,11 @@
                 {% endfor %}
               </div>
             {% endif %}
+            {% if locked_step %}
+              <div class="alert alert-warning py-2">
+                As etapas 1 e 2 estão bloqueadas para edição.
+              </div>
+            {% endif %}
 
             {% if step == 1 %}
               <div class="row g-3">
@@ -316,8 +321,8 @@
 
             <hr class="my-4">
             <div class="d-flex flex-wrap gap-2 justify-content-end">
-              <button class="btn btn-outline-secondary" type="submit" name="save_close" value="1">Salvar e fechar</button>
-              <button class="btn btn-primary" type="submit" name="save_next" value="1">Salvar e continuar</button>
+              <button class="btn btn-outline-secondary" type="submit" name="save_close" value="1"{% if locked_step %} disabled{% endif %}>Salvar e fechar</button>
+              <button class="btn btn-primary" type="submit" name="save_next" value="1"{% if locked_step %} disabled{% endif %}>Salvar e continuar</button>
             </div>
           </form>
         </div>

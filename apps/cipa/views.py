@@ -41,7 +41,7 @@ class CipaEleicaoListView(BaseTenantListView):
     subtitle = "Eleições da CIPA."
 
     def get_queryset(self):
-        qs = super().get_queryset().select_related("planta")
+        qs = super().get_queryset().select_related("planta").prefetch_related("candidatos__funcionario")
         planta_id = self.request.session.get("planta_id")
         if planta_id:
             qs = qs.filter(Q(planta_id=planta_id) | Q(escopo="global"))
@@ -121,9 +121,11 @@ class CipaEleicaoWizardView(LoginRequiredMixin, View):
         if not (request.user.has_perm("cipa.change_cipaeleicao") or request.user.has_perm("cipa.add_cipaeleicao")):
             raise Http404
         eleicao = _get_eleicao_or_404(request, pk)
+        max_step = max(WIZARD_STEPS.keys())
         step = int(step or 1)
         if step not in WIZARD_STEPS:
-            return redirect("cipa:wizard", pk=pk, step=eleicao.wizard_step or 1)
+            fallback_step = min(int(eleicao.wizard_step or 1), max_step)
+            return redirect("cipa:wizard", pk=pk, step=fallback_step)
 
         form = self._build_form(request, eleicao, step)
         return render(
@@ -136,9 +138,14 @@ class CipaEleicaoWizardView(LoginRequiredMixin, View):
         if not (request.user.has_perm("cipa.change_cipaeleicao") or request.user.has_perm("cipa.add_cipaeleicao")):
             raise Http404
         eleicao = _get_eleicao_or_404(request, pk)
+        max_step = max(WIZARD_STEPS.keys())
         step = int(step or 1)
         if step not in WIZARD_STEPS:
-            return redirect("cipa:wizard", pk=pk, step=eleicao.wizard_step or 1)
+            fallback_step = min(int(eleicao.wizard_step or 1), max_step)
+            return redirect("cipa:wizard", pk=pk, step=fallback_step)
+        if step in (1, 2) and int(eleicao.wizard_step or 1) > 2:
+            messages.warning(request, "As etapas 1 e 2 estão bloqueadas para edição.")
+            return redirect("cipa:wizard", pk=pk, step=step)
 
         if step == 4 and "regenerate_token" in request.POST:
             eleicao.candidatura_publica_token = uuid.uuid4()
@@ -193,7 +200,8 @@ class CipaEleicaoWizardView(LoginRequiredMixin, View):
                 if getattr(instance, key) in (None, ""):
                     setattr(instance, key, value)
 
-        instance.wizard_step = max(int(instance.wizard_step or 1), step + (1 if action_next else 0), step)
+        next_step_value = max(int(instance.wizard_step or 1), step + (1 if action_next else 0), step)
+        instance.wizard_step = min(next_step_value, max_step)
         instance.save()
         form.save_m2m() if hasattr(form, "save_m2m") else None
 
@@ -219,9 +227,13 @@ class CipaEleicaoWizardView(LoginRequiredMixin, View):
             form.request = request
         else:
             setattr(form, "request", request)
+        if step in (1, 2) and int(eleicao.wizard_step or 1) > 2:
+            for field in form.fields.values():
+                field.disabled = True
         return form
 
     def _context(self, *, eleicao: CipaEleicao, step: int, form):
+        locked = step in (1, 2) and int(eleicao.wizard_step or 1) > 2
         steps = []
         for num, meta in WIZARD_STEPS.items():
             steps.append(
@@ -240,6 +252,7 @@ class CipaEleicaoWizardView(LoginRequiredMixin, View):
             "step_title": WIZARD_STEPS[step]["title"],
             "steps": steps,
             "form": form,
+            "locked_step": locked,
             "result": _compute_result(self.request.tenant, eleicao) if eleicao.status == "encerrada" else None,
         }
 
